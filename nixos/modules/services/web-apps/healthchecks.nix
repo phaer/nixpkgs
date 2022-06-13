@@ -27,7 +27,12 @@ let
 in
 {
   options.services.healthchecks = {
-    enable = mkEnableOption "healthchecks";
+    enable = mkEnableOption "healthchecks" // {
+      description = ''
+        Enable healthchecks.
+        It is expected to be run behind a HTTP reverse proxy.
+      '';
+    };
     allowedHosts = mkOption {
       type = types.listOf types.str;
       default = [ "*" ];
