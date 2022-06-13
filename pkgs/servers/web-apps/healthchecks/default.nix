@@ -24,7 +24,6 @@ py.pkgs.buildPythonApplication rec {
   };
 
   propagatedBuildInputs = with py.pkgs; [
-    py
     django
     django_compressor
     fido2
