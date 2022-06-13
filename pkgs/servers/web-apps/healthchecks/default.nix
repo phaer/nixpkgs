@@ -36,6 +36,8 @@ py.pkgs.buildPythonApplication rec {
     cronsim
     segno
     cryptography
+    apprise
+    minio
   ];
 
   localSettings = writeText "local_settings.py" ''
