@@ -19,10 +19,12 @@ let
   environmentFile = pkgs.writeText "healthchecks-environment" (lib.generators.toKeyValue {} environment);
 
   healthchecksManageScript = with pkgs; (writeShellScriptBin "healthchecks-manage" ''
-    sudo -u healthchecks sh -s "$@" <<"EOF"
+      if [[ "$USER" != "healthchecks" ]]; then
+          echo "please run as user 'healtchecks'." >/dev/stderr
+          exit 1
+      fi
       export $(cat ${environmentFile} | xargs);
-      ${pkg}/bin/healthchecks-manage "$@"
-    EOF
+      exec ${pkg}/opt/healthchecks/manage.py "$@"
   '');
 in
 {
@@ -128,7 +130,7 @@ in
             Restart = "on-failure";
             Type = "oneshot";
             ExecStart = ''
-              ${pkg}/bin/healthchecks-manage migrate
+              ${pkg}/opt/healthchecks/manage.py migrate
             '';
           };
         };
@@ -139,9 +141,9 @@ in
           after = [ "healthchecks-migration.service" ];
 
           preStart = ''
-            ${pkg}/bin/healthchecks-manage collectstatic --no-input
-            ${pkg}/bin/healthchecks-manage remove_stale_contenttypes --no-input
-            ${pkg}/bin/healthchecks-manage compress
+            ${pkg}/opt/healthchecks/manage.py collectstatic --no-input
+            ${pkg}/opt/healthchecks/manage.py remove_stale_contenttypes --no-input
+            ${pkg}/opt/healthchecks/manage.py compress
           '';
 
           serviceConfig = defaultServiceConfig // {
@@ -162,7 +164,7 @@ in
           serviceConfig = defaultServiceConfig // {
             Restart = "always";
             ExecStart = ''
-              ${pkg}/bin/healthchecks-manage sendalerts
+              ${pkg}/opt/healthchecks/manage.py sendalerts
             '';
           };
         };
@@ -175,7 +177,7 @@ in
           serviceConfig = defaultServiceConfig // {
             Restart = "always";
             ExecStart = ''
-              ${pkg}/bin/healthchecks-manage sendreports --loop
+              ${pkg}/opt/healthchecks/manage.py sendreports --loop
             '';
           };
         };

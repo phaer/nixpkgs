@@ -24,6 +24,7 @@ py.pkgs.buildPythonApplication rec {
   };
 
   propagatedBuildInputs = with py.pkgs; [
+    py
     django
     django_compressor
     fido2
@@ -54,8 +55,6 @@ py.pkgs.buildPythonApplication rec {
     cp -r . $out/opt/healthchecks
     chmod +x $out/opt/healthchecks/manage.py
     cp ${localSettings} $out/opt/healthchecks/hc/local_settings.py
-    makeWrapper $out/opt/healthchecks/manage.py $out/bin/healthchecks-manage \
-      --prefix PYTHONPATH : "$PYTHONPATH"
   '';
 
   passthru = {
