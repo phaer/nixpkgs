@@ -16,15 +16,15 @@ let
     REGISTRATION_OPEN = boolToPython cfg.registrationOpen;
   } // cfg.settings;
 
-  environmentFile = pkgs.writeText "healthchecks-environment" (lib.generators.toKeyValue {} environment);
+  environmentFile = pkgs.writeText "healthchecks-environment" (lib.generators.toKeyValue { } environment);
 
   healthchecksManageScript = with pkgs; (writeShellScriptBin "healthchecks-manage" ''
-      if [[ "$USER" != "healthchecks" ]]; then
-          echo "please run as user 'healtchecks'." >/dev/stderr
-          exit 1
-      fi
-      export $(cat ${environmentFile} | xargs);
-      exec ${pkg}/opt/healthchecks/manage.py "$@"
+    if [[ "$USER" != "healthchecks" ]]; then
+        echo "please run as user 'healtchecks'." >/dev/stderr
+        exit 1
+    fi
+    export $(cat ${environmentFile} | xargs);
+    exec ${pkg}/opt/healthchecks/manage.py "$@"
   '');
 in
 {
@@ -94,7 +94,7 @@ in
 
     settings = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       description = ''
         Additional environment variables. See the <link xlink:href="https://healthchecks.io/docs/self_hosted_configuration/">documentation</link> for possible options.
       '';
