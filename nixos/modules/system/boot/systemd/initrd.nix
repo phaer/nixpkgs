@@ -215,6 +215,15 @@ in {
       default = false;
     };
 
+    passwd = mkOption {
+      type = with types; listOf singleLineStr;
+      visible = false;
+      description = ''
+        Extra lines to add to passwd
+      '';
+      default = [];
+    };
+
     initrdBin = mkOption {
       type = types.listOf types.package;
       default = [];
@@ -346,7 +355,10 @@ in {
 
       "modules-load.d/nixos.conf".text = concatStringsSep "\n" config.boot.initrd.kernelModules;
 
-      "passwd".source = "${pkgs.fakeNss}/etc/passwd";
+      "passwd".source = pkgs.runCommand "initrd-passwd" {} ''
+        cat "${pkgs.fakeNss}/etc/passwd" > $out
+        ${lib.concatMapStringsSep "\n" (p: "echo '${p}' >> $out") cfg.passwd}
+      '';
       # We can use either ! or * to lock the root account in the
       # console, but some software like OpenSSH won't even allow you
       # to log in with an SSH key if you use ! so we use * instead
