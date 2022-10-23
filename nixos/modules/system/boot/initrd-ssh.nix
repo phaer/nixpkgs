@@ -134,19 +134,15 @@ in
       ${cfg.extraConfig}
     '';
   in mkIf (config.boot.initrd.network.enable && cfg.enable) {
+    warnings =
+      if cfg.hostKeys == [];
+      then [ ''boot.initrd.network.ssh.hostKeys is empty, sshd won't work unless you provide keys manually.
+               '' ]
+      else [];
     assertions = [
       {
         assertion = cfg.authorizedKeys != [];
         message = "You should specify at least one authorized key for initrd SSH";
-      }
-
-      {
-        assertion = cfg.hostKeys != [];
-        message = ''
-          You must now pre-generate the host keys for initrd SSH.
-          See the boot.initrd.network.ssh.hostKeys documentation
-          for instructions.
-        '';
       }
     ];
 
