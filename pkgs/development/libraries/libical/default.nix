@@ -12,16 +12,14 @@
 , libical
 , python3
 , tzdata
-, introspectionSupport ? stdenv.buildPlatform == stdenv.hostPlatform
-, gobject-introspection ? null
-, vala ? null
+, fixDarwinDylibNames
+, gobject-introspection
+, vala
 }:
-
-assert introspectionSupport -> gobject-introspection != null && vala != null;
 
 stdenv.mkDerivation rec {
   pname = "libical";
-  version = "3.0.9";
+  version = "3.0.16";
 
   outputs = [ "out" "dev" ]; # "devdoc" ];
 
@@ -29,14 +27,17 @@ stdenv.mkDerivation rec {
     owner = "libical";
     repo = "libical";
     rev = "v${version}";
-    sha256 = "sha256-efdiGktLGITaQ6VinnfYG52fMhO0Av+JKROt2kTvS1U=";
+    sha256 = "sha256-3D/0leI3LLKDFOXkKSrmMamLoaXdi/2Z4iPUXqgwtg8=";
   };
 
+  strictDeps = true;
   nativeBuildInputs = [
     cmake
     ninja
     perl
     pkg-config
+    gobject-introspection
+    vala
     # Docs building fails:
     # https://github.com/NixOS/nixpkgs/pull/67204
     # previously with https://github.com/NixOS/nixpkgs/pull/61657#issuecomment-495579489
@@ -44,13 +45,12 @@ stdenv.mkDerivation rec {
   ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
     # provides ical-glib-src-generator that runs during build
     libical
-  ] ++ lib.optionals introspectionSupport [
-    gobject-introspection
-    vala
+  ] ++ lib.optionals stdenv.isDarwin [
+    fixDarwinDylibNames
   ];
-  installCheckInputs = [
+  nativeInstallCheckInputs = [
     # running libical-glib tests
-    (python3.withPackages (pkgs: with pkgs; [
+    (python3.pythonForBuild.withPackages (pkgs: with pkgs; [
       pygobject3
     ]))
   ];
@@ -59,11 +59,11 @@ stdenv.mkDerivation rec {
     glib
     libxml2
     icu
+    gobject-introspection
   ];
 
   cmakeFlags = [
     "-DENABLE_GTK_DOC=False"
-  ] ++ lib.optionals introspectionSupport [
     "-DGOBJECT_INTROSPECTION=True"
     "-DICAL_GLIB_VAPI=True"
   ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
@@ -78,8 +78,16 @@ stdenv.mkDerivation rec {
 
   # Using install check so we do not have to manually set
   # LD_LIBRARY_PATH and GI_TYPELIB_PATH variables
-  doInstallCheck = true;
+  # Musl does not support TZDIR.
+  doInstallCheck = !stdenv.hostPlatform.isMusl;
   enableParallelChecking = false;
+  preInstallCheck = if stdenv.isDarwin then ''
+    for testexe in $(find ./src/test -maxdepth 1 -type f -executable); do
+      for lib in $(cd lib && ls *.3.dylib); do
+        install_name_tool -change $lib $out/lib/$lib $testexe
+      done
+    done
+  '' else null;
   installCheckPhase = ''
     runHook preInstallCheck
 

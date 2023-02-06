@@ -3,45 +3,52 @@
 , fetchFromGitHub
 , httpcore
 , httpx
+, flask
 , pytest-asyncio
-, pytest-cov
 , pytestCheckHook
+, starlette
 , trio
 }:
 
 buildPythonPackage rec {
   pname = "respx";
-  version = "0.16.3";
+  version = "0.20.1";
 
   src = fetchFromGitHub {
     owner = "lundberg";
     repo = pname;
     rev = version;
-    sha256 = "0if9sg83rznl37hsjw6pfk78jpxi421g9p21wd92jcd6073g4nbd";
+    sha256 = "sha256-Qs3+NWMKiAFlKTTosdyHOxWRPKFlYQD20+MKiKR371U=";
   };
 
-  # Coverage is under 100 % due to the excluded tests
-  postPatch = ''
-    substituteInPlace setup.cfg --replace "--cov-fail-under 100" ""
-  '';
+  propagatedBuildInputs = [
+    httpx
+  ];
 
-  propagatedBuildInputs = [ httpx ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     httpcore
     httpx
+    flask
     pytest-asyncio
-    pytest-cov
     pytestCheckHook
+    starlette
     trio
   ];
 
-  disabledTests = [ "test_pass_through" ];
+  postPatch = ''
+    sed -i "/--cov/d" setup.cfg
+  '';
+
+  disabledTests = [
+    "test_pass_through"
+  ];
+
   pythonImportsCheck = [ "respx" ];
 
   meta = with lib; {
     description = "Python library for mocking HTTPX";
     homepage = "https://lundberg.github.io/respx/";
+    changelog = "https://github.com/lundberg/respx/blob/${src.rev}/CHANGELOG.md";
     license = with licenses; [ bsd3 ];
     maintainers = with maintainers; [ fab ];
   };

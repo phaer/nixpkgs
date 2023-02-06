@@ -1,6 +1,5 @@
 { mkDerivation
 , extra-cmake-modules
-, fetchpatch
 , kcmutils
 , kconfigwidgets
 , kdbusaddons
@@ -19,10 +18,16 @@
 , makeWrapper
 , pulseaudio-qt
 , qca-qt5
+, qqc2-desktop-style
 , qtgraphicaleffects
 , qtmultimedia
+, qtquickcontrols2
 , qtx11extras
+, breeze-icons
 , sshfs
+, wayland
+, wayland-scanner
+, plasma-wayland-protocols
 }:
 
 mkDerivation {
@@ -44,9 +49,16 @@ mkDerivation {
     libfakekey
     pulseaudio-qt
     qca-qt5
+    qqc2-desktop-style
     qtgraphicaleffects
     qtmultimedia
+    qtquickcontrols2
     qtx11extras
+    wayland
+    wayland-scanner
+    plasma-wayland-protocols
+    # otherwise buttons are blank on non-kde
+    breeze-icons
   ];
 
   nativeBuildInputs = [ extra-cmake-modules kdoctools makeWrapper ];

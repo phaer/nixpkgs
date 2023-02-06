@@ -6,22 +6,24 @@
 , mock
 , ipython_genutils
 , decorator
-, enum34
 , pythonOlder
 , six
+, hatchling
 }:
 
 buildPythonPackage rec {
   pname = "traitlets";
-  version = "5.0.5";
+  version = "5.8.0";
+  format = "pyproject";
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "178f4ce988f69189f7e523337a3e11d91c786ded9360174a3d9ca83e79bc5396";
+    sha256 = "sha256-bMV9bcKMhdU2WWFyb/0ZtThzk0d0nhPr404DMjoOj4Q=";
   };
 
-  checkInputs = [ glibcLocales pytest mock ];
+  nativeBuildInputs = [ hatchling ];
+  nativeCheckInputs = [ glibcLocales pytest mock ];
   propagatedBuildInputs = [ ipython_genutils decorator six ];
 
   checkPhase = ''
@@ -30,7 +32,7 @@ buildPythonPackage rec {
 
   meta = {
     description = "Traitlets Python config system";
-    homepage = "http://ipython.org/";
+    homepage = "https://ipython.org/";
     license = lib.licenses.bsd3;
     maintainers = with lib.maintainers; [ fridh ];
   };

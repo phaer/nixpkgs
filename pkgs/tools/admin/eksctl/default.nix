@@ -2,34 +2,37 @@
 
 buildGoModule rec {
   pname = "eksctl";
-  version = "0.46.0";
+  version = "0.128.0";
 
   src = fetchFromGitHub {
     owner = "weaveworks";
     repo = pname;
     rev = version;
-    sha256 = "sha256-fPs9xB27fxUnsXndqpcifmMPGA8hEyeYC7tq+W9eBKI=";
+    sha256 = "sha256-CKtDj9Ht81i8EcpjHqluWfwkEU15a/TZd6N+jCSzIc8=";
   };
 
-  vendorSha256 = "sha256-ZC5Rk5HcnxU9X5o/t+oz8qx36WjOVYVEXxxa875UrZk=";
+  vendorHash = "sha256-aSXj21JNqX/cc62oFqyedmvczmudcV7RhLyWrKsdOMQ=";
 
   doCheck = false;
 
   subPackages = [ "cmd/eksctl" ];
 
-  buildFlags = [ "-tags netgo" "-tags release" ];
+  tags = [ "netgo" "release" ];
 
-  buildFlagsArray = [
-    "-ldflags=-s -w -X github.com/weaveworks/eksctl/pkg/version.gitCommit=${src.rev} -X github.com/weaveworks/eksctl/pkg/version.buildDate=19700101-00:00:00"
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/weaveworks/eksctl/pkg/version.gitCommit=${src.rev}"
+    "-X github.com/weaveworks/eksctl/pkg/version.buildDate=19700101-00:00:00"
   ];
 
   nativeBuildInputs = [ installShellFiles ];
 
   postInstall = ''
-    for shell in bash fish zsh; do
-      $out/bin/eksctl completion $shell > eksctl.$shell
-      installShellCompletion eksctl.$shell
-    done
+    installShellCompletion --cmd eksctl \
+      --bash <($out/bin/eksctl completion bash) \
+      --fish <($out/bin/eksctl completion fish) \
+      --zsh  <($out/bin/eksctl completion zsh)
   '';
 
   meta = with lib; {

@@ -3,11 +3,13 @@
 , buildGoPackage
 , makeWrapper
 , fetchFromGitHub
+, fetchpatch
 , coreutils
 , nettools
 , dmidecode
 , util-linux
 , bashInteractive
+, overrideEtc ? true
 }:
 
 let
@@ -46,6 +48,12 @@ buildGoPackage rec {
     # They used constants from another package that I couldn't figure
     # out how to resolve, so hardcoded the constants.
     ./0002-version-gen-don-t-use-unnecessary-constants.patch
+
+    (fetchpatch {
+      name = "CVE-2022-29527.patch";
+      url = "https://github.com/aws/amazon-ssm-agent/commit/0fe8ae99b2ff25649c7b86d3bc05fc037400aca7.patch";
+      sha256 = "sha256-5g14CxhsHLIgs1Vkfw8FCKEJ4AebNqZKf3ZzoAN/T9U=";
+    })
   ];
 
   preConfigure = ''
@@ -64,6 +72,9 @@ buildGoPackage rec {
         --replace '"script"' '"${util-linux}/bin/script"'
 
     echo "${version}" > VERSION
+  '' + lib.optionalString overrideEtc ''
+    substituteInPlace agent/appconfig/constants_unix.go \
+      --replace '"/etc/amazon/ssm/"' '"${placeholder "out"}/etc/amazon/ssm/"'
   '';
 
   preBuild = ''
@@ -94,6 +105,20 @@ buildGoPackage rec {
     mv sessionworker ssm-session-worker
 
     popd
+  '';
+
+  # These templates retain their `.template` extensions on installation. The
+  # amazon-ssm-agent.json.template is required as default configuration when an
+  # amazon-ssm-agent.json isn't present. Here, we retain the template to show
+  # we're using the default configuration.
+
+  # seelog.xml isn't actually required to run, but it does ship as a template
+  # with debian packages, so it's here for reference. Future work in the nixos
+  # module could use this template and substitute a different log level.
+  postInstall = ''
+    mkdir -p $out/etc/amazon/ssm
+    cp go/src/${goPackagePath}/amazon-ssm-agent.json.template $out/etc/amazon/ssm/amazon-ssm-agent.json.template
+    cp go/src/${goPackagePath}/seelog_unix.xml $out/etc/amazon/ssm/seelog.xml.template
   '';
 
   postFixup = ''

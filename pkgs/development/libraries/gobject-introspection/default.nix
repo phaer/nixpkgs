@@ -1,4 +1,5 @@
-{ lib, stdenv
+{ stdenv
+, lib
 , fetchurl
 , glib
 , flex
@@ -14,8 +15,10 @@
 , python3
 , cctools
 , cairo
-, gnome3
+, gnome
 , substituteAll
+, buildPackages
+, gobject-introspection-unwrapped
 , nixStoreDir ? builtins.storeDir
 , x11Support ? true
 }:
@@ -24,9 +27,15 @@
 # it may be worth thinking about using multiple derivation outputs
 # In that case its about 6MB which could be separated
 
-stdenv.mkDerivation rec {
+let
+  pythonModules = pp: [
+    pp.Mako
+    pp.markdown
+  ];
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "gobject-introspection";
-  version = "1.66.1";
+  version = "1.74.0";
 
   # outputs TODO: share/gobject-introspection-1.0/tests is needed during build
   # by pygobject3 (and maybe others), but it's only searched in $out
@@ -34,8 +43,8 @@ stdenv.mkDerivation rec {
   outputBin = "dev";
 
   src = fetchurl {
-    url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "078n0q7b6z682mf4irclrksm73cyixq295mqnqifl9plwmgaai6x";
+    url = "mirror://gnome/sources/gobject-introspection/${lib.versions.majorMinor finalAttrs.version}/gobject-introspection-${finalAttrs.version}.tar.xz";
+    sha256 = "NHs6cZ5oukxp/y1X7iaJIz6owH/EkiBeVzOGd55C1lM=";
   };
 
   patches = [
@@ -55,6 +64,8 @@ stdenv.mkDerivation rec {
     })
   ];
 
+  strictDeps = true;
+
   nativeBuildInputs = [
     meson
     ninja
@@ -64,15 +75,16 @@ stdenv.mkDerivation rec {
     gtk-doc
     docbook-xsl-nons
     docbook_xml_dtd_45
-    python3
-    setupHook # move .gir files
-  ];
+    # Build definition checks for the Python modules needed at runtime by importing them.
+    (buildPackages.python3.withPackages pythonModules)
+    finalAttrs.setupHook # move .gir files
+  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [ gobject-introspection-unwrapped ];
 
   buildInputs = [
-    python3
+    (python3.withPackages pythonModules)
   ];
 
-  checkInputs = lib.optionals stdenv.isDarwin [
+  nativeCheckInputs = lib.optionals stdenv.isDarwin [
     cctools # for otool
   ];
 
@@ -83,9 +95,18 @@ stdenv.mkDerivation rec {
 
   mesonFlags = [
     "--datadir=${placeholder "dev"}/share"
-    "-Ddoctool=disabled"
     "-Dcairo=disabled"
-    "-Dgtk_doc=true"
+    "-Dgtk_doc=${lib.boolToString (stdenv.hostPlatform == stdenv.buildPlatform)}"
+  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+    "-Dgi_cross_ldd_wrapper=${substituteAll {
+      name = "g-ir-scanner-lddwrapper";
+      isExecutable = true;
+      src = ./wrappers/g-ir-scanner-lddwrapper.sh;
+      inherit (buildPackages) bash;
+      buildlddtree = "${buildPackages.pax-utils}/bin/lddtree";
+    }}"
+    "-Dgi_cross_use_prebuilt_gi=true"
+    "-Dgi_cross_binary_wrapper=${stdenv.hostPlatform.emulator buildPackages}"
   ];
 
   doCheck = !stdenv.isAarch64;
@@ -94,6 +115,14 @@ stdenv.mkDerivation rec {
   # https://github.com/NixOS/nixpkgs/pull/98316#issuecomment-695785692
   postConfigure = ''
     patchShebangs tools/*
+  '';
+
+  postInstall = lib.optionalString (stdenv.hostPlatform != stdenv.buildPlatform) ''
+    cp -r ${buildPackages.gobject-introspection-unwrapped.devdoc} $devdoc
+    # these are uncompiled c and header files which aren't installed when cross-compiling because
+    # code that installs them is in tests/meson.build which is only run when not cross-compiling
+    # pygobject3 needs them
+    cp -r ${buildPackages.gobject-introspection-unwrapped.dev}/share/gobject-introspection-1.0/tests $dev/share/gobject-introspection-1.0/tests
   '';
 
   preCheck = ''
@@ -112,15 +141,16 @@ stdenv.mkDerivation rec {
   setupHook = ./setup-hook.sh;
 
   passthru = {
-    updateScript = gnome3.updateScript {
-      packageName = pname;
+    updateScript = gnome.updateScript {
+      packageName = "gobject-introspection";
+      versionPolicy = "odd-unstable";
     };
   };
 
   meta = with lib; {
     description = "A middleware layer between C libraries and language bindings";
     homepage = "https://gi.readthedocs.io/";
-    maintainers = teams.gnome.members ++ (with maintainers; [ lovek323 ]);
+    maintainers = teams.gnome.members ++ (with maintainers; [ lovek323 artturin ]);
     platforms = platforms.unix;
     license = with licenses; [ gpl2 lgpl2 ];
 
@@ -132,4 +162,4 @@ stdenv.mkDerivation rec {
       automatically provide bindings to call into the C library.
     '';
   };
-}
+})

@@ -1,20 +1,20 @@
 { lib, fetchFromGitHub, python3Packages }:
 
 python3Packages.buildPythonApplication rec {
-  version = "0.27.0";
-  name    = "toot-${version}";
+  pname = "toot";
+  version = "0.34.0";
 
   src = fetchFromGitHub {
     owner  = "ihabunek";
     repo   = "toot";
-    rev    = version;
-    sha256 = "197g9lvwg8qnsf18kifcqdj3cpfdnxz9vay766rn9bi4nfz0s6j2";
+    rev = "refs/tags/${version}";
+    sha256 = "sha256-UQR3BaBcnD2o7QJEBQmdZdtVaTo9R5vSHiUxywy1OaY=";
   };
 
-  checkInputs = with python3Packages; [ pytest ];
+  nativeCheckInputs = with python3Packages; [ pytest ];
 
   propagatedBuildInputs = with python3Packages;
-    [ requests beautifulsoup4 future wcwidth urwid ];
+    [ requests beautifulsoup4 future wcwidth urwid psycopg2 ];
 
   checkPhase = ''
     py.test

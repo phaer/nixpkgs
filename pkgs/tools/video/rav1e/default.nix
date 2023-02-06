@@ -1,41 +1,49 @@
-{ stdenv, rustPlatform, fetchurl, fetchFromGitHub, lib, nasm, cargo-c, libiconv }:
+{ lib
+, rust
+, stdenv
+, rustPlatform
+, fetchCrate
+, pkg-config
+, cargo-c
+, libgit2
+, nasm
+, zlib
+, libiconv
+, Security
+}:
 
-rustPlatform.buildRustPackage rec {
+let
+  rustTargetPlatformSpec = rust.toRustTargetSpec stdenv.hostPlatform;
+in rustPlatform.buildRustPackage rec {
   pname = "rav1e";
-  version = "0.4.1";
+  version = "0.6.1";
 
-  src = stdenv.mkDerivation rec {
-    name = "${pname}-${version}-source";
-
-    src = fetchFromGitHub {
-      owner = "xiph";
-      repo = "rav1e";
-      rev = "v${version}";
-      sha256 = "0jnq5a3fv6fzzbmprzfxidlcwwgblkwwm0135cfw741wjv7f7h6r";
-    };
-
-    cargoLock = fetchurl {
-      url = "https://github.com/xiph/rav1e/releases/download/v${version}/Cargo.lock";
-      sha256 = "14fi9wam9rs5206rvcd2f3sjpzq41pnfml14w74wn2ws3gpi46zn";
-    };
-
-    installPhase = ''
-      mkdir -p $out
-      cp -r ./* $out/
-      cp ${cargoLock} $out/Cargo.lock
-    '';
+  src = fetchCrate {
+    inherit pname version;
+    sha256 = "sha256-70O9/QRADaEYVvZjEfuBOxPF8lCZ138L2fbFWpj3VUw=";
   };
 
-  cargoSha256 = "1j92prjyr86wyx58h10xq9c9z28ky86h291x65w7qrxpj658aiz1";
-  nativeBuildInputs = [ nasm cargo-c ];
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv ];
+  cargoHash = "sha256-iHOmItooNsGq6iTIb9M5IPXMwYh2nQ03qfjomkgCdgw=";
+
+  auditable = true; # TODO: remove when this is the default
+
+  depsBuildBuild = [ pkg-config ];
+
+  nativeBuildInputs = [ cargo-c libgit2 nasm zlib ];
+
+  buildInputs = lib.optionals stdenv.isDarwin [
+    libiconv
+    Security
+  ];
+
+  checkType = "debug";
 
   postBuild = ''
-    cargo cbuild --release --frozen --prefix=${placeholder "out"}
+    cargo cbuild --release --frozen --prefix=${placeholder "out"} --target ${rustTargetPlatformSpec}
   '';
 
   postInstall = ''
-    cargo cinstall --release --frozen --prefix=${placeholder "out"}
+    cargo cinstall --release --frozen --prefix=${placeholder "out"} --target ${rustTargetPlatformSpec}
   '';
 
   meta = with lib; {
@@ -49,6 +57,6 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://github.com/xiph/rav1e";
     changelog = "https://github.com/xiph/rav1e/releases/tag/v${version}";
     license = licenses.bsd2;
-    maintainers = [ maintainers.primeos ];
+    maintainers = [ ];
   };
 }

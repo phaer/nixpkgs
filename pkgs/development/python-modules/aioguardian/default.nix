@@ -4,39 +4,41 @@
 , asyncio-dgram
 , asynctest
 , buildPythonPackage
+, docutils
 , fetchFromGitHub
-, poetry
+, poetry-core
 , pytest-aiohttp
 , pytest-asyncio
 , pytestCheckHook
-, pythonAtLeast
 , voluptuous
 }:
 
 buildPythonPackage rec {
   pname = "aioguardian";
-  version = "1.0.7";
-  disabled = pythonAtLeast "3.9";
+  version = "2022.10.0";
 
   src = fetchFromGitHub {
     owner = "bachya";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-KMhq86hcqoYloS/6VHsl+3KVEZBbN97ABrZlmEr32Z8=";
+    rev = "refs/tags/${version}";
+    sha256 = "sha256-plgO+pyKmG0mYnFZxDcrENcuEg5AG2Og2xWipzuzyHo=";
   };
 
   format = "pyproject";
 
-  nativeBuildInputs = [ poetry ];
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
   propagatedBuildInputs = [
     aiohttp
     async-timeout
     asyncio-dgram
+    docutils
     voluptuous
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     asyncio-dgram
     asynctest
     pytest-aiohttp
@@ -44,9 +46,18 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  # Ignore the examples as they are prefixed with test_
-  pytestFlagsArray = [ "--ignore examples/" ];
-  pythonImportsCheck = [ "aioguardian" ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace 'docutils = "<0.18"' 'docutils = "*"'
+  '';
+
+  disabledTestPaths = [
+    "examples/"
+  ];
+
+  pythonImportsCheck = [
+    "aioguardian"
+  ];
 
   meta = with lib; {
     description = " Python library to interact with Elexa Guardian devices";

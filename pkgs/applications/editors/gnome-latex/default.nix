@@ -1,29 +1,48 @@
-{ lib, stdenv, fetchurl, wrapGAppsHook, gsettings-desktop-schemas, gspell, gtksourceview4, libgee
-, tepl, amtk, gnome3, glib, pkg-config, intltool, itstool, libxml2 }:
-let
-  version = "3.38.0";
+{ stdenv
+, lib
+, fetchurl
+, autoreconfHook
+, gtk-doc
+, vala
+, gobject-introspection
+, wrapGAppsHook
+, gsettings-desktop-schemas
+, gspell
+, gtksourceview4
+, libgee
+, tepl
+, amtk
+, gnome
+, glib
+, pkg-config
+, gettext
+, itstool
+, libxml2
+}:
+
+stdenv.mkDerivation rec {
+  version = "3.44.0";
   pname = "gnome-latex";
-in stdenv.mkDerivation {
-  name = "${pname}-${version}";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "0xqd49pgi82dygqnxj08i1v22b0vwwhx3zvdinhrx4jny339yam8";
+    sha256 = "iL1TQL0ox+0Bx5ZqOgBzK72QJ3PfWsZZvmrRGAap50Q=";
   };
-
-  NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";
-  configureFlags = ["--disable-dconf-migration"];
 
   nativeBuildInputs = [
     pkg-config
+    autoreconfHook
+    gtk-doc
+    vala
+    gobject-introspection
     wrapGAppsHook
     itstool
-    intltool
+    gettext
   ];
 
   buildInputs = [
     amtk
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     glib
     gsettings-desktop-schemas
     gspell
@@ -33,9 +52,18 @@ in stdenv.mkDerivation {
     tepl
   ];
 
+  configureFlags = [
+    "--disable-dconf-migration"
+  ];
+
   doCheck = true;
 
-  passthru.updateScript = gnome3.updateScript { packageName = pname; };
+  NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";
+
+  passthru.updateScript = gnome.updateScript {
+    packageName = pname;
+    versionPolicy = "odd-unstable";
+  };
 
   meta = with lib; {
     homepage = "https://wiki.gnome.org/Apps/GNOME-LaTeX";

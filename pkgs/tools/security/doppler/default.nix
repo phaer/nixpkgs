@@ -1,27 +1,47 @@
-{ buildGoModule, fetchFromGitHub, lib }:
+{ buildGoModule
+, doppler
+, fetchFromGitHub
+, installShellFiles
+, lib
+, testers
+}:
 
 buildGoModule rec {
   pname = "doppler";
-  version = "3.23.2";
+  version = "3.54.0";
 
   src = fetchFromGitHub {
     owner = "dopplerhq";
     repo = "cli";
     rev = version;
-    sha256 = "sha256-qdBq1vjvvb55gyL4XuPDrPK58YLSSH5kLp1oP84vJsU=";
+    sha256 = "sha256-R+mvifWHyUL8qBCKKFcn4x9eDoPi4qRuGPnoRS4QlQY=";
   };
 
-  vendorSha256 = "sha256-UaR/xYGMI+C9aID85aPSfVzmTWXj4KcjfOJ6TTJ8KoY=";
+  vendorHash = "sha256-TwcEH+LD0E/JcptMCYb3UycO3HhZX3igzSlBW4hS784=";
 
-  buildFlagsArray = "-ldflags=-X github.com/DopplerHQ/cli/pkg/version.ProgramVersion=v${version}";
+  ldflags = [
+    "-s -w"
+    "-X github.com/DopplerHQ/cli/pkg/version.ProgramVersion=v${version}"
+  ];
+
+  nativeBuildInputs = [ installShellFiles ];
 
   postInstall = ''
     mv $out/bin/cli $out/bin/doppler
+    installShellCompletion --cmd doppler \
+      --bash <($out/bin/doppler completion bash) \
+      --fish <($out/bin/doppler completion fish) \
+      --zsh <($out/bin/doppler completion zsh)
   '';
 
+  passthru.tests.version = testers.testVersion {
+    package = doppler;
+    version = "v${version}";
+  };
+
   meta = with lib; {
+    description = "The official CLI for interacting with your Doppler Enclave secrets and configuration";
     homepage = "https://doppler.com";
-    description = "The official CLI for interacting with your Doppler Enclave secrets and configuation";
     license = licenses.asl20;
     maintainers = with maintainers; [ lucperkins ];
   };

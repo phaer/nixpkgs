@@ -1,30 +1,46 @@
 { lib
 , buildPythonPackage
 , fetchPypi
+, setuptools
 , nose
 , parts
 , pytestCheckHook
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "bitlist";
-  version = "0.3.1";
+  version = "1.0.1";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "04dz64r21a39p8wph5qlhvs5y873qgk6xxjlzw8n695b8jm3ixir";
+    hash = "sha256-rpXQKkV2RUuYza+gfpGEH3kFJ+hjuNGKV2i46eXQUUI=";
   };
+
+  nativeBuildInputs = [
+    setuptools
+  ];
 
   propagatedBuildInputs = [
     parts
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     nose
   ];
 
-  pythonImportsCheck = [ "bitlist" ];
+  pythonImportsCheck = [
+    "bitlist"
+  ];
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace "--doctest-modules --ignore=docs --cov=bitlist --cov-report term-missing" ""
+  '';
 
   meta = with lib; {
     description = "Python library for working with little-endian list representation of bit strings";

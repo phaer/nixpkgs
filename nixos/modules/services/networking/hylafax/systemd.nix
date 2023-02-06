@@ -13,11 +13,10 @@ let
     # creates hylafax config file,
     # makes sure "Include" is listed *first*
     let
-      mkLines = conf:
-        (lib.concatLists
-        (lib.flip lib.mapAttrsToList conf
-        (k: map (v: "${k}: ${v}")
-      )));
+      mkLines = lib.flip lib.pipe [
+        (lib.mapAttrsToList (key: map (val: "${key}: ${val}")))
+        lib.concatLists
+      ];
       include = mkLines { Include = conf.Include or []; };
       other = mkLines ( conf // { Include = []; } );
     in
@@ -48,13 +47,12 @@ let
     name = "hylafax-setup-spool.sh";
     src = ./spool.sh;
     isExecutable = true;
-    inherit (pkgs.stdenv) shell;
-    hylafax = pkgs.hylafaxplus;
     faxuser = "uucp";
     faxgroup = "uucp";
     lockPath = "/var/lock";
     inherit globalConfigPath modemConfigPath;
     inherit (cfg) sendmailPath spoolAreaPath userAccessFile;
+    inherit (pkgs) hylafaxplus runtimeShell;
   };
 
   waitFaxqScript = pkgs.substituteAll {
@@ -64,8 +62,8 @@ let
     src = ./faxq-wait.sh;
     isExecutable = true;
     timeoutSec = toString 10;
-    inherit (pkgs.stdenv) shell;
     inherit (cfg) spoolAreaPath;
+    inherit (pkgs) runtimeShell;
   };
 
   sockets.hylafax-hfaxd = {
@@ -98,7 +96,7 @@ let
   hardenService =
     # Add some common systemd service hardening settings,
     # but allow each service (here) to override
-    # settings by explicitely setting those to `null`.
+    # settings by explicitly setting those to `null`.
     # More hardening would be nice but makes
     # customizing hylafax setups very difficult.
     # If at all, it should only be added along
@@ -108,8 +106,10 @@ let
         PrivateDevices = true;  # breaks /dev/tty...
         PrivateNetwork = true;
         PrivateTmp = true;
+        #ProtectClock = true;  # breaks /dev/tty... (why?)
         ProtectControlGroups = true;
         #ProtectHome = true;  # breaks custom spool dirs
+        ProtectKernelLogs = true;
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
         #ProtectSystem = "strict";  # breaks custom spool dirs

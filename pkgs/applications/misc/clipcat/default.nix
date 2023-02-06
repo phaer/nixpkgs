@@ -12,9 +12,7 @@ rustPlatform.buildRustPackage rec {
     sha256 = "0rxl3ksjinw07q3p2vjqg80k3c6wx2q7pzpf2344zyfb4gkqzx1c";
   };
 
-  cargoSha256 = "1ffgvhkdj8wkhlgi0cj0njdm9ycxq2qda4b5qn8bmaygzr2zkwpd";
-
-  LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
+  cargoSha256 = "1n4il3l59m2a6ca54vfaivzg25abf8s4w5kpd5q51p13624iz0kb";
 
   # needed for internal protobuf c wrapper library
   PROTOC = "${protobuf}/bin/protoc";
@@ -23,8 +21,7 @@ rustPlatform.buildRustPackage rec {
   nativeBuildInputs = [
     pkg-config
 
-    clang
-    llvmPackages.libclang
+    rustPlatform.bindgenHook
 
     rustfmt
     protobuf
@@ -35,7 +32,7 @@ rustPlatform.buildRustPackage rec {
   ];
   buildInputs = [ xorg.libxcb ];
 
-  cargoBuildFlags = [ "--features=all" ];
+  buildFeatures = [ "all" ];
 
   postInstall = ''
     installShellCompletion --bash completions/bash-completion/completions/*

@@ -1,17 +1,17 @@
-{ lib, stdenv, fetchFromGitHub, postgresql, openssl, zlib, readline }:
+{ lib, stdenv, fetchFromGitHub, postgresql, openssl, zlib, readline, libkrb5 }:
 
 stdenv.mkDerivation rec {
   pname = "pg_auto_failover";
-  version = "1.5.1";
+  version = "2.0";
 
   src = fetchFromGitHub {
     owner = "citusdata";
     repo = pname;
     rev = "v${version}";
-    sha256 = "14bh3cqkdd1z16iy0lmv8a3f8gmmink1nzhf5jhkd0n6g7r65p6d";
+    sha256 = "sha256-CLtLOzKRB9p6+SytMvWCYo7m7s/d+clAGOa2sWi6uZ0=";
   };
 
-  buildInputs = [ postgresql openssl zlib readline ];
+  buildInputs = [ postgresql openssl zlib readline libkrb5 ];
 
   installPhase = ''
     install -D -t $out/bin src/bin/pg_autoctl/pg_autoctl

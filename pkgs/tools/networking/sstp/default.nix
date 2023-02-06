@@ -2,18 +2,17 @@
 
 stdenv.mkDerivation rec {
   pname = "sstp-client";
-  version = "1.0.13";
+  version = "1.0.18";
 
   src = fetchurl {
     url = "mirror://sourceforge/sstp-client/sstp-client/sstp-client-${version}.tar.gz";
-    sha256 = "06rjyncmgdy212xf9l9z6mfh4gdmgk7l4y841gb8lpbrl3y5h4ln";
+    sha256 = "sha256-2Hn081q36uh0hu3Ei1D5mpr2X162+0QnmTyleLsODcg=";
   };
 
-  patchPhase =
-    ''
-      sed 's,/usr/sbin/pppd,${ppp}/sbin/pppd,' -i src/sstp-pppd.c
-      sed "s,sstp-pppd-plugin.so,$out/lib/pppd/sstp-pppd-plugin.so," -i src/sstp-pppd.c
-    '';
+  postPatch = ''
+    sed 's,/usr/sbin/pppd,${ppp}/sbin/pppd,' -i src/sstp-pppd.c
+    sed "s,sstp-pppd-plugin.so,$out/lib/pppd/sstp-pppd-plugin.so," -i src/sstp-pppd.c
+  '';
 
   configureFlags = [
     "--with-openssl=${openssl.dev}"
@@ -22,13 +21,14 @@ stdenv.mkDerivation rec {
   ];
 
   nativeBuildInputs = [ pkg-config ];
+
   buildInputs = [ libevent openssl ppp ];
 
-  meta = {
+  meta = with lib; {
     description = "SSTP client for Linux";
-    homepage = "http://sstp-client.sourceforge.net/";
-    platforms = lib.platforms.linux;
-    maintainers = [ lib.maintainers.ktosiek ];
-    license = lib.licenses.gpl2;
+    homepage = "https://sstp-client.sourceforge.net/";
+    platforms = platforms.linux;
+    maintainers = with maintainers; [ ];
+    license = licenses.gpl2Plus;
   };
 }

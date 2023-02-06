@@ -1,5 +1,4 @@
 { lib
-
 , bash
 , binutils-unwrapped
 , coreutils
@@ -27,7 +26,7 @@ rec {
     ];
   };
 
-  extract = { name, src }: pkgs.runCommand "${name}-extracted" {
+  extract = args@{ name ? "${args.pname}-${args.version}", src, ... }: pkgs.runCommand "${name}-extracted" {
       buildInputs = [ appimage-exec ];
     } ''
       appimage-exec.sh -x $out ${src}
@@ -38,20 +37,38 @@ rec {
   extractType2 = extract;
   wrapType1 = wrapType2;
 
-  wrapAppImage = args@{ name, src, extraPkgs, ... }: buildFHSUserEnv
+  wrapAppImage = args@{
+    name ? "${args.pname}-${args.version}",
+    src,
+    extraPkgs,
+    meta ? {},
+    ...
+  }: buildFHSUserEnv
     (defaultFhsEnvArgs // {
       inherit name;
 
       targetPkgs = pkgs: [ appimage-exec ]
         ++ defaultFhsEnvArgs.targetPkgs pkgs ++ extraPkgs pkgs;
 
-      runScript = "appimage-exec.sh -w ${src}";
-    } // (removeAttrs args (builtins.attrNames (builtins.functionArgs wrapAppImage))));
+      runScript = "appimage-exec.sh -w ${src} --";
 
-  wrapType2 = args@{ name, src, extraPkgs ? pkgs: [ ], ... }: wrapAppImage
+      meta = {
+        sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+      } // meta;
+    } // (removeAttrs args ([ "pname" "version" ] ++ (builtins.attrNames (builtins.functionArgs wrapAppImage)))));
+
+  wrapType2 = args@{ name ? "${args.pname}-${args.version}", src, extraPkgs ? pkgs: [ ], ... }: wrapAppImage
     (args // {
       inherit name extraPkgs;
       src = extract { inherit name src; };
+
+      # passthru src to make nix-update work
+      # hack to keep the origin position (unsafeGetAttrPos)
+      passthru = lib.pipe args [
+        lib.attrNames
+        (lib.remove "src")
+        (removeAttrs args)
+      ] // args.passthru or { };
     });
 
   defaultFhsEnvArgs = {
@@ -61,14 +78,15 @@ rec {
     targetPkgs = pkgs: with pkgs; [
       gtk3
       bashInteractive
-      gnome3.zenity
-      python2
+      gnome.zenity
       xorg.xrandr
       which
       perl
       xdg-utils
       iana-etc
       krb5
+      gsettings-desktop-schemas
+      hicolor-icon-theme # dont show a gtk warning about hicolor not being installed
     ];
 
     # list of libraries expected in an appimage environment:
@@ -105,9 +123,8 @@ rec {
       xorg.libXi
       xorg.libSM
       xorg.libICE
-      gnome2.GConf
       freetype
-      (curl.override { gnutlsSupport = true; sslSupport = false; })
+      curlWithGnuTls
       nspr
       nss
       fontconfig
@@ -124,7 +141,6 @@ rec {
       atk
       at-spi2-atk
       libudev0-shim
-      networkmanager098
 
       xorg.libXt
       xorg.libXmu
@@ -147,11 +163,13 @@ rec {
       wayland
       mesa
       libxkbcommon
+      vulkan-loader
 
       flac
       freeglut
       libjpeg
       libpng12
+      libpulseaudio
       libsamplerate
       libmikmod
       libtheora
@@ -171,15 +189,17 @@ rec {
       librsvg
       xorg.libXft
       libvdpau
-      alsaLib
+      alsa-lib
 
       harfbuzz
       e2fsprogs
-      libgpgerror
+      libgpg-error
       keyutils.lib
       libjack2
       fribidi
       p11-kit
+
+      gmp
 
       # libraries not on the upstream include list, but nevertheless expected
       # by at least one appimage

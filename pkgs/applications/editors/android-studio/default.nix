@@ -1,4 +1,4 @@
-{ callPackage, makeFontsConf, gnome2, buildFHSUserEnv }:
+{ callPackage, makeFontsConf, gnome2, buildFHSUserEnv, tiling_wm ? false }:
 
 let
   mkStudio = opts: callPackage (import ./common.nix opts) {
@@ -7,20 +7,19 @@ let
     };
     inherit (gnome2) GConf gnome_vfs;
     inherit buildFHSUserEnv;
+    inherit tiling_wm;
   };
   stableVersion = {
-    version = "4.1.3.0"; # "Android Studio 4.1.3"
-    build = "201.7199119";
-    sha256Hash = "06xwgk7bwcmljka8xa56cfwwg858r0bl0xp2jb9hdnkwljf796gm";
+    version = "2022.1.1.19"; # "Android Studio Electric Eel (2022.1.1)"
+    sha256Hash = "luxE6a2C86JB28ezuIZV49TyE314S1RcNXQnCQamjUA=";
   };
   betaVersion = {
-    version = "4.2.0.22"; # "Android Studio 4.2 Beta 6"
-    build = "202.7188722";
-    sha256Hash = "0mzwkx1csx194wzg7dc1cii3c16wbmlbq1jdv9ly4nmdxlvc2rxb";
+    version = "2022.2.1.12"; # "Android Studio Flamingo (2022.2.1) Beta 1"
+    sha256Hash = "tIgmX9KiRInIupgIXWgg4dMf8bTwkVopOxAO5O1PUAc=";
   };
   latestVersion = { # canary & dev
-    version = "2020.3.1.10"; # "Android Studio Arctic Fox (2020.3.1) Canary 10"
-    sha256Hash = "15xxyjjjy5pnimc66dcwnqb7z4lq7ll4fl401a3br5ca4d1hpgsj";
+    version = "2022.3.1.1"; # "Android Studio Girrafe (2022.3.1) Canary 1"
+    sha256Hash = "I7Zc4DDByUB6XOnk7v+91ccpNI7eX/T4d3vH60ih8ec=";
   };
 in {
   # Attributes are named by their corresponding release channels

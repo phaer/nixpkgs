@@ -1,17 +1,40 @@
-{ lib, fetchPypi, buildPythonApplication, protobuf, pythonOlder }:
+{ lib
+, fetchPypi
+, buildPythonPackage
+, protobuf
+, types-protobuf
+, grpcio-tools
+, pytestCheckHook
+, pythonOlder
+}:
 
-buildPythonApplication rec {
+buildPythonPackage rec {
   pname = "mypy-protobuf";
-  version = "2.4";
+  version = "3.4.0";
+  format = "pyproject";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "77e10c476cdd3ee14535c2357e64deac6b1a69f33eb500d795b064acda48c66f";
+    sha256 = "sha256-fXWgeWUbEFB2d2o1pUBeP6dzuKFnEY8bcS5EPppsGKI=";
   };
 
-  propagatedBuildInputs = [ protobuf ];
+  propagatedBuildInputs = [
+    protobuf
+    types-protobuf
+    grpcio-tools
+  ];
+
+  doCheck = false; # ModuleNotFoundError: No module named 'testproto'
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  pythonImportsCheck = [
+    "mypy_protobuf"
+  ];
 
   meta = with lib; {
     description = "Generate mypy stub files from protobuf specs";

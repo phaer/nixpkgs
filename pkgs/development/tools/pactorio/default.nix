@@ -1,30 +1,39 @@
-{ fetchFromGitHub, installShellFiles, lib, rustPlatform }:
+{ lib
+, rustPlatform
+, fetchFromGitHub
+, installShellFiles
+, pkg-config
+, bzip2
+, stdenv
+, Security
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "pactorio";
-  version = "0.5.1";
+  version = "0.6.0";
 
   src = fetchFromGitHub {
     owner = "figsoda";
     repo = pname;
     rev = "v${version}";
-    sha256 = "07h9hywz0pc29411myhxjq6pks4p6q6czbqjv7fxf3xkb1mg9grq";
+    sha256 = "sha256-3+irejeDltf7x+gyJxWBgvPgpQx5uU3DewU23Z4Nr/A=";
   };
 
-  cargoSha256 = "1m7bvi6i52xqvssjx5fr2dz25ny7hkmb8w8p23pczpdmpd2y0r7r";
+  cargoSha256 = "sha256-sAFsG+EPSmvPDFR9R0fZ5f+y/PXVpTJlMzL61vwf4SY=";
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [ installShellFiles pkg-config ];
 
-  preFixup = ''
-    completions=($releaseDir/build/pactorio-*/out/completions)
-    installShellCompletion ''${completions[0]}/pactorio.{bash,fish}
-    installShellCompletion --zsh ''${completions[0]}/_pactorio
+  buildInputs = [ bzip2 ] ++ lib.optional stdenv.isDarwin Security;
+
+  postInstall = ''
+    installManPage artifacts/pactorio.1
+    installShellCompletion artifacts/pactorio.{bash,fish} --zsh artifacts/_pactorio
   '';
 
-  GEN_COMPLETIONS = "1";
+  GEN_ARTIFACTS = "artifacts";
 
   meta = with lib; {
-    description = "Mod package for factorio";
+    description = "Mod packager for factorio";
     homepage = "https://github.com/figsoda/pactorio";
     changelog = "https://github.com/figsoda/pactorio/blob/v${version}/CHANGELOG.md";
     license = licenses.mpl20;

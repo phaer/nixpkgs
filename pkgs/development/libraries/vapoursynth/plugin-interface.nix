@@ -8,10 +8,11 @@ plugins: let
 
   getRecursivePropagatedBuildInputs = pkgs: lib.flatten
     (map
-      (pkg: pkg.propagatedBuildInputs ++ (getRecursivePropagatedBuildInputs pkg.propagatedBuildInputs))
+      (pkg: let cleanPropagatedBuildInputs = lib.filter lib.isDerivation pkg.propagatedBuildInputs;
+        in cleanPropagatedBuildInputs ++ (getRecursivePropagatedBuildInputs cleanPropagatedBuildInputs))
       pkgs);
 
-  deepPlugins = plugins ++ (getRecursivePropagatedBuildInputs plugins);
+  deepPlugins = lib.unique (plugins ++ (getRecursivePropagatedBuildInputs plugins));
 
   pluginsEnv = buildEnv {
     name = "vapoursynth-plugins-env";
@@ -41,6 +42,7 @@ runCommand "${vapoursynth.name}-with-plugins" {
   nativeBuildInputs = [ makeWrapper ];
   passthru = {
     inherit python3;
+    inherit (vapoursynth) src version;
     withPlugins = plugins': withPlugins (plugins ++ plugins');
   };
 } ''

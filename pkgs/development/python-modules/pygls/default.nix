@@ -1,7 +1,11 @@
 { lib
 , buildPythonPackage
-, isPy3k
+, pythonOlder
 , fetchFromGitHub
+, setuptools-scm
+, lsprotocol
+, toml
+, typeguard
 , mock
 , pytest-asyncio
 , pytestCheckHook
@@ -9,22 +13,45 @@
 
 buildPythonPackage rec {
   pname = "pygls";
-  version = "0.9.1";
-  disabled = !isPy3k;
+  version = "1.0.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "openlawlibrary";
-    repo = pname;
+    repo = "pygls";
     rev = "v${version}";
-    sha256 = "1v7x5598d6jg8ya0spqjma56y062rznwimsrp8nq6fkskqgfm0ds";
+    hash = "sha256-31J4+giK1RDBS52Q/Ia3Y/Zak7fp7gRVTQ7US/eFjtM=";
   };
 
-  checkInputs = [ mock pytest-asyncio pytestCheckHook ];
+  SETUPTOOLS_SCM_PRETEND_VERSION = version;
+  nativeBuildInputs = [
+    setuptools-scm
+    toml
+  ];
+
+  propagatedBuildInputs = [
+    lsprotocol
+    typeguard
+  ];
+
+  nativeCheckInputs = [
+    mock
+    pytest-asyncio
+    pytestCheckHook
+  ];
+
+  # Fixes hanging tests on Darwin
+  __darwinAllowLocalNetworking = true;
+
+  pythonImportsCheck = [ "pygls" ];
 
   meta = with lib; {
+    changelog = "https://github.com/openlawlibrary/pygls/blob/${src.rev}/CHANGELOG.md";
     description = "Pythonic generic implementation of the Language Server Protocol";
     homepage = "https://github.com/openlawlibrary/pygls";
     license = licenses.asl20;
-    maintainers = with maintainers; [ metadark ];
+    maintainers = with maintainers; [ kira-bruneau ];
   };
 }

@@ -3,24 +3,34 @@
 , fetchFromGitHub
 , pythonOlder
 , pyvex
+, setuptools
 }:
 
 buildPythonPackage rec {
   pname = "ailment";
-  version = "9.0.6885";
-  disabled = pythonOlder "3.6";
+  version = "9.2.36";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "angr";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-AtaAVfMCIzStgwwPEt+6tAzjgpSK+KhhMksYK4BH9V0=";
+    hash = "sha256-PEX2SanglMqjtJHuH+gA5dnikh7qqLFiXbmrcIzs1+A=";
   };
 
-  propagatedBuildInputs = [ pyvex ];
+  nativeBuildInputs = [
+    setuptools
+  ];
+
+  propagatedBuildInputs = [
+    pyvex
+  ];
 
   # Tests depend on angr (possibly a circular dependency)
   doCheck = false;
+
   #pythonImportsCheck = [ "ailment" ];
 
   meta = with lib; {

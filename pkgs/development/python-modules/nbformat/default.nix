@@ -1,33 +1,48 @@
 { lib
 , buildPythonPackage
+, pythonOlder
 , fetchPypi
-, pytest
-, glibcLocales
-, ipython_genutils
-, traitlets
-, testpath
+, hatchling
+, hatch-nodejs-version
+, fastjsonschema
 , jsonschema
-, jupyter_core
+, jupyter-core
+, traitlets
+, pep440
+, pytestCheckHook
+, testpath
 }:
 
 buildPythonPackage rec {
   pname = "nbformat";
-  version = "5.1.2";
+  version = "5.7.1";
+
+  disabled = pythonOlder "3.7";
+
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-HSI+ZKGL+nzfLbLpuoqBgxL8KgcB0ukQtY32aAk4WlY=";
+    sha256 = "sha256-OBCgEwRT7QMZcFIdIJibilkvPC5zKDqCgK40rh91s/g=";
   };
 
-  LC_ALL="en_US.utf8";
+  nativeBuildInputs = [
+    hatchling
+    hatch-nodejs-version
+  ];
 
-  checkInputs = [ pytest glibcLocales ];
-  propagatedBuildInputs = [ ipython_genutils traitlets testpath jsonschema jupyter_core ];
+  propagatedBuildInputs = [
+    fastjsonschema
+    jsonschema
+    jupyter-core
+    traitlets
+  ];
 
-  preCheck = ''
-    mkdir tmp
-    export HOME=tmp
-  '';
+  nativeCheckInputs = [
+    pep440
+    pytestCheckHook
+    testpath
+  ];
 
   # Some of the tests use localhost networking.
   __darwinAllowLocalNetworking = true;

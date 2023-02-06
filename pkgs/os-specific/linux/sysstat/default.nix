@@ -1,11 +1,12 @@
 { lib, stdenv, fetchurl, gettext, bzip2 }:
 
 stdenv.mkDerivation rec {
-  name = "sysstat-12.4.3";
+  pname = "sysstat";
+  version = "12.6.1";
 
   src = fetchurl {
-    url = "http://pagesperso-orange.fr/sebastien.godard/${name}.tar.xz";
-    sha256 = "sha256-rkMkMfRarLyrrPu+Ep4lBeIVyvqc6ZbXVQxgkaRvC/0=";
+    url = "http://pagesperso-orange.fr/sebastien.godard/sysstat-${version}.tar.xz";
+    hash = "sha256-GP9aThSeJWjkM4Vjf3JDf+a6/MEyKpPRPRmB6UZKA0I=";
   };
 
   buildInputs = [ gettext ];
@@ -15,6 +16,7 @@ stdenv.mkDerivation rec {
     export PATH_CHKCONFIG=/no-such-program
     export BZIP=${bzip2.bin}/bin/bzip2
     export SYSTEMCTL=systemctl
+    export COMPRESS_MANPG=n
   '';
 
   makeFlags = [ "SYSCONFIG_DIR=$(out)/etc" "IGNORE_FILE_ATTRIBUTES=y" "CHOWN=true" ];

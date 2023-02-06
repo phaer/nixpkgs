@@ -2,13 +2,13 @@
 
 buildGoModule rec {
   pname = "s5cmd";
-  version = "1.2.1";
+  version = "2.0.0";
 
   src = fetchFromGitHub {
     owner = "peak";
     repo = "s5cmd";
     rev = "v${version}";
-    sha256 = "sha256-09vBYwnTfLIuu2SPP7DYB+U6sUkQffglIOHNn4+47qQ=";
+    sha256 = "sha256-9G0GSMNLYeIrbq7zctM3OCRcEZF1giEt+u5g3lTX96M=";
   };
 
   vendorSha256 = null;

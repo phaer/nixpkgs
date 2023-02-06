@@ -1,53 +1,72 @@
 { lib
+, anyio
 , buildPythonPackage
-, pythonOlder
+, certifi
 , fetchFromGitHub
 , h11
 , h2
 , pproxy
+, pytest-asyncio
+, pytest-httpbin
+, pytest-trio
 , pytestCheckHook
-, pytestcov
+, pythonOlder
 , sniffio
-, uvicorn
-, trustme
-, trio
+, socksio
 }:
 
 buildPythonPackage rec {
   pname = "httpcore";
-  version = "0.12.3";
-  disabled = pythonOlder "3.6";
+  version = "0.16.3";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "encode";
     repo = pname;
-    rev = version;
-    sha256 = "09hbjc5wzhrnri5y3idxcq329d7jiaxljc7y6npwv9gh9saln109";
+    rev = "refs/tags/${version}";
+    hash = "sha256-3bC97CTZi6An+owjoJF7Irtr7ONbP8RtNdTIGJRy0Ng=";
   };
 
   propagatedBuildInputs = [
+    anyio
+    certifi
     h11
-    h2
     sniffio
   ];
 
-  checkInputs = [
+  passthru.optional-dependencies = {
+    http2 = [
+      h2
+    ];
+    socks = [
+      socksio
+    ];
+  };
+
+  nativeCheckInputs = [
     pproxy
+    pytest-asyncio
+    pytest-httpbin
+    pytest-trio
     pytestCheckHook
-    pytestcov
-    uvicorn
-    trustme
-    trio
+  ] ++ passthru.optional-dependencies.http2
+    ++ passthru.optional-dependencies.socks;
+
+  pythonImportsCheck = [
+    "httpcore"
   ];
+
+  preCheck = ''
+    # remove upstreams pytest flags which cause:
+    # httpcore.ConnectError: TLS/SSL connection has been closed (EOF) (_ssl.c:997)
+    rm setup.cfg
+  '';
 
   pytestFlagsArray = [
-    # these tests fail during dns lookups: httpcore.ConnectError: [Errno -2] Name or service not known
-    "--ignore=tests/test_threadsafety.py"
-    "--ignore=tests/sync_tests/test_interfaces.py"
-    "--ignore=tests/sync_tests/test_retries.py"
+    "--asyncio-mode=strict"
   ];
-
-  pythonImportsCheck = [ "httpcore" ];
 
   meta = with lib; {
     description = "A minimal low-level HTTP client";

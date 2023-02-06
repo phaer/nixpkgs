@@ -1,4 +1,11 @@
-{ lib, stdenv, fetchurl, pkg-config, freetype, cmake }:
+{ lib
+, stdenv
+, fetchurl
+, pkg-config
+, freetype
+, cmake
+, static ? stdenv.hostPlatform.isStatic
+}:
 
 stdenv.mkDerivation rec {
   version = "1.3.14";
@@ -15,12 +22,24 @@ stdenv.mkDerivation rec {
 
   patches = lib.optionals stdenv.isDarwin [ ./macosx.patch ];
 
-  doCheck = false; # fails, probably missing something
+  cmakeFlags = lib.optionals static [
+    "-DBUILD_SHARED_LIBS=OFF"
+  ];
+
+  # Remove a test that fails to statically link (undefined reference to png and
+  # freetype symbols)
+  postConfigure = lib.optionalString static ''
+    sed -e '/freetype freetype.c/d' -i ../tests/examples/CMakeLists.txt
+  '';
+
+  doCheck = true;
 
   meta = with lib; {
     description = "An advanced font engine";
-    maintainers = [ maintainers.raskin ];
-    platforms = platforms.unix;
+    homepage = "https://graphite.sil.org/";
     license = licenses.lgpl21;
+    maintainers = [ maintainers.raskin ];
+    mainProgram = "gr2fonttest";
+    platforms = platforms.unix;
   };
 }

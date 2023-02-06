@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   pname = "helm-secrets";
-  version = "3.6.1";
+  version = "3.8.3";
 
   src = fetchFromGitHub {
     owner = "jkroepke";
     repo = pname;
     rev = "v${version}";
-    hash = "sha256-RACETma0AaqaAfe0HWC541/i+knr+emMUauFWnkEuMI=";
+    hash = "sha256-FpF/d+e5T6nb0OENaYLY+3ATZ+qcAeih5/yKI+AtfKA=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -36,9 +36,9 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "A Helm plugin that helps manage secrets";
-    inherit (src.meta) homepage;
-    license = licenses.apsl20;
+    homepage = "https://github.com/jkroepke/helm-secrets";
+    license = licenses.asl20;
     maintainers = with maintainers; [ yurrriq ];
-    platforms = platforms.all;
+    platforms = platforms.unix;
   };
 }

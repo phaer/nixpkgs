@@ -2,21 +2,26 @@
 
 buildGoModule rec {
   pname = "esbuild";
-  version = "0.11.15";
+  version = "0.17.5";
 
   src = fetchFromGitHub {
     owner = "evanw";
     repo = "esbuild";
     rev = "v${version}";
-    sha256 = "1j6qli26i2hwkjqcigz7vyx6hg9daq4vlqigv7ddslw3h8hnp0md";
+    hash = "sha256-QLV6+1se3F7naG3jgXtSfmoTR0d7cFByRznzf+xjDpk=";
   };
 
-  vendorSha256 = "1n5538yik72x94vzfq31qaqrkpxds5xys1wlibw2gn2am0z5c06q";
+  vendorHash = "sha256-+BfxCyg0KkDQpHt/wycy/8CTG6YBA/VJvJFhhzUnSiQ=";
+
+  subPackages = [ "cmd/esbuild" ];
+
+  ldflags = [ "-s" "-w" ];
 
   meta = with lib; {
     description = "An extremely fast JavaScript bundler";
     homepage = "https://esbuild.github.io";
+    changelog = "https://github.com/evanw/esbuild/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ lucus16 ];
+    maintainers = with maintainers; [ lucus16 marsam ];
   };
 }

@@ -1,17 +1,19 @@
-{ lib, rustPlatform, fetchFromGitHub }:
+{ lib, stdenv, rustPlatform, fetchFromGitHub, libiconv }:
 
 rustPlatform.buildRustPackage rec {
   pname = "krapslog";
-  version = "0.1.2";
+  version = "0.5.0";
 
   src = fetchFromGitHub {
     owner = "acj";
     repo = "krapslog-rs";
     rev = version;
-    sha256 = "1yllvy3z3115aqxhnjn9rq2z67rgf2w53naygnl6ixpjhpafcr3k";
+    sha256 = "sha256-GSjS/6wetm3kHXdGyeenzALZ3tVi7BMM/GLS1ZhMQas=";
   };
 
-  cargoSha256 = "05gvl6yiyibcdscdf9a6k28xizdr5kfqbhynfbjny2hpqqjmnxzl";
+  cargoHash = "sha256-dgbi0mUI8WqqXF1VNOTbHuCKcvb4B18/1vBlJZ8Jivs=";
+
+  buildInputs = lib.optional stdenv.isDarwin libiconv;
 
   meta = with lib; {
     description = "Visualize a log file with sparklines";

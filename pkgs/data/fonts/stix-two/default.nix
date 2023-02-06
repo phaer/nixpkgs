@@ -1,18 +1,22 @@
-{ lib, fetchzip }:
-let
-  version = "2.12";
-in
-fetchzip {
-  name = "stix-two-${version}";
+{ lib, stdenvNoCC, fetchzip }:
 
-  url = "https://github.com/stipub/stixfonts/raw/v${version}/zipfiles/STIX${builtins.replaceStrings [ "." ] [ "_" ] version}-all.zip";
+stdenvNoCC.mkDerivation rec {
+  pname = "stix-two";
+  version = "2.13";
 
-  sha256 = "1a6v8p5zbjlv1gfhph0rzkvnmvxf4n1y0mdrdgng01yyl1nngrn9";
+  src = fetchzip {
+    url = "https://github.com/stipub/stixfonts/raw/v${version}/zipfiles/STIX${builtins.replaceStrings [ "." ] [ "_" ] version}-all.zip";
+    stripRoot = false;
+    hash = "sha256-hfQmrw7HjlhQSA0rVTs84i3j3iMVR0k7tCRBcB6hEpU=";
+  };
 
-  postFetch = ''
-    mkdir -p $out/share/fonts/
-    unzip -j $downloadedFile \*.otf -d $out/share/fonts/opentype
-    unzip -j $downloadedFile \*.ttf -d $out/share/fonts/truetype
+  installPhase = ''
+    runHook preInstall
+
+    install -Dm644 */*.otf -t $out/share/fonts/opentype
+    install -Dm644 */*.ttf -t $out/share/fonts/truetype
+
+    runHook postInstall
   '';
 
   meta = with lib; {

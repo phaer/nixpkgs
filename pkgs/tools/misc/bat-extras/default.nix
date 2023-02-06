@@ -1,7 +1,12 @@
-{ lib, stdenv, fetchFromGitHub, bash, makeWrapper, bat
+{ lib, stdenv, fetchFromGitHub, makeWrapper, bat
 # batdiff, batgrep, and batwatch
 , coreutils
+, getconf
 , less
+# tests
+, bash
+, zsh
+, fish
 # batgrep
 , ripgrep
 # prettybat
@@ -14,6 +19,8 @@
 # batdiff
 , gitMinimal
 , withDelta ? delta != null, delta ? null
+# batman
+, util-linux
 }:
 
 let
@@ -32,7 +39,7 @@ let
     };
 
     # bat needs to be in the PATH during building so EXECUTABLE_BAT picks it up
-    nativeBuildInputs = [ bash bat ];
+    nativeBuildInputs = [ bat ];
 
     dontConfigure = true;
 
@@ -48,6 +55,7 @@ let
 
     # Run the library tests as they don't have external dependencies
     doCheck = true;
+    nativeCheckInputs = [ bash fish zsh ] ++ (lib.optionals stdenv.isDarwin [ getconf ]);
     checkPhase = ''
       runHook preCheck
       # test list repeats suites. Unique them
@@ -55,12 +63,12 @@ let
       while read -r action arg _; do
         [[ "$action" == "test_suite" && "$arg" == lib_* ]] &&
         test_suites+=(["$arg"]=1)
-      done <<<"$(bash ./test.sh --compiled --list --porcelain)"
+      done <<<"$(./test.sh --compiled --list --porcelain)"
       (( ''${#test_suites[@]} != 0 )) || {
         echo "Couldn't find any library test suites"
         exit 1
       }
-      bash ./test.sh --compiled $(printf -- "--suite %q\n" "''${!test_suites[@]}")
+      ./test.sh --compiled $(printf -- "--suite %q\n" "''${!test_suites[@]}")
       runHook postCheck
     '';
 
@@ -91,7 +99,7 @@ let
 
       src = core;
 
-      nativeBuildInputs = [ bash makeWrapper ];
+      nativeBuildInputs = [ makeWrapper ];
       # Make the dependencies available to the tests.
       buildInputs = dependencies;
 
@@ -104,6 +112,7 @@ let
       dontBuild = true; # we've already built
 
       doCheck = true;
+      nativeCheckInputs = [ bash fish zsh ] ++ (lib.optionals stdenv.isDarwin [ getconf ]);
       checkPhase = ''
         runHook preCheck
         bash ./test.sh --compiled --suite ${name}
@@ -133,7 +142,8 @@ in
 {
   batdiff = script "batdiff" ([ less coreutils gitMinimal ] ++ optionalDep withDelta delta);
   batgrep = script "batgrep" [ less coreutils ripgrep ];
-  batman = script "batman" [];
+  batman = script "batman" [ util-linux ];
+  batpipe = script "batpipe" [ less ];
   batwatch = script "batwatch" ([ less coreutils ] ++ optionalDep withEntr entr);
   prettybat = script "prettybat" ([]
     ++ optionalDep withShFmt shfmt

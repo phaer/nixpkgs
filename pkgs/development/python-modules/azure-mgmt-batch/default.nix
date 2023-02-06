@@ -5,18 +5,20 @@
 , msrestazure
 , azure-common
 , azure-mgmt-core
-, azure-mgmt-nspkg
-, isPy3k
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-batch";
-  version = "15.0.0";
+  version = "17.0.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
     extension = "zip";
-    sha256 = "9b793bb31a0d4dc8c29186db61db24d83795851a75846aadb187cf95bf853ccb";
+    hash = "sha256-hkM4WVLuwxj4qgXsY8Ya7zu7/v37gKdP0Xbf2EqrsWo=";
   };
 
   propagatedBuildInputs = [
@@ -24,11 +26,9 @@ buildPythonPackage rec {
     msrestazure
     azure-common
     azure-mgmt-core
-  ] ++ lib.optionals (!isPy3k) [
-    azure-mgmt-nspkg
   ];
 
-  # has no tests
+  # Module has no tests
   doCheck = false;
 
   meta = with lib; {

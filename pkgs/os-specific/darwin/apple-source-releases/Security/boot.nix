@@ -1,8 +1,6 @@
-{ appleDerivation, darwin-stubs }:
+{ appleDerivation', stdenv, darwin-stubs }:
 
-appleDerivation {
-  phases = [ "unpackPhase" "installPhase" ];
-
+appleDerivation' stdenv {
   __propagatedImpureHostDeps = [
     "/System/Library/Frameworks/Security.framework/Security"
     "/System/Library/Frameworks/Security.framework/Resources"

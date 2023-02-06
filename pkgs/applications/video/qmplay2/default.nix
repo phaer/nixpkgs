@@ -1,13 +1,14 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchFromGitHub
 , pkg-config
 , cmake
-, alsaLib
+, alsa-lib
 , ffmpeg
+, game-music-emu
 , libass
 , libcddb
 , libcdio
-, libgme
 , libpulseaudio
 , libsidplayfp
 , libva
@@ -19,33 +20,34 @@
 , vulkan-tools
 , wrapQtAppsHook
 }:
-
-let
+stdenv.mkDerivation rec {
   pname = "qmplay2";
-  version = "20.12.16";
-in stdenv.mkDerivation {
-  inherit pname version;
+  version = "22.08.21";
 
   src = fetchFromGitHub {
     owner = "zaps166";
     repo = "QMPlay2";
     rev = version;
-    sha256 = "sha256-+XXlQI9MyENioYmzqbbZYQ6kaMATBjPrPaErR2Vqhus=";
+    sha256 = "sha256-UQf1aJGoUlXBo2lejw8A3lF6rFOKK6LUGDxRY9207Dw=";
     fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [ cmake pkg-config wrapQtAppsHook ];
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+    wrapQtAppsHook
+  ];
   buildInputs = [
-    alsaLib
+    alsa-lib
     ffmpeg
+    game-music-emu
+    libXv
     libass
     libcddb
     libcdio
-    libgme
     libpulseaudio
     libsidplayfp
     libva
-    libXv
     qtbase
     qttools
     taglib

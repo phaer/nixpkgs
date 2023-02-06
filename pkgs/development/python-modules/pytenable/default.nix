@@ -1,4 +1,5 @@
 { lib
+, appdirs
 , buildPythonPackage
 , defusedxml
 , fetchFromGitHub
@@ -8,22 +9,27 @@
 , pytestCheckHook
 , python-box
 , python-dateutil
+, pythonOlder
 , requests
 , requests-pkcs12
 , responses
 , restfly
 , semver
+, typing-extensions
 }:
 
 buildPythonPackage rec {
   pname = "pytenable";
-  version = "1.2.8";
+  version = "1.4.11";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "tenable";
     repo = "pyTenable";
-    rev = version;
-    sha256 = "12x0w1c4blm73ixv07w90jkydl7d8dx5l27ih9vc1yv9v2zzb53k";
+    rev = "refs/tags/${version}";
+    hash = "sha256-GSEMjgG8Q+gzHQWRbXr/qiGP6U6ydPxu0JsD56mRNWU=";
   };
 
   propagatedBuildInputs = [
@@ -31,6 +37,7 @@ buildPythonPackage rec {
   ];
 
   buildInputs = [
+    appdirs
     defusedxml
     marshmallow
     python-box
@@ -38,9 +45,10 @@ buildPythonPackage rec {
     requests
     requests-pkcs12
     restfly
+    typing-extensions
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     responses
     pytest-datafiles
     pytest-vcr
@@ -55,11 +63,14 @@ buildPythonPackage rec {
     "test_uploads_docker_push_cs_tag_typeerror"
   ];
 
-  pythonImportsCheck = [ "tenable" ];
+  pythonImportsCheck = [
+    "tenable"
+  ];
 
   meta = with lib; {
     description = "Python library for the Tenable.io and TenableSC API";
     homepage = "https://github.com/tenable/pyTenable";
+    changelog = "https://github.com/tenable/pyTenable/releases/tag/${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

@@ -11,6 +11,7 @@
 , cpio
 , xar
 , libdbusmenu
+, libxshmfence
 }:
 
 let
@@ -22,13 +23,13 @@ let
   pname = "wire-desktop";
 
   version = {
-    x86_64-darwin = "3.24.4059";
-    x86_64-linux = "3.24.2939";
+    x86_64-darwin = "3.30.4506";
+    x86_64-linux = "3.30.3018";
   }.${system} or throwSystem;
 
-  sha256 = {
-    x86_64-darwin = "1zjv3d8jp0wldrzl02q9kir7q3y5bcb6hsfli6wip8bmaq78dksy";
-    x86_64-linux = "1k9n58pr5fnqv9vacay5vrbs4pvq2p36c0dpg9rjdcnb2fwaqg5p";
+  hash = {
+    x86_64-darwin = "sha256-+htDeNIuucB4qzNBNYoSUH1DbfgouZS08G5hxPtIuzY=";
+    x86_64-linux = "sha256-46WjFA+E9M7RfTOM/Xoho+9ooToSgQiZaMlcZ3lJvBQ=";
   }.${system} or throwSystem;
 
   meta = with lib; {
@@ -46,12 +47,12 @@ let
     '';
     homepage = "https://wire.com/";
     downloadPage = "https://wire.com/download/";
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [
       arianvp
       kiwi
       toonn
-      worldofpeace
     ];
     platforms = [
       "x86_64-darwin"
@@ -64,21 +65,19 @@ let
 
     src = fetchurl {
       url = "https://wire-app.wire.com/linux/debian/pool/main/"
-      + "Wire-${version}_amd64.deb";
-      inherit sha256;
+        + "Wire-${version}_amd64.deb";
+      inherit hash;
     };
 
     desktopItem = makeDesktopItem {
-      categories = "Network;InstantMessaging;Chat;VideoConference";
+      categories = [ "Network" "InstantMessaging" "Chat" "VideoConference" ];
       comment = "Secure messenger for everyone";
       desktopName = "Wire";
       exec = "wire-desktop %U";
       genericName = "Secure messenger";
       icon = "wire-desktop";
       name = "wire-desktop";
-      extraEntries = ''
-        StartupWMClass=Wire
-      '';
+      startupWMClass = "Wire";
     };
 
     dontBuild = true;
@@ -93,7 +92,7 @@ let
       wrapGAppsHook
     ];
 
-    buildInputs = atomEnv.packages;
+    buildInputs = [ libxshmfence ] ++ atomEnv.packages;
 
     unpackPhase = ''
       runHook preUnpack
@@ -134,8 +133,8 @@ let
 
     src = fetchurl {
       url = "https://github.com/wireapp/wire-desktop/releases/download/"
-          + "macos%2F${version}/Wire.pkg";
-      inherit sha256;
+        + "macos%2F${version}/Wire.pkg";
+      inherit hash;
     };
 
     buildInputs = [

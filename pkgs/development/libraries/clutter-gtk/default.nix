@@ -1,5 +1,14 @@
-{ fetchurl, lib, stdenv, pkg-config, meson, ninja
-, gobject-introspection, clutter, gtk3, gnome3 }:
+{ fetchurl
+, lib
+, stdenv
+, pkg-config
+, meson
+, ninja
+, gobject-introspection
+, clutter
+, gtk3
+, gnome
+}:
 
 let
   pname = "clutter-gtk";
@@ -19,11 +28,18 @@ stdenv.mkDerivation rec {
   propagatedBuildInputs = [ clutter gtk3 ];
   nativeBuildInputs = [ meson ninja pkg-config gobject-introspection ];
 
+  postPatch = ''
+    # ld: malformed 32-bit x.y.z version number: =1
+    substituteInPlace meson.build \
+      --replace "host_system == 'darwin'" "false"
+  '';
+
   postBuild = "rm -rf $out/share/gtk-doc";
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
+      versionPolicy = "odd-unstable";
     };
   };
 
@@ -31,7 +47,7 @@ stdenv.mkDerivation rec {
     description = "Clutter-GTK";
     homepage = "http://www.clutter-project.org/";
     license = lib.licenses.lgpl2Plus;
-    maintainers = with lib.maintainers; [ lethalman ];
-    platforms = lib.platforms.gnu ++ lib.platforms.linux;  # arbitrary choice
+    maintainers = with lib.maintainers; [ ];
+    platforms = lib.platforms.unix;
   };
 }

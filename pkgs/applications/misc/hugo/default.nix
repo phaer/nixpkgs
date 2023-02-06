@@ -1,35 +1,37 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
+{ stdenv, lib, buildGoModule, fetchFromGitHub, installShellFiles, buildPackages }:
 
 buildGoModule rec {
   pname = "hugo";
-  version = "0.82.1";
+  version = "0.110.0";
 
   src = fetchFromGitHub {
     owner = "gohugoio";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-6poWFcApwCos3XvS/Wq1VJyf5xTUWtqWNFXIhjNsXVs=";
+    hash = "sha256-7B0C8191lUGsv81+0eKDrBm+5hLlFjID3RTuajSg/RM=";
   };
 
-  vendorSha256 = "sha256-pJBm+yyy1DbH28oVBQA+PHSDtSg3RcgbRlurrwnnEls=";
+  vendorHash = "sha256-GtywXjtAF5Q4jUz2clfseUJVqiU+eSguG/ZoKy2TzuA=";
 
   doCheck = false;
 
-  runVend = true;
+  proxyVendor = true;
 
-  buildFlags = [ "-tags" "extended" ];
+  tags = [ "extended" ];
 
   subPackages = [ "." ];
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
-    $out/bin/hugo gen man
+  ldflags = [ "-s" "-w" "-X github.com/gohugoio/hugo/common/hugo.vendorInfo=nixpkgs" ];
+
+  postInstall = let emulator = stdenv.hostPlatform.emulator buildPackages; in ''
+    ${emulator} $out/bin/hugo gen man
     installManPage man/*
     installShellCompletion --cmd hugo \
-      --bash <($out/bin/hugo gen autocomplete --type=bash) \
-      --fish <($out/bin/hugo gen autocomplete --type=fish) \
-      --zsh <($out/bin/hugo gen autocomplete --type=zsh)
+      --bash <(${emulator} $out/bin/hugo completion bash) \
+      --fish <(${emulator} $out/bin/hugo completion fish) \
+      --zsh  <(${emulator} $out/bin/hugo completion zsh)
   '';
 
   meta = with lib; {

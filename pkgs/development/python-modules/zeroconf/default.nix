@@ -1,43 +1,75 @@
-{ stdenv
-, lib
+{ lib
+, stdenv
+, async-timeout
 , buildPythonPackage
-, fetchPypi
+, fetchFromGitHub
 , ifaddr
+, poetry-core
+, pytest-asyncio
 , pythonOlder
 , pytestCheckHook
+, setuptools
 }:
 
 buildPythonPackage rec {
   pname = "zeroconf";
-  version = "0.29.0";
-  disabled = pythonOlder "3.6";
+  version = "0.47.1";
+  format = "pyproject";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-eu+7ZYtFKx/X5REkNk+TjG9eQtbqiT+iVXvqjAbFQK8=";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "jstasiak";
+    repo = "python-zeroconf";
+    rev = "refs/tags/${version}";
+    hash = "sha256-vY4n0QIEzumtUayRbGGqycR3z7kpbOH4XKxSMcnTVrA=";
   };
 
-  propagatedBuildInputs = [ ifaddr ];
+  nativeBuildInputs = [
+    poetry-core
+    setuptools
+  ];
 
-  checkInputs = [ pytestCheckHook ];
+  propagatedBuildInputs = [
+    async-timeout
+    ifaddr
+  ];
 
-  pytestFlagsArray = [ "zeroconf/test.py" ];
+  # OSError: [Errno 48] Address already in use
+  doCheck = !stdenv.isDarwin;
+
+  nativeCheckInputs = [
+    pytest-asyncio
+    pytestCheckHook
+  ];
+
+  preCheck = ''
+    sed -i '/addopts/d' pyproject.toml
+  '';
 
   disabledTests = [
-    # disable tests that expect some sort of networking in the build container
+    # tests that require network interaction
+    "test_close_multiple_times"
     "test_launch_and_close"
+    "test_launch_and_close_context_manager"
     "test_launch_and_close_v4_v6"
     "test_launch_and_close_v6_only"
     "test_integration_with_listener_ipv6"
+    # Starting with 0.39.0: AssertionError: assert [('add', '_ht..._tcp.local.')]
+    "test_service_browser_expire_callbacks"
   ] ++ lib.optionals stdenv.isDarwin [
     "test_lots_of_names"
   ];
 
   __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [ "zeroconf" ];
+  pythonImportsCheck = [
+    "zeroconf"
+    "zeroconf.asyncio"
+  ];
 
   meta = with lib; {
+    changelog = "https://github.com/python-zeroconf/python-zeroconf/releases/tag/${version}";
     description = "Python implementation of multicast DNS service discovery";
     homepage = "https://github.com/jstasiak/python-zeroconf";
     license = licenses.lgpl21Only;

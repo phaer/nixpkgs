@@ -1,18 +1,22 @@
 { lib, stdenv, fetchurl, fetchpatch, xorg, ncurses, freetype, fontconfig
-, pkg-config, makeWrapper, nixosTests, writeScript, common-updater-scripts, git
+, pkg-config, makeWrapper, nixosTests, gitUpdater
 , nixfmt, nix, gnused, coreutils, enableDecLocator ? true }:
 
 stdenv.mkDerivation rec {
   pname = "xterm";
-  version = "367";
+  version = "378";
 
   src = fetchurl {
     urls = [
       "ftp://ftp.invisible-island.net/xterm/${pname}-${version}.tgz"
       "https://invisible-mirror.net/archives/xterm/${pname}-${version}.tgz"
     ];
-    sha256 = "07y51l06n344pjyxdddq6sdvxw25nl10irl4avynkqjnqyqsiw97";
+    hash = "sha256-ZJ37/V7dDtnkfPjk2VO0sNPDC8KAFm38T/0Ulz/sPpI=";
   };
+
+  strictDeps = true;
+
+  nativeBuildInputs = [ makeWrapper pkg-config fontconfig ];
 
   buildInputs = [
     xorg.libXaw
@@ -24,11 +28,8 @@ stdenv.mkDerivation rec {
     xorg.libICE
     ncurses
     freetype
-    fontconfig
-    pkg-config
     xorg.libXft
     xorg.luit
-    makeWrapper
   ];
 
   patches = [ ./sixel-256.support.patch ]
@@ -75,39 +76,18 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    tests = { inherit (nixosTests) xterm; };
+    tests = {
+      customTest = nixosTests.xterm;
+      standardTest = nixosTests.terminal-emulators.xterm;
+    };
 
-    updateScript = let
+    updateScript = gitUpdater {
+      # No nicer place to find latest release.
+      url = "https://github.com/ThomasDickey/xterm-snapshots.git";
+      rev-prefix = "xterm-";
       # Tags that end in letters are unstable
-      suffixes = lib.concatStringsSep " "
-        (map (c: "-c versionsort.suffix='${c}'")
-          (lib.stringToCharacters "abcdefghijklmnopqrstuvwxyz"));
-    in writeScript "update.sh" ''
-      #!${stdenv.shell}
-      set -o errexit
-      PATH=${
-        lib.makeBinPath [
-          common-updater-scripts
-          git
-          nixfmt
-          nix
-          coreutils
-          gnused
-        ]
-      }
-
-      oldVersion="$(nix-instantiate --eval -E "with import ./. {}; lib.getVersion ${pname}" | tr -d '"')"
-      latestTag="$(git ${suffixes} ls-remote --exit-code --refs --sort='version:refname' --tags git@github.com:ThomasDickey/xterm-snapshots.git 'xterm-*' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed 's|^xterm-||g')"
-
-      if [ ! "$oldVersion" = "$latestTag" ]; then
-        update-source-version ${pname} "$latestTag" --version-key=version --print-changes
-        nixpkgs="$(git rev-parse --show-toplevel)"
-        default_nix="$nixpkgs/pkgs/applications/terminal-emulators/xterm/default.nix"
-        nixfmt "$default_nix"
-      else
-        echo "${pname} is already up-to-date"
-      fi
-    '';
+      ignoredVersions = "[a-z]$";
+    };
   };
 
   meta = {

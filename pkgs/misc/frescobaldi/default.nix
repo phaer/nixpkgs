@@ -1,4 +1,4 @@
-{ lib, buildPythonApplication, fetchFromGitHub, python3Packages, pyqtwebengine, lilypond }:
+{ lib, stdenv, buildPythonApplication, fetchFromGitHub, python3Packages, pyqtwebengine, lilypond }:
 
 buildPythonApplication rec {
   pname = "frescobaldi";
@@ -12,7 +12,7 @@ buildPythonApplication rec {
   };
 
   propagatedBuildInputs = with python3Packages; [
-    lilypond pygame python-ly sip
+    lilypond pygame python-ly sip_4
     pyqt5 poppler-qt5
     pyqtwebengine
   ];
@@ -51,5 +51,6 @@ buildPythonApplication rec {
     license = licenses.gpl2Plus;
     maintainers = with maintainers; [ sepi ];
     platforms = platforms.all;
+    broken = stdenv.isDarwin; # never built on Hydra https://hydra.nixos.org/job/nixpkgs/trunk/frescobaldi.x86_64-darwin
   };
 }

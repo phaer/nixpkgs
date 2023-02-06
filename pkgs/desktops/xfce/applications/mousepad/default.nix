@@ -1,18 +1,22 @@
-{ mkXfceDerivation, gobject-introspection, vala, gtk3, gtksourceview4, xfconf }:
+{ lib, mkXfceDerivation, gobject-introspection, gtk3, gtksourceview4, gspell }:
 
 mkXfceDerivation {
   category = "apps";
   pname = "mousepad";
-  version = "0.5.4";
+  version = "0.5.10";
   odd-unstable = false;
 
-  sha256 = "0yrmjs6cyzm08jz8wzrx8wdxj7zdbxn6x625109ckfcfxrkp4a2f";
+  sha256 = "sha256-AKyFCzQE6OfMzKh5Lk16W01255vPeco1II80oLqT4oM=";
 
-  nativeBuildInputs = [ gobject-introspection vala ];
+  nativeBuildInputs = [ gobject-introspection ];
 
-  buildInputs = [ gtk3 gtksourceview4 xfconf ];
+  buildInputs = [ gtk3 gtksourceview4 gspell ];
 
-  meta = {
+  # Use the GSettings keyfile backend rather than DConf
+  configureFlags = [ "--enable-keyfile-settings" ];
+
+  meta = with lib; {
     description = "Simple text editor for Xfce";
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

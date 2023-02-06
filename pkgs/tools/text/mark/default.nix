@@ -2,18 +2,18 @@
 
 buildGoModule rec {
   pname = "mark";
-  version = "5.5";
+  version = "8.7";
 
   src = fetchFromGitHub {
     owner  = "kovetskiy";
     repo   = "mark";
     rev    = version;
-    sha256 = "sha256-+mDUT9zkawa6Ad1uptc34RGK3bhU6WowwUZdwKbOnj4=";
+    sha256 = "sha256-A6EfP7l95eg9uL6NDqiPSzQ59JmTdE96UqunHETns9M=";
   };
 
-  vendorSha256 = "sha256-nneQ0B7PyHAqiOzrmWqSssZM8B3np4VFUJLBqUvkjZE=";
+  vendorHash = "sha256-LJ288Z8xz/Xoy5I2OAk9v5hxRUkQcRTmNaQ31kHE8gQ=";
 
-  buildFlagsArray = [ "-ldflags=-s -w -X main.version=${version}" ];
+  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
 
   meta = with lib; {
     description = "A tool for syncing your markdown documentation with Atlassian Confluence pages";

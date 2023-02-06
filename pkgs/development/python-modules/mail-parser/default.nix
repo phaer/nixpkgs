@@ -1,10 +1,9 @@
-{ lib, buildPythonPackage, python, pythonOlder, glibcLocales, fetchFromGitHub, ipaddress, six, simplejson }:
+{ lib, buildPythonPackage, python, glibcLocales, fetchFromGitHub, six, simplejson }:
 
 buildPythonPackage rec {
   pname = "mail-parser";
   version = "3.15.0";
 
-  # no tests in PyPI tarball
   src = fetchFromGitHub {
     owner = "SpamScope";
     repo = pname;
@@ -14,18 +13,8 @@ buildPythonPackage rec {
 
   LC_ALL = "en_US.utf-8";
 
-  # remove version bounds
-  prePatch = ''
-    sed -i -e 's/==.*//g' requirements.txt
-  ''
-  # ipaddress is part of the standard library of Python 3.3+
-  + lib.optionalString (!pythonOlder "3.3") ''
-    substituteInPlace requirements.txt \
-      --replace "ipaddress" ""
-  '';
-
   nativeBuildInputs = [ glibcLocales ];
-  propagatedBuildInputs = [ simplejson six ] ++ lib.optional (pythonOlder "3.3") ipaddress;
+  propagatedBuildInputs = [ simplejson six ];
 
   # Taken from .travis.yml
   checkPhase = ''

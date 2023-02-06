@@ -1,34 +1,42 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
+, poetry-core
 , pytestCheckHook
 , pythonOlder
-, requests
 }:
 
 buildPythonPackage rec {
   pname = "awesomeversion";
-  version = "21.4.0";
+  version = "22.9.0";
+  format = "pyproject";
+
   disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "ludeeus";
     repo = pname;
     rev = version;
-    sha256 = "sha256-ulByke1sKVcDdBhAz/fxdNFJ0PSjYVdnBcO+GYEnZUQ=";
+    sha256 = "sha256-OQArggd7210OyFpZKm3kr3fFbakIDG7U3WBNImAAobw=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py --replace "main" ${version}
-  '';
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
-  propagatedBuildInputs = [ requests ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "awesomeversion" ];
+  postPatch = ''
+    # Upstream doesn't set a version
+    substituteInPlace pyproject.toml \
+      --replace 'version = "0"' 'version = "${version}"'
+  '';
+
+  pythonImportsCheck = [
+    "awesomeversion"
+  ];
 
   meta = with lib; {
     description = "Python module to deal with versions";

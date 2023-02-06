@@ -1,24 +1,26 @@
 { lib
 , buildPythonApplication
 , fetchFromGitHub
-, setuptools_scm
+, setuptools-scm
+, setuptools
 , vdf
 , bash
 , steam-run
 , winetricks
-, zenity
+, yad
 , pytestCheckHook
+, nix-update-script
 }:
 
 buildPythonApplication rec {
   pname = "protontricks";
-  version = "1.5.0";
+  version = "1.10.1";
 
   src = fetchFromGitHub {
     owner = "Matoking";
     repo = pname;
     rev = version;
-    hash = "sha256-IHgoi5VUN3ORbufkruPb6wR7pTekJFQHhhDrnjOWzWM=";
+    sha256 = "sha256-gKrdUwX5TzeHHXuwhUyI4REPE6TNiZ6lhonyMCHcBCA=";
   };
 
   patches = [
@@ -26,34 +28,41 @@ buildPythonApplication rec {
     ./steam-run.patch
   ];
 
-  preBuild = ''
-    export SETUPTOOLS_SCM_PRETEND_VERSION="${version}"
-  '';
+  SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
-  nativeBuildInputs = [ setuptools_scm ];
-  propagatedBuildInputs = [ vdf ];
+  nativeBuildInputs = [ setuptools-scm ];
+
+  propagatedBuildInputs = [
+    setuptools # implicit dependency, used to find data/icon_placeholder.png
+    vdf
+  ];
 
   makeWrapperArgs = [
     "--prefix PATH : ${lib.makeBinPath [
       bash
       steam-run
-      (winetricks.override {
-        # Remove default build of wine to reduce closure size.
-        # Falls back to wine in PATH when --no-runtime is passed.
-        wine = null;
-      })
-      zenity
+      winetricks
+      yad
     ]}"
   ];
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  # From 1.6.0 release notes (https://github.com/Matoking/protontricks/releases/tag/1.6.0):
+  # In most cases the script is unnecessary and should be removed as part of the packaging process.
+  postInstall = ''
+    rm "$out/bin/protontricks-desktop-install"
+  '';
+
   pythonImportsCheck = [ "protontricks" ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
     description = "A simple wrapper for running Winetricks commands for Proton-enabled games";
     homepage = "https://github.com/Matoking/protontricks";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ metadark ];
-    platforms = platforms.linux;
+    license = licenses.gpl3Only;
+    maintainers = with maintainers; [ kira-bruneau ];
+    platforms = [ "x86_64-linux" "i686-linux" ];
   };
 }

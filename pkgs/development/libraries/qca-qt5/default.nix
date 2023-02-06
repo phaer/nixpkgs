@@ -2,21 +2,17 @@
 
 stdenv.mkDerivation rec {
   pname = "qca-qt5";
-  version = "2.3.1";
+  version = "2.3.5";
 
   src = fetchurl {
     url = "http://download.kde.org/stable/qca/${version}/qca-${version}.tar.xz";
-    sha256 = "sha256-wThREJq+/EYjNwmJ+uOnRb9rGss8KhOolYU5gj6XTks=";
+    sha256 = "sha256-kffZFqs2kr9ZkfClU7+BUxYb/doUvQBdSAorTjhDYug=";
   };
 
   buildInputs = [ openssl qtbase ];
   nativeBuildInputs = [ cmake pkg-config ];
 
   dontWrapQtApps = true;
-
-  # Without this patch cmake fails with a "No known features for CXX compiler"
-  # error on darwin
-  patches = lib.optional stdenv.isDarwin ./move-project.patch ;
 
   # tells CMake to use this CA bundle file if it is accessible
   preConfigure = "export QC_CERTSTORE_PATH=/etc/ssl/certs/ca-certificates.crt";

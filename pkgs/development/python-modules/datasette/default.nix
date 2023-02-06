@@ -5,6 +5,7 @@
 , asgi-csrf
 , click
 , click-default-group
+, itsdangerous
 , janus
 , jinja2
 , hupper
@@ -15,72 +16,73 @@
 , pyyaml
 , uvicorn
 , httpx
-# Check Inputs
 , pytestCheckHook
-, pytestrunner
 , pytest-asyncio
+, pytest-timeout
 , aiohttp
 , beautifulsoup4
 , asgiref
 , setuptools
+, trustme
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "datasette";
-  version = "0.54.1";
+  version = "0.64.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "simonw";
-    repo = "datasette";
-    rev = version;
-    sha256 = "sha256-Ixh56X9dI/FIJPXHXXGnFiYj3qeBmvW5L1FF7/0ofUQ=";
+    repo = pname;
+    rev = "refs/tags/${version}";
+    sha256 = "sha256-EXYAiXqEfQVDTwc4MFTroLPEaTZ3QYTlUsuNQ72oHpA=";
   };
 
-  nativeBuildInputs = [ pytestrunner ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace '"pytest-runner"' "" \
+      --replace "click-default-group-wheel>=1.2.2" "click-default-group"
+  '';
 
   propagatedBuildInputs = [
     aiofiles
     asgi-csrf
+    asgiref
     click
     click-default-group
+    httpx
+    hupper
+    itsdangerous
     janus
     jinja2
-    hupper
     mergedeep
     pint
     pluggy
     python-baseconv
     pyyaml
-    uvicorn
     setuptools
-    httpx
-    asgiref
+    uvicorn
   ];
 
-  checkInputs = [
-    pytestCheckHook
-    pytest-asyncio
+  nativeCheckInputs = [
     aiohttp
     beautifulsoup4
+    pytest-asyncio
+    pytest-timeout
+    pytestCheckHook
+    trustme
   ];
 
-  postConfigure = ''
-    substituteInPlace setup.py \
-      --replace "click~=7.1.1" "click" \
-      --replace "click-default-group~=1.2.2" "click-default-group" \
-      --replace "hupper~=1.9" "hupper" \
-      --replace "pint~=0.9" "pint" \
-      --replace "pluggy~=0.13.0" "pluggy" \
-      --replace "uvicorn~=0.11" "uvicorn" \
-      --replace "PyYAML~=5.3" "PyYAML"
-  '';
-
-  # takes 30-180 mins to run entire test suite, not worth the cpu resources, slows down reviews
-  # with pytest-xdist, it still takes around 10mins with 32 cores
+  # takes 30-180 mins to run entire test suite, not worth the CPU resources, slows down reviews
+  # with pytest-xdist, it still takes around 10 mins with 32 cores
   # just run the csv tests, as this should give some indictation of correctness
   pytestFlagsArray = [
     "tests/test_csv.py"
   ];
+
   disabledTests = [
     "facet"
     "_invalid_database" # checks error message when connecting to invalid database
@@ -97,10 +99,9 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
-    description = "An instant JSON API for your SQLite databases";
-    homepage = "https://github.com/simonw/datasette";
+    description = "Multi-tool for exploring and publishing data";
+    homepage = "https://datasette.io/";
     license = licenses.asl20;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = with maintainers; [ costrouc ];
   };
-
 }

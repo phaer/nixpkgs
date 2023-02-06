@@ -2,11 +2,11 @@
 , freeglut, freealut, libGLU, libGL, libICE, libjpeg, openal, openscenegraph, plib
 , libSM, libunwind, libX11, xorgproto, libXext, libXi
 , libXmu, libXt, simgear, zlib, boost, cmake, libpng, udev, fltk13, apr
-, makeDesktopItem, qtbase, qtdeclarative, glew
+, makeDesktopItem, qtbase, qtdeclarative, glew, curl
 }:
 
 let
-  version = "2020.3.8";
+  version = "2020.3.17";
   shortVersion = builtins.substring 0 6 version;
   data = stdenv.mkDerivation rec {
     pname = "flightgear-data";
@@ -14,10 +14,10 @@ let
 
     src = fetchurl {
       url = "mirror://sourceforge/flightgear/release-${shortVersion}/FlightGear-${version}-data.txz";
-      sha256 = "sha256-/KFumHRkmRvsU/L1i11jG/KbqobnOEP7l4lyPMKHycA=";
+      sha256 = "sha256-Kl66K5rmejaRKFgzps4/a73z8gIp9YcdfJQOFR1U2Og=";
     };
 
-    phases = [ "installPhase" ];
+    dontUnpack = true;
 
     installPhase = ''
       mkdir -p "$out/share/FlightGear"
@@ -32,7 +32,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "mirror://sourceforge/flightgear/release-${shortVersion}/${pname}-${version}.tar.bz2";
-    sha256 = "XXDqhZ9nR+FwQ3LauZe8iGxOjlyDXDrEtj61BQGVDYc=";
+    sha256 = "sha256-ZnDe3qyiaDrKd/nwa/nR2AYq4yoqVFnd3IqgmJxfGFQ=";
   };
 
   # Of all the files in the source and data archives, there doesn't seem to be
@@ -49,7 +49,7 @@ stdenv.mkDerivation rec {
     comment = "FlightGear Flight Simulator";
     desktopName = "FlightGear";
     genericName = "Flight simulator";
-    categories = "Game;Simulation";
+    categories = [ "Game" "Simulation" ];
   };
 
   nativeBuildInputs = [ cmake wrapQtAppsHook ];
@@ -57,7 +57,7 @@ stdenv.mkDerivation rec {
     freeglut freealut libGLU libGL libICE libjpeg openal openscenegraph plib
     libSM libunwind libX11 xorgproto libXext libXi
     libXmu libXt simgear zlib boost libpng udev fltk13 apr qtbase
-    glew qtdeclarative
+    glew qtdeclarative curl
   ];
 
   postInstall = ''

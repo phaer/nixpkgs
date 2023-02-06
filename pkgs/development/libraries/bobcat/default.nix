@@ -4,10 +4,10 @@
 
 stdenv.mkDerivation rec {
   pname = "bobcat";
-  version = "5.05.00";
+  version = "5.10.01";
 
   src = fetchFromGitLab {
-    sha256 = "sha256:14lvxzkxmkk54s97ah996m6s1wbw1g3iwawbhsf8qw7sf75vlp1h";
+    sha256 = "sha256-QhjUIaPSDAvOt0ZCzQWASpG+GJaTviosGDrzrckhuhs=";
     domain = "gitlab.com";
     rev = version;
     repo = "bobcat";
@@ -25,6 +25,10 @@ stdenv.mkDerivation rec {
     substituteInPlace INSTALL.im --replace /usr $out
     patchShebangs .
   '';
+
+  # have to link to static gcc lib on aarch64-linux explicitly
+  # https://github.com/NixOS/nixpkgs/issues/201254
+  NIX_LDFLAGS = lib.optionalString (with stdenv.targetPlatform; isAarch64 && isLinux) "-lgcc";
 
   buildPhase = ''
     ./build libraries all

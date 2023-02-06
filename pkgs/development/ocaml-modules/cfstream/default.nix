@@ -17,7 +17,9 @@ buildDunePackage rec {
 
   patches = [ ./git_commit.patch ];
 
-  buildInputs = [ m4 ];
+  strictDeps = true;
+
+  nativeBuildInputs = [ m4 ];
   checkInputs = [ ounit ];
   propagatedBuildInputs = [ core_kernel ];
 

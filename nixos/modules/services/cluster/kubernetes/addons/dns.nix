@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, options, pkgs, lib, ... }:
 
 with lib;
 
@@ -12,10 +12,10 @@ let
   };
 in {
   options.services.kubernetes.addons.dns = {
-    enable = mkEnableOption "kubernetes dns addon";
+    enable = mkEnableOption (lib.mdDoc "kubernetes dns addon");
 
     clusterIp = mkOption {
-      description = "Dns addon clusterIP";
+      description = lib.mdDoc "Dns addon clusterIP";
 
       # this default is also what kubernetes users
       default = (
@@ -23,35 +23,39 @@ in {
           take 3 (splitString "." config.services.kubernetes.apiserver.serviceClusterIpRange
         ))
       ) + ".254";
+      defaultText = literalMD ''
+        The `x.y.z.254` IP of
+        `config.${options.services.kubernetes.apiserver.serviceClusterIpRange}`.
+      '';
       type = types.str;
     };
 
     clusterDomain = mkOption {
-      description = "Dns cluster domain";
+      description = lib.mdDoc "Dns cluster domain";
       default = "cluster.local";
       type = types.str;
     };
 
     replicas = mkOption {
-      description = "Number of DNS pod replicas to deploy in the cluster.";
+      description = lib.mdDoc "Number of DNS pod replicas to deploy in the cluster.";
       default = 2;
       type = types.int;
     };
 
     reconcileMode = mkOption {
-      description = ''
+      description = lib.mdDoc ''
         Controls the addon manager reconciliation mode for the DNS addon.
 
         Setting reconcile mode to EnsureExists makes it possible to tailor DNS behavior by editing the coredns ConfigMap.
 
-        See: <link xlink:href="https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/addon-manager/README.md"/>.
+        See: <https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/addon-manager/README.md>.
       '';
       default = "Reconcile";
       type = types.enum [ "Reconcile" "EnsureExists" ];
     };
 
     coredns = mkOption {
-      description = "Docker image to seed for the CoreDNS container.";
+      description = lib.mdDoc "Docker image to seed for the CoreDNS container.";
       type = types.attrs;
       default = {
         imageName = "coredns/coredns";
@@ -59,6 +63,48 @@ in {
         finalImageTag = version;
         sha256 = "02r440xcdsgi137k5lmmvp0z5w5fmk8g9mysq5pnysq1wl8sj6mw";
       };
+    };
+
+    corefile = mkOption {
+      description = lib.mdDoc ''
+        Custom coredns corefile configuration.
+
+        See: <https://coredns.io/manual/toc/#configuration>.
+      '';
+      type = types.str;
+      default = ''
+        .:${toString ports.dns} {
+          errors
+          health :${toString ports.health}
+          kubernetes ${cfg.clusterDomain} in-addr.arpa ip6.arpa {
+            pods insecure
+            fallthrough in-addr.arpa ip6.arpa
+          }
+          prometheus :${toString ports.metrics}
+          forward . /etc/resolv.conf
+          cache 30
+          loop
+          reload
+          loadbalance
+        }'';
+      defaultText = literalExpression ''
+        '''
+          .:${toString ports.dns} {
+            errors
+            health :${toString ports.health}
+            kubernetes ''${config.services.kubernetes.addons.dns.clusterDomain} in-addr.arpa ip6.arpa {
+              pods insecure
+              fallthrough in-addr.arpa ip6.arpa
+            }
+            prometheus :${toString ports.metrics}
+            forward . /etc/resolv.conf
+            cache 30
+            loop
+            reload
+            loadbalance
+          }
+        '''
+      '';
     };
   };
 
@@ -151,20 +197,7 @@ in {
           namespace = "kube-system";
         };
         data = {
-          Corefile = ".:${toString ports.dns} {
-            errors
-            health :${toString ports.health}
-            kubernetes ${cfg.clusterDomain} in-addr.arpa ip6.arpa {
-              pods insecure
-              fallthrough in-addr.arpa ip6.arpa
-            }
-            prometheus :${toString ports.metrics}
-            forward . /etc/resolv.conf
-            cache 30
-            loop
-            reload
-            loadbalance
-          }";
+          Corefile = cfg.corefile;
         };
       };
 
@@ -330,4 +363,6 @@ in {
 
     services.kubernetes.kubelet.clusterDns = mkDefault cfg.clusterIp;
   };
+
+  meta.buildDocsInSandbox = false;
 }

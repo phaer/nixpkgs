@@ -2,7 +2,7 @@
 , stdenv
 , fetchurl
 , bundlerEnv
-, alsaUtils
+, alsa-utils
 , atk
 , copyDesktopItems
 , gobject-introspection
@@ -49,9 +49,9 @@ let
       desktopName = "mikutter";
       exec = "mikutter";
       icon = "mikutter";
-      categories = "Network;";
+      categories = [ "Network" ];
       comment = description;
-      extraDesktopEntries.Keywords = "Mastodon;";
+      keywords = [ "Mastodon" ];
     };
 
   mkInfoPlist = { version }:
@@ -87,11 +87,11 @@ with mikutterPaths; stdenv.mkDerivation rec {
     libnotify
     which # some plugins use it at runtime
     wrappedRuby
-  ] ++ lib.optionals stdenv.isLinux [ alsaUtils ];
+  ] ++ lib.optionals stdenv.isLinux [ alsa-utils ];
 
   scriptPath = lib.makeBinPath (
     [ wrappedRuby libnotify which ]
-    ++ lib.optionals stdenv.isLinux [ alsaUtils ]
+    ++ lib.optionals stdenv.isLinux [ alsa-utils ]
   );
 
   postUnpack = ''

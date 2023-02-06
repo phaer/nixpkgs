@@ -1,38 +1,68 @@
-{ lib, stdenv, fetchurl, pkg-config, writeText, libX11, ncurses
-, libXft, conf ? null, patches ? [], extraLibs ? []}:
+{ lib
+, stdenv
+, fetchurl
+, pkg-config
+, fontconfig
+, freetype
+, libX11
+, libXft
+, ncurses
+, writeText
+, conf ? null
+, patches ? [ ]
+, extraLibs ? [ ]
+, nixosTests
+}:
 
-with lib;
-
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "st";
-  version = "0.8.4";
+  version = "0.9";
 
   src = fetchurl {
-    url = "https://dl.suckless.org/st/${pname}-${version}.tar.gz";
-    sha256 = "19j66fhckihbg30ypngvqc9bcva47mp379ch5vinasjdxgn3qbfl";
+    url = "https://dl.suckless.org/st/st-${finalAttrs.version}.tar.gz";
+    hash = "sha256-82NZeZc06ueFvss3QGPwvoM88i+ItPFpzSUbmTJOCOc=";
   };
 
   inherit patches;
 
-  configFile = optionalString (conf!=null) (writeText "config.def.h" conf);
+  configFile = lib.optionalString (conf != null)
+    (writeText "config.def.h" conf);
 
-  postPatch = optionalString (conf!=null) "cp ${configFile} config.def.h"
-            + optionalString stdenv.isDarwin ''
+  postPatch = lib.optionalString (conf != null) "cp ${finalAttrs.configFile} config.def.h"
+    + lib.optionalString stdenv.isDarwin ''
     substituteInPlace config.mk --replace "-lrt" ""
   '';
 
-  nativeBuildInputs = [ pkg-config ncurses ];
-  buildInputs = [ libX11 libXft ] ++ extraLibs;
+  strictDeps = true;
 
-  installPhase = ''
-    TERMINFO=$out/share/terminfo make install PREFIX=$out
+  makeFlags = [
+    "PKG_CONFIG=${stdenv.cc.targetPrefix}pkg-config"
+  ];
+
+  nativeBuildInputs = [
+    pkg-config
+    ncurses
+    fontconfig
+    freetype
+  ];
+  buildInputs = [
+    libX11
+    libXft
+  ] ++ extraLibs;
+
+  preInstall = ''
+    export TERMINFO=$out/share/terminfo
   '';
 
-  meta = {
+  installFlags = [ "PREFIX=$(out)" ];
+
+  passthru.tests.test = nixosTests.terminal-emulators.st;
+
+  meta = with lib; {
     homepage = "https://st.suckless.org/";
     description = "Simple Terminal for X from Suckless.org Community";
     license = licenses.mit;
     maintainers = with maintainers; [ andsild ];
-    platforms = platforms.linux ++ platforms.darwin;
+    platforms = platforms.unix;
   };
-}
+})

@@ -4,7 +4,7 @@
 , joblib
 , matplotlib
 , six
-, scikitlearn
+, scikit-learn
 , decorator
 , audioread
 , resampy
@@ -14,14 +14,14 @@
 
 buildPythonPackage rec {
   pname = "librosa";
-  version = "0.8.0";
+  version = "0.9.2";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "af0b9f2ed4bbf6aecbc448a4cd27c16453c397cb6bef0f0cfba0e63afea2b839";
+    sha256 = "sha256-W1drXv3OQo6QvJiL3VqVPRKnJ+X5MfMNdMU7Y6u+PIk=";
   };
 
-  propagatedBuildInputs = [ joblib matplotlib six scikitlearn decorator audioread resampy soundfile pooch ];
+  propagatedBuildInputs = [ joblib matplotlib six scikit-learn decorator audioread resampy soundfile pooch ];
 
   # No tests
   # 1. Internet connection is required

@@ -1,4 +1,5 @@
 { lib
+, stdenv
 , buildGoModule
 , fetchFromGitHub
 , installShellFiles
@@ -6,13 +7,13 @@
 
 buildGoModule rec {
   pname = "qrcp";
-  version = "0.8.1";
+  version = "0.9.1";
 
   src = fetchFromGitHub {
     owner = "claudiodangelis";
     repo = "qrcp";
     rev = version;
-    sha256 = "001w15hj5xb7p9gpvw1216lp26g5018qdi8mq6i84akb7zfd2q01";
+    sha256 = "sha256-oXtFkjCnbfjV15XWkmmJmhG82GyaY4FAcF5NrGnxHm0=";
   };
 
   vendorSha256 = "1hn8c72fvih6ws1y2c4963pww3ld64m0yh3pmx62hwcy83bhb0v4";
@@ -24,9 +25,10 @@ buildGoModule rec {
   ];
 
   postInstall = ''
-    installShellCompletion --bash --cmd qrcp <($out/bin/qrcp completion bash)
-    installShellCompletion --fish --cmd qrcp <($out/bin/qrcp completion fish)
-    installShellCompletion --zsh  --cmd qrcp <($out/bin/qrcp completion zsh)
+    installShellCompletion --cmd qrcp \
+      --bash <($out/bin/qrcp completion bash) \
+      --fish <($out/bin/qrcp completion fish) \
+      --zsh <($out/bin/qrcp completion zsh)
   '';
 
   meta = with lib; {
@@ -39,6 +41,7 @@ buildGoModule rec {
       complete.
     '';
     license = licenses.mit;
-    maintainers = with maintainers; [ fgaz ];
+    maintainers = with maintainers; [ fgaz SuperSandro2000 ];
+    broken = stdenv.isDarwin; # needs golang.org/x/sys bump
   };
 }

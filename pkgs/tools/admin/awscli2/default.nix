@@ -1,21 +1,22 @@
-{ lib, python3, groff, less, fetchFromGitHub }:
+{ lib
+, python3
+, groff
+, less
+, fetchFromGitHub
+, nix-update-script
+, testers
+, awscli2
+}:
+
 let
   py = python3.override {
     packageOverrides = self: super: {
-      botocore = super.botocore.overridePythonAttrs (oldAttrs: rec {
-        version = "2.0.0dev103";
-        src = fetchFromGitHub {
-          owner = "boto";
-          repo = "botocore";
-          rev = "e30d580042687a79776fdf93264e80746e08d21f";
-          sha256 = "sha256-+cTQQO6dPctvf3WZOk8Mgo1eQUdqRdGCcz7jcVhEvNo=";
-        };
-      });
-      prompt_toolkit = super.prompt_toolkit.overridePythonAttrs (oldAttrs: rec {
-        version = "2.0.10";
-        src = oldAttrs.src.override {
+      prompt-toolkit = super.prompt-toolkit.overridePythonAttrs (oldAttrs: rec {
+        version = "3.0.28";
+        src = self.fetchPypi {
+          pname = "prompt_toolkit";
           inherit version;
-          sha256 = "1nr990i4b04rnlw1ghd0xmgvvvhih698mb6lb6jylr76cs7zcnpi";
+          hash = "sha256-nxzRax6GwpaPJRnX+zHdnWaZFvUVYSwmnRTp7VK1FlA=";
         };
       });
     };
@@ -24,43 +25,50 @@ let
 in
 with py.pkgs; buildPythonApplication rec {
   pname = "awscli2";
-  version = "2.1.35"; # N.B: if you change this, change botocore to a matching version too
+  version = "2.9.21"; # N.B: if you change this, check if overrides are still up-to-date
+  format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "aws";
     repo = "aws-cli";
     rev = version;
-    sha256 = "sha256-YgzagbbVLlGSPIhck0YaJg3gQGEdoqXtLapN04Q6hLw=";
+    hash = "sha256-/CMV6eCNm2gF9HhdoTo2TUUy7I4NF9Fb+6l2biGIbkE=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py --replace "colorama>=0.2.5,<0.4.4" "colorama>=0.2.5"
-    substituteInPlace setup.py --replace "cryptography>=3.3.2,<3.4.0" "cryptography>=3.3.2"
-    substituteInPlace setup.py --replace "docutils>=0.10,<0.16" "docutils>=0.10"
-    substituteInPlace setup.py --replace "ruamel.yaml>=0.15.0,<0.16.0" "ruamel.yaml>=0.15.0"
-    substituteInPlace setup.py --replace "wcwidth<0.2.0" "wcwidth"
-  '';
-
-  # No tests included
-  doCheck = false;
+  nativeBuildInputs = [
+    flit-core
+  ];
 
   propagatedBuildInputs = [
+    awscrt
     bcdoc
-    botocore
     colorama
     cryptography
     distro
     docutils
     groff
     less
-    prompt_toolkit
+    prompt-toolkit
     pyyaml
     rsa
-    ruamel_yaml
-    s3transfer
-    six
-    wcwidth
+    ruamel-yaml
+    python-dateutil
+    jmespath
+    urllib3
   ];
+
+  nativeCheckInputs = [
+    jsonschema
+    mock
+    pytestCheckHook
+  ];
+
+  postPatch = ''
+    sed -i pyproject.toml \
+      -e 's/colorama.*/colorama",/' \
+      -e 's/cryptography.*/cryptography",/' \
+      -e 's/distro.*/distro",/'
+  '';
 
   postInstall = ''
     mkdir -p $out/${python3.sitePackages}/awscli/data
@@ -75,13 +83,49 @@ with py.pkgs; buildPythonApplication rec {
     rm $out/bin/aws.cmd
   '';
 
-  passthru.python = py; # for aws_shell
+  doCheck = true;
+
+  preCheck = ''
+    export PATH=$PATH:$out/bin
+    export HOME=$(mktemp -d)
+  '';
+
+  pytestFlagsArray = [
+    "-Wignore::DeprecationWarning"
+  ];
+
+  disabledTestPaths = [
+    # Integration tests require networking
+    "tests/integration"
+
+    # Disable slow tests (only run unit tests)
+    "tests/backends"
+    "tests/functional"
+  ];
+
+  pythonImportsCheck = [
+    "awscli"
+  ];
+
+  passthru = {
+    python = py; # for aws_shell
+    updateScript = nix-update-script {
+      # Excludes 1.x versions from the Github tags list
+      extraArgs = [ "--version-regex" "^(2\.(.*))" ];
+    };
+    tests.version = testers.testVersion {
+      package = awscli2;
+      command = "aws --version";
+      version = version;
+    };
+  };
 
   meta = with lib; {
     homepage = "https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html";
     changelog = "https://github.com/aws/aws-cli/blob/${version}/CHANGELOG.rst";
     description = "Unified tool to manage your AWS services";
     license = licenses.asl20;
-    maintainers = with maintainers; [ bhipple davegallant ];
+    maintainers = with maintainers; [ bhipple davegallant bryanasdev000 devusb anthonyroussel ];
+    mainProgram = "aws";
   };
 }

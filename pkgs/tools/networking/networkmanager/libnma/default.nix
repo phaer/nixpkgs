@@ -1,13 +1,14 @@
 { stdenv
 , fetchurl
 , meson
+, mesonEmulatorHook
 , ninja
 , gettext
 , gtk-doc
 , pkg-config
 , vala
 , networkmanager
-, gnome3
+, gnome
 , isocodes
 , libxml2
 , docbook_xsl
@@ -15,22 +16,26 @@
 , mobile-broadband-provider-info
 , gobject-introspection
 , gtk3
+, withGtk4 ? false
+, gtk4
 , withGnome ? true
-, gcr
+, gcr_4
 , glib
 , substituteAll
 , lib
+, _experimental-update-script-combinators
+, makeHardcodeGsettingsPatch
 }:
 
 stdenv.mkDerivation rec {
   pname = "libnma";
-  version = "1.8.30";
+  version = "1.10.6";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "1d5gzn7ss5vi0bhc8s4i5gsrck1ajslajam5jxfqazg094mffcys";
+    sha256 = "U6b7KxkK03xZhsrtPpi+3nw8YCOZ7k+TyPwFQwPXbas=";
   };
 
   patches = [
@@ -49,6 +54,8 @@ stdenv.mkDerivation rec {
     docbook_xml_dtd_43
     libxml2
     vala
+  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+    mesonEmulatorHook
   ];
 
   buildInputs = [
@@ -56,18 +63,21 @@ stdenv.mkDerivation rec {
     networkmanager
     isocodes
     mobile-broadband-provider-info
+  ] ++ lib.optionals withGtk4 [
+    gtk4
   ] ++ lib.optionals withGnome [
     # advanced certificate chooser
-    gcr
+    gcr_4
   ];
 
   mesonFlags = [
     "-Dgcr=${lib.boolToString withGnome}"
+    "-Dlibnma_gtk4=${lib.boolToString withGtk4}"
   ];
 
   postPatch = ''
     substituteInPlace src/nma-ws/nma-eap.c --subst-var-by \
-      NM_APPLET_GSETTINGS ${glib.makeSchemaPath "$out" "${pname}-${version}"}
+      NM_APPLET_GSETTINGS ${glib.makeSchemaPath "$out" "$name"}
   '';
 
   postInstall = ''
@@ -75,9 +85,24 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = gnome3.updateScript {
-      packageName = pname;
+    hardcodeGsettingsPatch = makeHardcodeGsettingsPatch {
+      schemaIdToVariableMapping = {
+        "org.gnome.nm-applet.eap" = "NM_APPLET_GSETTINGS";
+      };
+      inherit src;
     };
+    updateScript =
+      let
+        updateSource = gnome.updateScript {
+          packageName = "libnma";
+          versionPolicy = "odd-unstable";
+        };
+        updateGsettingsPatch = _experimental-update-script-combinators.copyAttrOutputToFile "libnma.hardcodeGsettingsPatch" ./hardcode-gsettings.patch;
+      in
+      _experimental-update-script-combinators.sequence [
+        updateSource
+        updateGsettingsPatch
+      ];
   };
 
   meta = with lib; {

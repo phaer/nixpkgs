@@ -1,38 +1,29 @@
 { fetchFromGitHub
 , lib
 , buildPythonPackage
-, attrs
-, click
-, effect
 , git
-, pytestCheckHook
-, pytestcov
+, which
 , pythonOlder
+, unittestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "nix-prefetch-github";
-  version = "4.0.3";
+  version = "6.0.0";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "seppeljordan";
     repo = "nix-prefetch-github";
     rev = "v${version}";
-    sha256 = "CLcmwobPrL6NiI/nw+/Dwho/r15owV16Jmt5OcfFqvo=";
+    sha256 = "YobBihNPbqYYWhe3x0p+BIlEK8R62s/dDFWUzP7fCTI=";
   };
 
-  propagatedBuildInputs = [
-    attrs
-    click
-    effect
-  ];
-
-  checkInputs = [ pytestCheckHook pytestcov git ];
+  nativeCheckInputs = [ unittestCheckHook git which ];
 
   # ignore tests which are impure
-  disabledTests = [ "network" "requires_nix_build" ];
+  DISABLED_TESTS = "network requires_nix_build";
 
   meta = with lib; {
     description = "Prefetch sources from github";

@@ -8,7 +8,7 @@
 , libxfce4ui
 , xfconf
 , gtk3
-, xfce
+, gitUpdater
 }:
 
 let
@@ -19,7 +19,7 @@ in stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "mirror://xfce/src/${category}/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.bz2";
-    sha256 = "Z9jmohmnEXxZaTrbxZw5puujHj8YpUmRie9O8otVQQU=";
+    sha256 = "sha256-Z9jmohmnEXxZaTrbxZw5puujHj8YpUmRie9O8otVQQU=";
   };
 
   nativeBuildInputs = [
@@ -35,10 +35,9 @@ in stdenv.mkDerivation rec {
     gtk3
   ];
 
-  passthru.updateScript = xfce.updateScript {
-    inherit pname version;
-    attrPath = "xfce.${pname}";
-    versionLister = xfce.archiveLister category pname;
+  passthru.updateScript = gitUpdater {
+    url = "https://gitlab.xfce.org/panel-plugins/${pname}";
+    rev-prefix = "${pname}-";
   };
 
   meta = with lib; {
@@ -46,6 +45,6 @@ in stdenv.mkDerivation rec {
     description = "Filesystem usage monitor plugin for the Xfce panel";
     license = licenses.bsd2;
     platforms = platforms.linux;
-    maintainers = [ ];
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

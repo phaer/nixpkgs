@@ -9,16 +9,16 @@ manifest = {
 
 in rustPlatform.buildRustPackage rec {
   pname = "bukubrow-host";
-  version = "5.0.0";
+  version = "5.4.0";
 
   src = fetchFromGitHub {
     owner = "SamHH";
     repo = pname;
     rev = "v${version}";
-    sha256 = "1a3gqxj6d1shv3w0v9m8x2xr0bvcynchy778yqalxkc3x4vr0nbn";
+    sha256 = "sha256-xz5Agsm+ATQXXgpPGN4EQ00i1t8qUlrviNHauVdCu4U=";
   };
 
-  cargoSha256 = "1k6mffcs9g0z5lh8hpflyharx6653cs1f2rjpldab0fc5fjmjfza";
+  cargoSha256 = "sha256-mH76ODPKlKDEK9ckThPnL5Ar7p1l1gNd7zXfesLZlBM=";
 
   buildInputs = [ sqlite ];
 

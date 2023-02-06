@@ -2,18 +2,18 @@
 
 buildGoModule rec {
   pname = "alertmanager-irc-relay";
-  version = "0.4.1";
+  version = "0.5.0";
 
   src = fetchFromGitHub {
     owner = "google";
     repo = "alertmanager-irc-relay";
     rev = "v${version}";
-    sha256 = "sha256-02uEvcxT5+0OJtqOyuQjgkqL0fZnN7umCSxBqAVPT9U=";
+    sha256 = "sha256-qE+cKwn/rqxL5/LUSirflmnFCow6IxjCcGvu2bbBmsk=";
   };
 
   vendorSha256 = "sha256-VLG15IXS/fXFMTCJKEqGW6qZ9aOLPhazidVsOywG+w4=";
 
-  buildFlagsArray = [ "-ldflags=-s -w" ];
+  ldflags = [ "-s" "-w" ];
 
   meta = with lib; {
     description = "Alertmanager IRC Relay is a bot relaying Prometheus alerts to IRC";

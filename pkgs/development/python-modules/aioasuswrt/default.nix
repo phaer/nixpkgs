@@ -9,32 +9,34 @@
 
 buildPythonPackage rec {
   pname = "aioasuswrt";
-  version = "1.3.3";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "kennedyshead";
     repo = pname;
     rev = "V${version}";
-    sha256 = "1h1qwc7szgrcwiz4q6x4mlf26is20lj1ds5rcb9i611j26656v6d";
+    sha256 = "1iv9f22v834g8wrjcynjn2azpzk8gsczv71jf7dw8aix0n04h325";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "cryptography==3.3.2" "cryptography"
-    substituteInPlace setup.cfg \
-      --replace "--cov-report html" "" \
-      --replace "--cov-report term-missing" ""
-  '';
+  propagatedBuildInputs = [
+    asyncssh
+  ];
 
-  propagatedBuildInputs = [ asyncssh ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-asyncio
     pytest-mock
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "aioasuswrt" ];
+  postPatch = ''
+    substituteInPlace setup.cfg \
+      --replace "--cov-report html" "" \
+      --replace "--cov-report term-missing" ""
+  '';
+
+  pythonImportsCheck = [
+    "aioasuswrt"
+  ];
 
   meta = with lib; {
     description = "Python module for Asuswrt";

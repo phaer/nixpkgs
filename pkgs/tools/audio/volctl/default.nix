@@ -2,17 +2,17 @@
 
 python3Packages.buildPythonApplication rec {
   pname = "volctl";
-  version = "0.8.0";
+  version = "0.9.2";
 
   src = fetchFromGitHub {
     owner = "buzz";
     repo = pname;
     rev = "v${version}";
-    sha256 = "02scfscf4mdrphzrd7cbwbhpig9bhvaws8qk4zc81z8vvf3mcfv2";
+    sha256 = "sha256-ill0rwqrgAH7lbzh86DQc1Q71lkYh8PCKZvi4XadsW8=";
   };
 
   postPatch = ''
-    substituteInPlace volctl/lib/xwrappers.py \
+    substituteInPlace volctl/xwrappers.py \
       --replace 'libXfixes.so' "${xorg.libXfixes}/lib/libXfixes.so" \
       --replace 'libXfixes.so.3' "${xorg.libXfixes}/lib/libXfixes.so.3"
   '';
@@ -27,6 +27,7 @@ python3Packages.buildPythonApplication rec {
   ];
 
   propagatedBuildInputs = [ pango gtk3 ] ++ (with python3Packages; [
+    pulsectl
     click
     pycairo
     pygobject3

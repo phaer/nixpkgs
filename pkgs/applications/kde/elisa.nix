@@ -1,5 +1,4 @@
 { mkDerivation
-, fetchFromGitHub
 , lib
 , extra-cmake-modules
 , kdoctools
@@ -21,6 +20,8 @@
 mkDerivation rec {
   pname = "elisa";
 
+  outputs = [ "out" "dev" ];
+
   buildInputs = [ libvlc ];
 
   nativeBuildInputs = [ extra-cmake-modules kdoctools ];
@@ -40,6 +41,7 @@ mkDerivation rec {
   ];
 
   meta = with lib; {
+    homepage = "https://apps.kde.org/elisa/";
     description = "A simple media player for KDE";
     license = licenses.gpl3;
     maintainers = with maintainers; [ peterhoeg ];

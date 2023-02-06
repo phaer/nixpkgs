@@ -1,7 +1,6 @@
 { stdenv
 , lib
 , fetchurl
-, fetchpatch
 , substituteAll
 , autoreconfHook
 , pkg-config
@@ -19,6 +18,7 @@
 , lcms
 , libpng
 , libjpeg
+, libjxl
 , poppler
 , poppler_data
 , libtiff
@@ -30,10 +30,10 @@
 , ghostscript
 , aalib
 , shared-mime-info
-, python2
 , libexif
 , gettext
 , makeWrapper
+, gtk-doc
 , xorg
 , glib-networking
 , libmypaint
@@ -47,19 +47,21 @@
 , AppKit
 , Cocoa
 , gtk-mac-integration-gtk2
+, withPython ? false
+, python2
 }:
 
 let
   python = python2.withPackages (pp: [ pp.pygtk ]);
 in stdenv.mkDerivation rec {
   pname = "gimp";
-  version = "2.10.22";
+  version = "2.10.32";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "http://download.gimp.org/pub/gimp/v${lib.versions.majorMinor version}/${pname}-${version}.tar.bz2";
-    sha256 = "1fqqyshakvdarf1jipk2n33ibqr23ni22z3d8srq13bpydblpf1d";
+    sha256 = "PxXHBVSvXcwbRubcaPPY8KbMn+VrbXisCMD9hZq4miU=";
   };
 
   patches = [
@@ -73,12 +75,6 @@ in stdenv.mkDerivation rec {
     # Use absolute paths instead of relying on PATH
     # to make sure plug-ins are loaded by the correct interpreter.
     ./hardcode-plugin-interpreters.patch
-
-    # Fix crash without dot.
-    (fetchpatch {
-      url = "https://gitlab.gnome.org/GNOME/gimp/-/commit/f83fd22c4b8701ffc4ce14383e5e22756a4bce04.patch";
-      sha256 = "POuvBhOSStO7hBGp4HgNx5F9pElFRoqN3W+i3u4zOnk=";
-    })
   ];
 
   nativeBuildInputs = [
@@ -87,6 +83,7 @@ in stdenv.mkDerivation rec {
     intltool
     gettext
     makeWrapper
+    gtk-doc
   ];
 
   buildInputs = [
@@ -105,6 +102,7 @@ in stdenv.mkDerivation rec {
     lcms
     libpng
     libjpeg
+    libjxl
     poppler
     poppler_data
     libtiff
@@ -119,7 +117,6 @@ in stdenv.mkDerivation rec {
     shared-mime-info
     libwebp
     libheif
-    python
     libexif
     xorg.libXpm
     glib-networking
@@ -131,6 +128,10 @@ in stdenv.mkDerivation rec {
     gtk-mac-integration-gtk2
   ] ++ lib.optionals stdenv.isLinux [
     libgudev
+  ] ++ lib.optionals withPython [
+    python
+    # Duplicated here because python.withPackages does not expose the dev output with pkg-config files
+    python2.pkgs.pygtk
   ];
 
   # needed by gimp-2.0.pc
@@ -145,13 +146,15 @@ in stdenv.mkDerivation rec {
     "--with-icc-directory=/run/current-system/sw/share/color/icc"
     # fix libdir in pc files (${exec_prefix} needs to be passed verbatim)
     "--libdir=\${exec_prefix}/lib"
+  ] ++ lib.optionals (!withPython) [
+    "--disable-python" # depends on Python2 which was EOLed on 2020-01-01
   ];
 
   enableParallelBuilding = true;
 
-  # on Darwin,
-  # test-eevl.c:64:36: error: initializer element is not a compile-time constant
-  doCheck = !stdenv.isDarwin;
+  doCheck = true;
+
+  NIX_CFLAGS_COMPILE = lib.optional stdenv.isDarwin "-DGDK_OSX_BIG_SUR=16";
 
   # Check if librsvg was built with --disable-pixbuf-loader.
   PKG_CONFIG_GDK_PIXBUF_2_0_GDK_PIXBUF_MODULEDIR = "${librsvg}/${gdk-pixbuf.moduleDir}";
@@ -185,5 +188,6 @@ in stdenv.mkDerivation rec {
     maintainers = with maintainers; [ jtojnar ];
     license = licenses.gpl3Plus;
     platforms = platforms.unix;
+    mainProgram = "gimp";
   };
 }

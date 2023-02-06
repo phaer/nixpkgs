@@ -1,19 +1,20 @@
-{ python38, openssl
-, callPackage, recurseIntoAttrs }:
+{ python3
+, callPackage
+, recurseIntoAttrs
+, nixosTests
+}:
 
 # To expose the *srht modules, they have to be a python module so we use `buildPythonModule`
 # Then we expose them through all-packages.nix as an application through `toPythonApplication`
 # https://github.com/NixOS/nixpkgs/pull/54425#discussion_r250688781
-
 let
   fetchNodeModules = callPackage ./fetchNodeModules.nix { };
 
-  python = python38.override {
+  python = python3.override {
     packageOverrides = self: super: {
       srht = self.callPackage ./core.nix { inherit fetchNodeModules; };
 
       buildsrht = self.callPackage ./builds.nix { };
-      dispatchsrht = self.callPackage ./dispatch.nix { };
       gitsrht = self.callPackage ./git.nix { };
       hgsrht = self.callPackage ./hg.nix { };
       hubsrht = self.callPackage ./hub.nix { };
@@ -26,16 +27,23 @@ let
       scmsrht = self.callPackage ./scm.nix { };
     };
   };
-in with python.pkgs; recurseIntoAttrs {
+in
+with python.pkgs; recurseIntoAttrs {
   inherit python;
+  coresrht = toPythonApplication srht;
   buildsrht = toPythonApplication buildsrht;
-  dispatchsrht = toPythonApplication dispatchsrht;
+  # Added 2022-10-29
+  dispatchsrht = throw "dispatch is deprecated. See https://sourcehut.org/blog/2022-08-01-dispatch-deprecation-plans/ for more information.";
   gitsrht = toPythonApplication gitsrht;
   hgsrht = toPythonApplication hgsrht;
   hubsrht = toPythonApplication hubsrht;
   listssrht = toPythonApplication listssrht;
   mansrht = toPythonApplication mansrht;
   metasrht = toPythonApplication metasrht;
+  pagessrht = callPackage ./pages.nix { };
   pastesrht = toPythonApplication pastesrht;
   todosrht = toPythonApplication todosrht;
+  passthru.tests = {
+    nixos-sourcehut = nixosTests.sourcehut;
+  };
 }

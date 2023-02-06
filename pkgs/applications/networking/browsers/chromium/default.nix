@@ -1,16 +1,13 @@
 { newScope, config, stdenv, fetchurl, makeWrapper
-, llvmPackages_11, llvmPackages_12, ed, gnugrep, coreutils, xdg-utils
-, glib, gtk3, gnome3, gsettings-desktop-schemas, gn, fetchgit
-, libva ? null
-, pipewire
+, llvmPackages_14, ed, gnugrep, coreutils, xdg-utils
+, glib, gtk3, gnome, gsettings-desktop-schemas, gn, fetchgit
+, libva, pipewire, wayland
 , gcc, nspr, nss, runCommand
-, lib
+, lib, libkrb5
 
 # package customization
 # Note: enable* flags should not require full rebuilds (i.e. only affect the wrapper)
 , channel ? "stable"
-, gnomeSupport ? false, gnome ? null
-, gnomeKeyringSupport ? false
 , proprietaryCodecs ? true
 , enableWideVine ? false
 , ungoogled ? false # Whether to build chromium or ungoogled-chromium
@@ -20,18 +17,34 @@
 }:
 
 let
-  llvmPackages = llvmPackages_11;
+  llvmPackages = llvmPackages_14;
   stdenv = llvmPackages.stdenv;
+
+  upstream-info = (lib.importJSON ./upstream-info.json).${channel};
+
+  # Helper functions for changes that depend on specific versions:
+  warnObsoleteVersionConditional = min-version: result:
+    let ungoogled-version = (lib.importJSON ./upstream-info.json).ungoogled-chromium.version;
+    in lib.warnIf
+         (lib.versionAtLeast ungoogled-version min-version)
+         "chromium: ungoogled version ${ungoogled-version} is newer than a conditional bounded at ${min-version}. You can safely delete it."
+         result;
+  chromiumVersionAtLeast = min-version:
+    let result = lib.versionAtLeast upstream-info.version min-version;
+    in  warnObsoleteVersionConditional min-version result;
+  versionRange = min-version: upto-version:
+    let inherit (upstream-info) version;
+        result = lib.versionAtLeast version min-version && lib.versionOlder version upto-version;
+    in warnObsoleteVersionConditional upto-version result;
 
   callPackage = newScope chromium;
 
   chromium = rec {
-    inherit stdenv llvmPackages;
-
-    upstream-info = (lib.importJSON ./upstream-info.json).${channel};
+    inherit stdenv llvmPackages upstream-info;
 
     mkChromiumDerivation = callPackage ./common.nix ({
-      inherit channel gnome gnomeSupport gnomeKeyringSupport proprietaryCodecs
+      inherit channel chromiumVersionAtLeast versionRange;
+      inherit proprietaryCodecs
               cupsSupport pulseSupport ungoogled;
       gnChromium = gn.overrideAttrs (oldAttrs: {
         inherit (upstream-info.deps.gn) version;
@@ -39,12 +52,11 @@ let
           inherit (upstream-info.deps.gn) url rev sha256;
         };
       });
-    } // lib.optionalAttrs (lib.versionAtLeast upstream-info.version "90") {
-      llvmPackages = llvmPackages_12;
-      stdenv = llvmPackages_12.stdenv;
     });
 
-    browser = callPackage ./browser.nix { inherit channel enableWideVine ungoogled; };
+    browser = callPackage ./browser.nix {
+      inherit channel chromiumVersionAtLeast enableWideVine ungoogled;
+    };
 
     ungoogled-chromium = callPackage ./ungoogled.nix {};
   };
@@ -76,8 +88,6 @@ let
     name = "chrome-widevine-cdm";
 
     src = chromeSrc;
-
-    phases = [ "unpackPhase" "patchPhase" "installPhase" "checkPhase" ];
 
     unpackCmd = let
       widevineCdmPath =
@@ -145,31 +155,37 @@ let
     else browser;
 
 in stdenv.mkDerivation {
-  name = lib.optionalString ungoogled "ungoogled-"
-    + "chromium${suffix}-${version}";
+  pname = lib.optionalString ungoogled "ungoogled-"
+    + "chromium${suffix}";
   inherit version;
 
-  buildInputs = [
+  nativeBuildInputs = [
     makeWrapper ed
+  ];
 
+  buildInputs = [
     # needed for GSETTINGS_SCHEMAS_PATH
     gsettings-desktop-schemas glib gtk3
 
     # needed for XDG_ICON_DIRS
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
+
+    # Needed for kerberos at runtime
+    libkrb5
   ];
 
   outputs = ["out" "sandbox"];
 
   buildCommand = let
     browserBinary = "${chromiumWV}/libexec/chromium/chromium";
-    libPath = lib.makeLibraryPath [ libva pipewire ];
+    libPath = lib.makeLibraryPath [ libva pipewire wayland gtk3 libkrb5 ];
 
   in with lib; ''
     mkdir -p "$out/bin"
 
-    eval makeWrapper "${browserBinary}" "$out/bin/chromium" \
-      --add-flags ${escapeShellArg (escapeShellArg commandLineArgs)}
+    makeWrapper "${browserBinary}" "$out/bin/chromium" \
+      --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}" \
+      --add-flags ${escapeShellArg commandLineArgs}
 
     ed -v -s "$out/bin/chromium" << EOF
     2i
@@ -180,6 +196,9 @@ in stdenv.mkDerivation {
     else
       export CHROME_DEVEL_SANDBOX="$sandbox/bin/${sandboxExecutableName}"
     fi
+
+    # Make generated desktop shortcuts have a valid executable name.
+    export CHROME_WRAPPER='chromium'
 
   '' + lib.optionalString (libPath != "") ''
     # To avoid loading .so files from cwd, LD_LIBRARY_PATH here must not
@@ -192,8 +211,8 @@ in stdenv.mkDerivation {
 
     export XDG_DATA_DIRS=$XDG_ICON_DIRS:$GSETTINGS_SCHEMAS_PATH\''${XDG_DATA_DIRS:+:}\$XDG_DATA_DIRS
 
-    # Mainly for xdg-open but also other xdg-* tools:
-    export PATH="${xdg-utils}/bin\''${PATH:+:}\$PATH"
+    # Mainly for xdg-open but also other xdg-* tools (this is only a fallback; \$PATH is suffixed so that other implementations can be used):
+    export PATH="\$PATH\''${PATH:+:}${xdg-utils}/bin"
 
     .
     w
@@ -215,6 +234,5 @@ in stdenv.mkDerivation {
     inherit (chromium) upstream-info browser;
     mkDerivation = chromium.mkChromiumDerivation;
     inherit chromeSrc sandboxExecutableName;
-    updateScript = ./update.py;
   };
 }

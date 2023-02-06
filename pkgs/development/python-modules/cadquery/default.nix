@@ -1,7 +1,6 @@
 { lib
 , buildPythonPackage
 , toPythonModule
-, isPy3k
 , pythonOlder
 , pythonAtLeast
 , fetchFromGitHub
@@ -89,7 +88,7 @@ in
       fontDirectories = [ freefont_ttf ];
     };
 
-    checkInputs = [
+    nativeCheckInputs = [
       pytest
     ];
 

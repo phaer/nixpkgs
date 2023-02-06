@@ -5,18 +5,20 @@
 , msrestazure
 , azure-common
 , azure-mgmt-core
-, azure-mgmt-nspkg
-, isPy3k
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-datafactory";
-  version = "1.1.0";
+  version = "2.10.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
     extension = "zip";
-    sha256 = "433ad8e83bd8df4abc5af47a0e3a7a4515f79931db4036f2bccd65b5a9e88bfb";
+    hash = "sha256-IT1LQfdNpvc1yNX4Z/qMK2sL2MkaOA4krRFWz1SAz3s=";
   };
 
   propagatedBuildInputs = [
@@ -24,8 +26,6 @@ buildPythonPackage rec {
     msrestazure
     azure-common
     azure-mgmt-core
-  ] ++ lib.optionals (!isPy3k) [
-    azure-mgmt-nspkg
   ];
 
   # has no tests

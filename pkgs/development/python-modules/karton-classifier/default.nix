@@ -3,41 +3,50 @@
 , chardet
 , fetchFromGitHub
 , karton-core
-, python
-, python_magic
+, pytestCheckHook
+, python-magic
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "karton-classifier";
-  version = "1.0.0";
+  version = "1.4.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "CERT-Polska";
     repo = pname;
     rev = "v${version}";
-    sha256 = "05pxv0smrzgmljykc6yx0rx8b85ck7fa09xjkjw0dd7lb6bb19a6";
+    hash = "sha256-TRmAin0TAOIwR5EBMwTOJ9QaHO+mOx/eAjgqvyQZDj4=";
   };
 
   propagatedBuildInputs = [
     chardet
     karton-core
-    python_magic
+    python-magic
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
   ];
 
   postPatch = ''
     substituteInPlace requirements.txt \
       --replace "chardet==3.0.4" "chardet" \
-      --replace "karton-core==4.0.4" "karton-core" \
       --replace "python-magic==0.4.18" "python-magic"
   '';
 
-  checkPhase = ''
-    runHook preCheck
-    ${python.interpreter} -m unittest discover
-    runHook postCheck
-  '';
+  pythonImportsCheck = [
+    "karton.classifier"
+  ];
 
-  pythonImportsCheck = [ "karton.classifier" ];
+  disabledTests = [
+    # Tests expecting results from a different version of libmagic
+    "test_process_archive_ace"
+    "test_process_runnable_win32_lnk"
+  ];
 
   meta = with lib; {
     description = "File type classifier for the Karton framework";

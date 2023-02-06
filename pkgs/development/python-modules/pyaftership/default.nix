@@ -1,25 +1,52 @@
-{ aiohttp, async-timeout, buildPythonPackage, fetchPypi, isPy3k, lib }:
+{ lib
+, buildPythonPackage
+, fetchFromGitHub
+, pythonOlder
+, aiohttp
+, aresponses
+, pytest-asyncio
+, pytestCheckHook
+}:
 
 buildPythonPackage rec {
   pname = "pyaftership";
-  version = "21.1.0";
+  version = "23.1.0";
+  format = "setuptools";
 
-  disabled = !isPy3k;
+  disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "28b62c323d06492399b60d8135a58d6feaa1d60837eddc14e57ea2b69d356c0a";
+  src = fetchFromGitHub {
+    owner = "ludeeus";
+    repo = pname;
+    rev = "refs/tags/${version}";
+    hash = "sha256-njlDScmxIYWxB4EL9lOSGCXqZDzP999gI9EkpcZyFlE=";
   };
 
-  propagatedBuildInputs = [ aiohttp async-timeout ];
+  propagatedBuildInputs = [
+    aiohttp
+  ];
 
-  # No tests
-  doCheck = false;
-  pythonImportsCheck = [ "pyaftership.tracker" ];
+  nativeCheckInputs = [
+    aresponses
+    pytest-asyncio
+    pytestCheckHook
+  ];
+
+  postPatch = ''
+    # Upstream is releasing with the help of a CI to PyPI, GitHub releases
+    # are not in their focus
+    substituteInPlace setup.py \
+      --replace 'version="main",' 'version="${version}",'
+  '';
+
+  pythonImportsCheck = [
+    "pyaftership"
+  ];
 
   meta = with lib; {
     description = "Python wrapper package for the AfterShip API";
     homepage = "https://github.com/ludeeus/pyaftership";
+    changelog = "https://github.com/ludeeus/pyaftership/releases/tag/${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ jamiemagee ];
   };

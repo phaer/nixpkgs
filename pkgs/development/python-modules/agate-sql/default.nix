@@ -5,28 +5,24 @@
 , agate
 , sqlalchemy
 , crate
-, nose
+, pytestCheckHook
 , geojson
 }:
 
 buildPythonPackage rec {
   pname = "agate-sql";
-  version = "0.5.6";
+  version = "0.5.9";
 
   disabled = isPy27;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "056dc9e587fbdfdf3f1c9950f4793a5ee87622c19deba31aa0a6d6681816dcde";
+    sha256 = "sha256-MLZCoypbZxFhq++ejsNjUvLniiTOhJBU7axpRti53cY=";
   };
 
   propagatedBuildInputs = [ agate sqlalchemy ];
 
-  checkInputs = [ crate nose geojson ];
-
-  checkPhase = ''
-    nosetests
-  '';
+  nativeCheckInputs = [ crate geojson pytestCheckHook ];
 
   pythonImportsCheck = [ "agatesql" ];
 

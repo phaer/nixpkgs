@@ -5,34 +5,36 @@
 , meson
 , ninja
 , pkg-config
-, wrapGAppsHook
+, wrapGAppsHook4
 , gdk-pixbuf
 , glib
-, gtk3
-, libhandy
+, gtk4
+, libadwaita
+, libxml2
 , openssl
 , sqlite
 , webkitgtk
 , glib-networking
 , librsvg
 , gst_all_1
+, gitUpdater
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "newsflash";
-  version = "1.4.0";
+  version = "2.2.4";
 
   src = fetchFromGitLab {
     owner = "news-flash";
     repo = "news_flash_gtk";
-    rev = version;
-    hash = "sha256-EInI5Unaz9m8/gJ7vAzJVyMynJGq0KZh12dNK8r1wnY=";
+    rev = "refs/tags/v.${finalAttrs.version}";
+    sha256 = "sha256-civHj8a5LYV3XaAjSJBdn15+8sdO/yLlWBXCNW56plA=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
-    inherit src;
-    name = "${pname}-${version}";
-    hash = "sha256-xrWZhjfYnO6M3LMTP6l3+oZOusvUWuRBDesIlsiEJ6s=";
+    name = "${finalAttrs.pname}-${finalAttrs.version}";
+    src = finalAttrs.src;
+    sha256 = "sha256-vgqyFdc1m53SYqnYE6JLp1/tK7rFrohYOT/BTO6fUI0=";
   };
 
   patches = [
@@ -45,14 +47,14 @@ stdenv.mkDerivation rec {
   ];
 
   postPatch = ''
-    patchShebangs .
+    patchShebangs build-aux/cargo.sh
   '';
 
   nativeBuildInputs = [
     meson
     ninja
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook4
 
     # Provides setup hook to fix "Unrecognized image file format"
     gdk-pixbuf
@@ -66,8 +68,9 @@ stdenv.mkDerivation rec {
   ]);
 
   buildInputs = [
-    gtk3
-    libhandy
+    gtk4
+    libadwaita
+    libxml2
     openssl
     sqlite
     webkitgtk
@@ -85,10 +88,16 @@ stdenv.mkDerivation rec {
     gst-plugins-bad
   ]);
 
+  passthru.updateScript = gitUpdater {
+    rev-prefix = "v.";
+  };
+
   meta = with lib; {
     description = "A modern feed reader designed for the GNOME desktop";
     homepage = "https://gitlab.com/news-flash/news_flash_gtk";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ metadark ];
+    maintainers = with maintainers; [ kira-bruneau stunkymonkey ];
+    platforms = platforms.unix;
+    mainProgram = "com.gitlab.newsflash";
   };
-}
+})

@@ -1,6 +1,6 @@
 # generic builder for Emacs packages
 
-{ lib, stdenv, emacs, texinfo, writeText, ... }:
+{ lib, stdenv, emacs, texinfo, writeText, gcc, ... }:
 
 with lib;
 
@@ -72,6 +72,8 @@ stdenv.mkDerivation ({
 
   LIBRARY_PATH = "${lib.getLib stdenv.cc.libc}/lib";
 
+  nativeBuildInputs = [ gcc ];
+
   addEmacsNativeLoadPath = true;
 
   postInstall = ''
@@ -83,8 +85,8 @@ stdenv.mkDerivation ({
     addEmacsVars "$out"
 
     find $out/share/emacs -type f -name '*.el' -print0 \
-      | xargs -0 -n 1 -I {} -P $NIX_BUILD_CORES sh -c \
-          "emacs --batch -f batch-native-compile {} || true"
+      | xargs -0 -I {} -n 1 -P $NIX_BUILD_CORES sh -c \
+          "emacs --batch --eval '(setq large-file-warning-threshold nil)' -f batch-native-compile {} || true"
   '';
 }
 

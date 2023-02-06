@@ -4,29 +4,33 @@
 , libconfig
 # Needs a gnuradio built with qt gui support
 , gnuradio3_8
+, thrift
 # Not gnuradioPackages'
 , codec2
-, log4cpp
 , gmp
 , gsm
 , libopus
 , libjpeg
 , libsndfile
 , libftdi
+, limesuite
+, soapysdr-with-plugins
 , protobuf
 , speex
 , speexdsp
+, cppzmq
+, zeromq
 }:
 
 gnuradio3_8.pkgs.mkDerivation rec {
   pname = "qradiolink";
-  version = "0.8.5-2";
+  version = "0.8.8-1";
 
   src = fetchFromGitHub {
     owner = "qradiolink";
     repo = "qradiolink";
     rev = version;
-    sha256 = "MgHfKR3AJW3pIN9oCBr4BWxk1fGSCpLmMzjxvuTmuFA=";
+    sha256 = "sha256-2M5TSTNbbH188GiKqjP+IfBqks379Fw0fiGLBNiaxEg=";
   };
 
   preBuild = ''
@@ -46,7 +50,7 @@ gnuradio3_8.pkgs.mkDerivation rec {
   buildInputs = [
     gnuradio3_8.unwrapped.boost
     codec2
-    log4cpp
+    gnuradio3_8.unwrapped.log4cpp
     gmp
     libpulseaudio
     libconfig
@@ -54,21 +58,26 @@ gnuradio3_8.pkgs.mkDerivation rec {
     gnuradio3_8.pkgs.osmosdr
     libopus
     libjpeg
+    limesuite
+    soapysdr-with-plugins
     speex
     speexdsp
     gnuradio3_8.qt.qtbase
     gnuradio3_8.qt.qtmultimedia
     libftdi
     libsndfile
+    cppzmq
+    zeromq
     gnuradio3_8.qwt
+  ] ++ lib.optionals (gnuradio3_8.hasFeature "gr-ctrlport") [
+    thrift
+    gnuradio3_8.unwrapped.python.pkgs.thrift
   ];
   nativeBuildInputs = [
     protobuf
     gnuradio3_8.qt.qmake
     gnuradio3_8.qt.wrapQtAppsHook
   ];
-
-  enableParallelBuilding = true;
 
   meta = with lib; {
     description = "SDR transceiver application for analog and digital modes";

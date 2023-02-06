@@ -1,78 +1,107 @@
 { lib
-, stdenv
-, fetchPypi
 , buildPythonPackage
-, isPy27
-, ansible
-, pyyaml
-, ruamel-yaml
-, rich
-, pytestCheckHook
-, pytest-xdist
-, git
-, wcmatch
+, fetchPypi
+, setuptools-scm
+, ansible-compat
+, ansible-core
+, black
 , enrich
-, python
+, filelock
+, flaky
+, jsonschema
+, pythonOlder
+, pytest
+, pytest-xdist
+, pytestCheckHook
+, pyyaml
+, rich
+, ruamel-yaml
+, wcmatch
+, yamllint
 }:
 
 buildPythonPackage rec {
   pname = "ansible-lint";
-  version = "5.0.2";
-  disabled = isPy27;
+  version = "6.12.1";
   format = "pyproject";
+
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-vgt/KqNozTPaON/I19SybBZuo7bbl3Duq5dTBTMlj44=";
+    hash = "sha256-u7GVOqVjuqJYfttu+pS/SAWEarAftZbnGMSPmnmpmok=";
   };
 
   postPatch = ''
-    substituteInPlace src/ansiblelint/file_utils.py \
-      --replace 'raise RuntimeError("Unable to determine file type for %s" % pathex)' 'return "playbook"'
+    # it is fine if lint tools are missing
+    substituteInPlace conftest.py \
+      --replace "sys.exit(1)" ""
   '';
 
-  buildInputs = [ python ];
+  nativeBuildInputs = [
+    setuptools-scm
+  ];
 
-  propagatedBuildInputs = [ ansible enrich pyyaml rich ruamel-yaml wcmatch ];
+  propagatedBuildInputs = [
+    ansible-compat
+    ansible-core
+    black
+    enrich
+    filelock
+    jsonschema
+    pytest # yes, this is an actual runtime dependency
+    pyyaml
+    rich
+    ruamel-yaml
+    wcmatch
+    yamllint
+  ];
 
-  checkInputs = [ pytestCheckHook pytest-xdist git ];
+  # tests can't be easily run without installing things from ansible-galaxy
+  doCheck = false;
+
+  nativeCheckInputs = [
+    flaky
+    pytest-xdist
+    pytestCheckHook
+  ];
 
   preCheck = ''
     # ansible wants to write to $HOME and crashes if it can't
     export HOME=$(mktemp -d)
-    export PATH=$PATH:${lib.makeBinPath [ ansible ]}
+    export PATH=$PATH:${lib.makeBinPath [ ansible-core ]}
 
     # create a working ansible-lint executable
     export PATH=$PATH:$PWD/src/ansiblelint
     ln -rs src/ansiblelint/__main__.py src/ansiblelint/ansible-lint
     patchShebangs src/ansiblelint/__main__.py
+
+    # create symlink like in the git repo so test_included_tasks does not fail
+    ln -s ../roles examples/playbooks/roles
   '';
 
   disabledTests = [
     # requires network
+    "test_cli_auto_detect"
+    "test_install_collection"
     "test_prerun_reqs_v1"
     "test_prerun_reqs_v2"
-    # Assertion error with negative numbers; maybe requieres an ansible update?
-    "test_negative"
-    "test_example"
-    "test_playbook"
-    "test_included_tasks"
-    "test_long_line"
-
-    "test_get_yaml_files_umlaut"
+    "test_require_collection_wrong_version"
+    # re-execs ansible-lint which does not works correct
+    "test_custom_kinds"
     "test_run_inside_role_dir"
-    "test_role_handler_positive"
+    "test_run_multiple_role_path_no_trailing_slash"
+    "test_runner_exclude_globs"
+    "test_discover_lintables_umlaut"
   ];
 
-  # fails to run tests due to issues with temporary directory
-  doCheck = !stdenv.isDarwin;
-
-  makeWrapperArgs = [ "--prefix PATH : ${lib.makeBinPath [ ansible ]}" ];
+  makeWrapperArgs = [ "--prefix PATH : ${lib.makeBinPath [ ansible-core ]}" ];
 
   meta = with lib; {
-    homepage = "https://github.com/ansible-community/ansible-lint";
     description = "Best practices checker for Ansible";
+    homepage = "https://github.com/ansible/ansible-lint";
+    changelog = "https://github.com/ansible/ansible-lint/releases/tag/v${version}";
     license = licenses.mit;
-    maintainers = with maintainers; [ sengaya SuperSandro2000 ];
+    maintainers = with maintainers; [ sengaya ];
   };
 }

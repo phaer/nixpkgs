@@ -1,4 +1,4 @@
-{ lib, buildDunePackage, fetchFromGitHub, ezjsonm, menhir, ounit }:
+{ lib, buildDunePackage, fetchFromGitHub, ezjsonm, menhir, menhirLib, ounit }:
 
 buildDunePackage rec {
   pname = "mustache";
@@ -11,8 +11,9 @@ buildDunePackage rec {
     sha256 = "19v8rk8d8lkfm2rmhdawfgadji6wa267ir5dprh4w9l1sfj8a1py";
   };
 
+  nativeBuildInputs = [ menhir ];
   buildInputs = [ ezjsonm ];
-  propagatedBuildInputs = [ menhir ];
+  propagatedBuildInputs = [ menhirLib ];
 
   doCheck = true;
   checkInputs = [ ounit ];

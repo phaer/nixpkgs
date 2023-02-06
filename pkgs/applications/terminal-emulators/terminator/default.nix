@@ -9,17 +9,18 @@
 , libnotify
 , wrapGAppsHook
 , vte
+, nixosTests
 }:
 
 python3.pkgs.buildPythonApplication rec {
   pname = "terminator";
-  version = "2.1.0";
+  version = "2.1.2";
 
   src = fetchFromGitHub {
     owner = "gnome-terminator";
     repo = "terminator";
     rev = "v${version}";
-    sha256 = "sha256-Rd5XieB7K2BkSzrAr6Kmoa30xuwvsGKpPrsG2wrU1o8=";
+    hash = "sha256-dN9+6VGIdIyY52nm2BMONeb+WV7UGL68frjnHRxRzTU=";
   };
 
   nativeBuildInputs = [
@@ -27,7 +28,7 @@ python3.pkgs.buildPythonApplication rec {
     intltool
     gobject-introspection
     wrapGAppsHook
-    python3.pkgs.pytestrunner
+    python3.pkgs.pytest-runner
   ];
 
   buildInputs = [
@@ -49,12 +50,17 @@ python3.pkgs.buildPythonApplication rec {
 
   postPatch = ''
     patchShebangs tests po
-    # dbus-python is correctly passed in propagatedBuildInputs, but for some reason setup.py complains.
-    # The wrapped terminator has the correct path added, so ignore this.
-    substituteInPlace setup.py --replace "'dbus-python'," ""
   '';
 
   doCheck = false;
+
+  dontWrapGApps = true;
+
+  preFixup = ''
+    makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
+  '';
+
+  passthru.tests.test = nixosTests.terminal-emulators.terminator;
 
   meta = with lib; {
     description = "Terminal emulator with support for tiling and tabs";
@@ -64,6 +70,7 @@ python3.pkgs.buildPythonApplication rec {
       quadkonsole, etc. in that the main focus is arranging terminals in grids
       (tabs is the most common default method, which Terminator also supports).
     '';
+    changelog = "https://github.com/gnome-terminator/terminator/releases/tag/v${version}";
     homepage = "https://github.com/gnome-terminator/terminator";
     license = licenses.gpl2;
     maintainers = with maintainers; [ bjornfor ];

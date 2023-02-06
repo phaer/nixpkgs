@@ -1,32 +1,57 @@
 { lib
 , buildGoModule
 , fetchFromGitHub
+, gitleaks
+, installShellFiles
+, testers
 }:
 
 buildGoModule rec {
   pname = "gitleaks";
-  version = "7.4.1";
+  version = "8.15.3";
 
   src = fetchFromGitHub {
     owner = "zricethezav";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-GoHntsyxrMzLHlyKC3JxCkLoquIjOtidcG7hTNTYGuI=";
+    hash = "sha256-eY4RqXDeEsriSdVtEQQKw3NPBOe/UzhXjh1TkW3fWp0=";
   };
 
-  vendorSha256 = "sha256-Cc4DJPpOMHxDcH22S7znYo7QHNRXv8jOJhznu09kaE4=";
+  vendorHash = "sha256-Ev0/CSpwJDmc+Dvu/bFDzsgsq80rWImJWXNAUqYHgoE=";
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags" "-s -w -X github.com/zricethezav/gitleaks/v${lib.versions.major version}/version.Version=${version}")
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/zricethezav/gitleaks/v${lib.versions.major version}/cmd.Version=${version}"
+  ];
+
+  nativeBuildInputs = [
+    installShellFiles
+  ];
+
+  # With v8 the config tests are are blocking
+  doCheck = false;
+
+  postInstall = ''
+    installShellCompletion --cmd ${pname} \
+      --bash <($out/bin/${pname} completion bash) \
+      --fish <($out/bin/${pname} completion fish) \
+      --zsh <($out/bin/${pname} completion zsh)
   '';
+
+  passthru.tests.version = testers.testVersion {
+    package = gitleaks;
+    command = "${pname} version";
+  };
 
   meta = with lib; {
     description = "Scan git repos (or files) for secrets";
     longDescription = ''
       Gitleaks is a SAST tool for detecting hardcoded secrets like passwords,
-      API keys, and tokens in git repos.
+      API keys and tokens in git repos.
     '';
     homepage = "https://github.com/zricethezav/gitleaks";
+    changelog = "https://github.com/zricethezav/gitleaks/releases/tag/v${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

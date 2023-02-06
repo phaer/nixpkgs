@@ -1,45 +1,57 @@
-{ lib,
-  mkDerivation,
-  cmake,
-  elfutils,
-  extra-cmake-modules,
-  fetchFromGitHub,
-  kconfigwidgets,
-  ki18n,
-  kio,
-  kitemmodels,
-  kitemviews,
-  kwindowsystem,
-  libelf,
-  qtbase,
-  threadweaver,
+{ lib
+, mkDerivation
+, cmake
+, elfutils
+, extra-cmake-modules
+, fetchFromGitHub
+, kconfigwidgets
+, ki18n
+, kio
+, kitemmodels
+, kitemviews
+, kparts
+, kwindowsystem
+, libelf
+, qtbase
+, threadweaver
+, qtx11extras
+, zstd
+, kddockwidgets
+, rustc-demangle
 }:
 
 mkDerivation rec {
   pname = "hotspot";
-  version = "1.3.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "KDAB";
     repo = "hotspot";
     rev = "v${version}";
-    sha256 = "1f68bssh3p387hkavfjkqcf7qf7w5caznmjfjldicxphap4riqr5";
+    hash = "sha256-7GuIe8F3QqosW/XaN3KC1WeWcI7woUiEc9Nw0b+fSk0=";
     fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [ cmake ];
-  buildInputs = [
-    elfutils
+  nativeBuildInputs = [
+    cmake
     extra-cmake-modules
+  ];
+  buildInputs = [
+    (elfutils.override { enableDebuginfod = true; }) # perfparser needs to find debuginfod.h
     kconfigwidgets
     ki18n
     kio
     kitemmodels
     kitemviews
+    kparts
     kwindowsystem
     libelf
     qtbase
     threadweaver
+    qtx11extras
+    zstd
+    kddockwidgets
+    rustc-demangle
   ];
 
   # hotspot checks for the presence of third party libraries'
@@ -47,7 +59,7 @@ mkDerivation rec {
   # submodules; but Nix clones them and removes .git (for reproducibility).
   # So we need to fake their existence here.
   postPatch = ''
-    mkdir -p 3rdparty/perfparser/.git
+    mkdir -p 3rdparty/{perfparser,PrefixTickLabels}/.git
   '';
 
   meta = {
@@ -58,7 +70,7 @@ mkDerivation rec {
       then displays the result in a graphical way.
     '';
     homepage = "https://github.com/KDAB/hotspot";
-    license = with lib.licenses; [ gpl2 gpl3 ];
+    license = with lib.licenses; [ gpl2Only gpl3Only ];
     platforms = lib.platforms.linux;
     maintainers = with lib.maintainers; [ nh2 ];
   };

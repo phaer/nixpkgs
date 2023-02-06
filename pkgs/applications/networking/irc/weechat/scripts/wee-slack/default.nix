@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   pname = "wee-slack";
-  version = "2.7.0";
+  version = "2.9.0";
 
   src = fetchFromGitHub {
     repo = "wee-slack";
     owner = "wee-slack";
     rev = "v${version}";
-    sha256 = "sha256-6Z/H15bKe0PKpNe9PCgc5mLOii3CILCAVon7EgzIkx8=";
+    sha256 = "sha256-WMZo+X8G/Dnl1Vv0LuBYcvxdfll9cy/3Z/fpNJSxCQY=";
   };
 
   patches = [
@@ -16,10 +16,13 @@ stdenv.mkDerivation rec {
       src = ./libpath.patch;
       env = "${buildEnv {
         name = "wee-slack-env";
-        paths = with python3Packages; [ websocket_client six ];
+        paths = with python3Packages; [
+          websocket-client
+          six
+        ];
       }}/${python3Packages.python.sitePackages}";
     })
-    ./0001-hardcode-json-file-path.patch
+    ./load_weemoji_path.patch
   ];
 
   postPatch = ''

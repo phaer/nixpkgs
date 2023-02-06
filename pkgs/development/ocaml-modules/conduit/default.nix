@@ -1,22 +1,21 @@
 { lib, fetchurl, buildDunePackage
-, ppx_sexp_conv, sexplib, astring, uri, logs
+, ppx_sexp_conv, sexplib, astring, uri
 , ipaddr, ipaddr-sexp
 }:
 
 buildDunePackage rec {
   pname = "conduit";
-  version = "2.2.2";
-  useDune2 = true;
+  version = "6.1.0";
 
-  minimumOCamlVersion = "4.07";
+  minimalOCamlVersion = "4.08";
+  duneVersion = "3";
 
   src = fetchurl {
-    url = "https://github.com/mirage/ocaml-conduit/releases/download/v2.2.2/conduit-v2.2.2.tbz";
-    sha256 = "1zb83w2pq9c8xrappfxa6y5q93772f5dj22x78camsm77a2c2z55";
+    url = "https://github.com/mirage/ocaml-conduit/releases/download/v${version}/conduit-${version}.tbz";
+    sha256 = "sha256-ouKQiGMLvvksGpAhkqCVSKtKaz91p+7mciQm7KHvwF8=";
   };
 
-  buildInputs = [ ppx_sexp_conv ];
-  propagatedBuildInputs = [ astring ipaddr ipaddr-sexp sexplib uri ];
+  propagatedBuildInputs = [ astring ipaddr ipaddr-sexp sexplib uri ppx_sexp_conv ];
 
   meta = {
     description = "A network connection establishment library";

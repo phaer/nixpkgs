@@ -4,7 +4,8 @@
 , meson
 , ninja
 , pkg-config
-, gnome3
+, gnome
+, gnome-desktop
 , glib
 , gtk3
 , wayland
@@ -14,28 +15,36 @@
 , rustPlatform
 , feedbackd
 , wrapGAppsHook
+, fetchpatch
+, nixosTests
 }:
 
 stdenv.mkDerivation rec {
   pname = "squeekboard";
-  version = "unstable-2021-03-09";
+  version = "1.20.0";
 
   src = fetchFromGitLab {
-    domain = "source.puri.sm";
-    owner = "Librem5";
+    domain = "gitlab.gnome.org";
+    group = "World";
+    owner = "Phosh";
     repo = pname;
-    rev = "bffd212e102bf71a94c599aac0359a8d30d19008";
-    sha256 = "1j10zhyb8wyrcbryfj6f3drn9b0l9x0l7hnhy2imnjbfbnwwm4w7";
+    rev = "v${version}";
+    sha256 = "sha256-wx3fKRX/SPYGAFuR9u03JAvVRhtYIPUvW8mAsCdx83I=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
     inherit src;
     cargoUpdateHook = ''
-      cat Cargo.toml.in Cargo.deps > Cargo.toml
+      cat Cargo.toml.in Cargo.deps.newer > Cargo.toml
+      cp Cargo.lock.newer Cargo.lock
     '';
     name = "${pname}-${version}";
-    sha256 = "1qaqiaxqc4x2x5bd31na4c49vbjwrmz5clmgli7733dv55rxxias";
+    sha256 = "sha256-BbNkapqnqEW/NglrCse10Tm80SXYVQWWrOC5dTN6oi0=";
   };
+
+  mesonFlags = [
+    "-Dnewer=true"
+  ];
 
   nativeBuildInputs = [
     meson
@@ -52,7 +61,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     gtk3
-    gnome3.gnome-desktop
+    gnome-desktop
     wayland
     wayland-protocols
     libxml2
@@ -60,11 +69,13 @@ stdenv.mkDerivation rec {
     feedbackd
   ];
 
+  passthru.tests.phosh = nixosTests.phosh;
+
   meta = with lib; {
     description = "A virtual keyboard supporting Wayland";
     homepage = "https://source.puri.sm/Librem5/squeekboard";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ artturin ];
+    maintainers = with maintainers; [ artturin tomfitzhenry ];
     platforms = platforms.linux;
   };
 }

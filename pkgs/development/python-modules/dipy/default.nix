@@ -1,7 +1,7 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
-, isPy27
+, pythonOlder
 , packaging
 , pytest
 , cython
@@ -14,15 +14,15 @@
 
 buildPythonPackage rec {
   pname = "dipy";
-  version = "1.3.0";
+  version = "1.5.0";
 
-  disabled = isPy27;
+  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
-    owner  = "dipy";
-    repo   = pname;
-    rev    = version;
-    sha256 = "0555abx0fwqmk6dc3im7r45d9j7r9xh6gm9mbwfwvlf7laf8h098";
+    owner = "dipy";
+    repo = pname;
+    rev = "refs/tags/${version}";
+    hash = "sha256-kJ8JbnNpjTqGJXwwMTqZdgeN8fOEuxarycunDCRLB74=";
   };
 
   nativeBuildInputs = [ cython packaging ];
@@ -34,7 +34,7 @@ buildPythonPackage rec {
     tqdm
   ];
 
-  checkInputs = [ pytest ];
+  nativeCheckInputs = [ pytest ];
 
   # disable tests for now due to:
   #   - some tests require data download (see dipy/dipy/issues/2092);

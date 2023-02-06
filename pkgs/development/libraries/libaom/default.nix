@@ -1,13 +1,19 @@
-{ lib, stdenv, fetchgit, yasm, perl, cmake, pkg-config, python3 }:
+{ lib, stdenv, fetchzip, yasm, perl, cmake, pkg-config, python3
+, enableButteraugli ? true, libjxl
+, enableVmaf ? true, libvmaf
+}:
 
+let
+  isCross = stdenv.buildPlatform != stdenv.hostPlatform;
+in
 stdenv.mkDerivation rec {
   pname = "libaom";
-  version = "3.0.0";
+  version = "3.5.0";
 
-  src = fetchgit {
-    url = "https://aomedia.googlesource.com/aom";
-    rev	= "v${version}";
-    sha256 = "178rq1d7i9q4lg40bipkyhdrk18j9wi5k5avpa5bls0zm7g5ifsx";
+  src = fetchzip {
+    url = "https://aomedia.googlesource.com/aom/+archive/v${version}.tar.gz";
+    sha256 = "sha256-kEU8DVgB4JoyB6Lbh/XfC3LZcsVEM2STkZV8iZBCNis=";
+    stripRoot = false;
   };
 
   patches = [ ./outputs.patch ];
@@ -15,6 +21,9 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [
     yasm perl cmake pkg-config python3
   ];
+
+  propagatedBuildInputs = lib.optional enableButteraugli libjxl
+    ++ lib.optional enableVmaf libvmaf;
 
   preConfigure = ''
     # build uses `git describe` to set the build version
@@ -32,13 +41,25 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DBUILD_SHARED_LIBS=ON"
     "-DENABLE_TESTS=OFF"
+  ] ++ lib.optionals enableButteraugli [
+    "-DCONFIG_TUNE_BUTTERAUGLI=1"
+  ] ++ lib.optionals enableVmaf [
+    "-DCONFIG_TUNE_VMAF=1"
   ] ++ lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
     # CPU detection isn't supported on Darwin and breaks the aarch64-darwin build:
     "-DCONFIG_RUNTIME_CPU_DETECT=0"
+  ] ++ lib.optionals (isCross && !stdenv.hostPlatform.isx86) [
+    "-DAS_EXECUTABLE=${stdenv.cc.targetPrefix}as"
+  ] ++ lib.optionals stdenv.isAarch32 [
+    # armv7l-hf-multiplatform does not support NEON
+    # see lib/systems/platform.nix
+    "-DENABLE_NEON=0"
   ];
 
   postFixup = ''
     moveToOutput lib/libaom.a "$static"
+  '' + lib.optionalString stdenv.hostPlatform.isStatic ''
+    ln -s $static $out
   '';
 
   outputs = [ "out" "bin" "dev" "static" ];
@@ -52,8 +73,9 @@ stdenv.mkDerivation rec {
     '';
     homepage    = "https://aomedia.org/av1-features/get-started/";
     changelog   = "https://aomedia.googlesource.com/aom/+/refs/tags/v${version}/CHANGELOG";
-    maintainers = with maintainers; [ primeos kiloreux ];
+    maintainers = with maintainers; [ primeos kiloreux dandellion ];
     platforms   = platforms.all;
+    outputsToInstall = [ "bin" ];
     license = licenses.bsd2;
   };
 }

@@ -1,18 +1,28 @@
-{ lib, stdenv, fetchFromGitHub, autoreconfHook, pkg-config, file, libuv }:
+{ lib, stdenv, fetchFromGitHub, autoreconfHook, pkg-config, file, libuv, lz4, lxd }:
 
 stdenv.mkDerivation rec {
   pname = "raft-canonical";
-  version = "0.9.23";
+  version = "0.17.1";
 
   src = fetchFromGitHub {
     owner = "canonical";
     repo = "raft";
-    rev = "v${version}";
-    sha256 = "0swn95cf11fqczllmxr0nj3ig532rw4n3w6g3ckdnqka8520xjyr";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-P6IYl6xcsqXw1ilt6HYw757FL2syy1XePBVGbPAlz6Q=";
   };
 
   nativeBuildInputs = [ autoreconfHook file pkg-config ];
-  buildInputs = [ libuv ];
+  buildInputs = [ libuv lz4 ];
+
+  enableParallelBuilding = true;
+
+  patches = [
+    # network tests either hang indefinitely, or fail outright
+    ./disable-net-tests.patch
+
+    # missing dir check is flaky
+    ./disable-missing-dir-test.patch
+  ];
 
   preConfigure = ''
     substituteInPlace configure --replace /usr/bin/ " "
@@ -21,6 +31,10 @@ stdenv.mkDerivation rec {
   doCheck = true;
 
   outputs = [ "dev" "out" ];
+
+  passthru.tests = {
+    inherit lxd;
+  };
 
   meta = with lib; {
     description = ''
@@ -35,6 +49,7 @@ stdenv.mkDerivation rec {
     '';
     homepage = "https://github.com/canonical/raft";
     license = licenses.asl20;
-    maintainers = with maintainers; [ wucke13 ];
+    platforms = platforms.linux;
+    maintainers = with maintainers; [ wucke13 adamcstephens ];
   };
 }

@@ -1,8 +1,7 @@
-{ lib, stdenv, python, fetchPypi, makeWrapper, unzip, makeSetupHook
+{ lib, stdenv, python, makeWrapper, unzip
 , pipInstallHook
 , setuptoolsBuildHook
 , wheel, pip, setuptools
-, isPy27
 }:
 
 stdenv.mkDerivation rec {
@@ -25,14 +24,14 @@ stdenv.mkDerivation rec {
 
   postPatch = ''
     mkdir -p $out/bin
-  '';
+  '' + (pip.postPatch or ""); # `pip` does not necessarily have a `postPatch` field.
 
   nativeBuildInputs = [ makeWrapper unzip ];
   buildInputs = [ python ];
 
-  buildPhase = ":";
+  dontBuild = true;
 
-  installPhase = lib.strings.optionalString (!stdenv.hostPlatform.isWindows) ''
+  installPhase = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     export SETUPTOOLS_INSTALL_WINDOWS_SPECIFIC_FILES=0
   '' + ''
     # Give folders a known name

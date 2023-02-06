@@ -15,13 +15,13 @@
 
 stdenv.mkDerivation rec {
   pname = "libqmi";
-  version = "1.28.2";
+  version = "1.30.8";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "https://www.freedesktop.org/software/libqmi/${pname}-${version}.tar.xz";
-    sha256 = "jIw+5xmHTSUpvOmzWwKP5DWzbwA5eaNg060JOESdt4M=";
+    sha256 = "sha256-hiSCzp460L1l0mQzTuMRzblLnfKGO1txNjCbQbisGZA=";
   };
 
   nativeBuildInputs = [
@@ -45,8 +45,8 @@ stdenv.mkDerivation rec {
 
   configureFlags = [
     "--with-udev-base-dir=${placeholder "out"}/lib/udev"
-    "--enable-gtk-doc"
-    "--enable-introspection"
+    "--enable-gtk-doc=${if (stdenv.buildPlatform == stdenv.hostPlatform) then "yes" else "no"}"
+    "--enable-introspection=${if (stdenv.buildPlatform == stdenv.hostPlatform) then "yes" else "no"}"
   ];
 
   enableParallelBuilding = true;
@@ -64,5 +64,6 @@ stdenv.mkDerivation rec {
       # Tools
       gpl2Plus
     ];
+    changelog = "https://gitlab.freedesktop.org/mobile-broadband/libqmi/-/blob/${version}/NEWS";
   };
 }

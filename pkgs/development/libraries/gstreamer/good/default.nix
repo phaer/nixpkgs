@@ -42,20 +42,25 @@
 , xorg
 , libgudev
 , wavpack
+, glib
 }:
 
 assert raspiCameraSupport -> (stdenv.isLinux && stdenv.isAarch64);
 
 stdenv.mkDerivation rec {
   pname = "gst-plugins-good";
-  version = "1.18.2";
+  version = "1.20.3";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "https://gstreamer.freedesktop.org/src/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "1929nhjsvbl4bw37nfagnfsnxz737cm2x3ayz9ayrn9lwkfm45zp";
+    sha256 = "sha256-+PPCBr9c2rwAlTkgtHs1da8O8V6fhxwLaWb20KpYaLc=";
   };
+
+  strictDeps = true;
+
+  depsBuildBuild = [ pkg-config ];
 
   nativeBuildInputs = [
     pkg-config
@@ -64,7 +69,12 @@ stdenv.mkDerivation rec {
     ninja
     gettext
     nasm
-  ] ++ lib.optionals stdenv.isLinux [
+    orc
+    libshout
+    glib
+  ] ++ lib.optionals qt5Support (with qt5; [
+    qtbase
+  ]) ++ lib.optionals stdenv.isLinux [
     wayland-protocols
   ];
 
@@ -120,6 +130,7 @@ stdenv.mkDerivation rec {
   mesonFlags = [
     "-Dexamples=disabled" # requires many dependencies and probably not useful for our users
     "-Ddoc=disabled" # `hotdoc` not packaged in nixpkgs as of writing
+    "-Dglib-asserts=disabled" # asserts should be disabled on stable releases
   ] ++ lib.optionals (!qt5Support) [
     "-Dqt5=disabled"
   ] ++ lib.optionals (!gtkSupport) [
@@ -152,7 +163,7 @@ stdenv.mkDerivation rec {
   # fails 1 tests with "Unexpected critical/warning: g_object_set_is_valid_property: object class 'GstRtpStorage' has no property named ''"
   doCheck = false;
 
-  # must be explicitely set since 5590e365
+  # must be explicitly set since 5590e365
   dontWrapQtApps = true;
 
   meta = with lib; {

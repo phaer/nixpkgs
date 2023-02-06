@@ -1,6 +1,5 @@
 { lib, stdenv
 , fetchurl
-, fetchpatch
 , autoreconfHook
 , docbook_xml_dtd_45
 , docbook-xsl-nons
@@ -12,13 +11,15 @@
 , libxslt
 , pkg-config
 , xmlto
-, appstream-glib
 , substituteAll
+, runCommand
 , bison
 , xdg-dbus-proxy
 , p11-kit
+, appstream
 , bubblewrap
 , bzip2
+, curl
 , dbus
 , glib
 , gpgme
@@ -33,9 +34,8 @@
 , shared-mime-info
 , desktop-file-utils
 , gtk3
-, fuse
+, fuse3
 , nixosTests
-, libsoup
 , xz
 , zstd
 , ostree
@@ -49,18 +49,19 @@
 , dconf
 , gsettings-desktop-schemas
 , librsvg
+, makeWrapper
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "flatpak";
-  version = "1.10.2";
+  version = "1.14.1";
 
   # TODO: split out lib once we figure out what to do with triggerdir
   outputs = [ "out" "dev" "man" "doc" "devdoc" "installedTests" ];
 
   src = fetchurl {
-    url = "https://github.com/flatpak/flatpak/releases/download/${version}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-2xUnOdBy+P8pnk6IjYljobRTjaexDguGUlvkOPLh3eQ=";
+    url = "https://github.com/flatpak/flatpak/releases/download/${finalAttrs.version}/flatpak-${finalAttrs.version}.tar.xz";
+    sha256 = "sha256-CjyCM0MBjMWJhrbIJUVgnIzb8Pul8B2IMHvRSstd058="; # Taken from https://github.com/flatpak/flatpak/releases/
   };
 
   patches = [
@@ -77,38 +78,20 @@ stdenv.mkDerivation rec {
     # Hardcode paths used by Flatpak itself.
     (substituteAll {
       src = ./fix-paths.patch;
-      p11kit = "${p11-kit.dev}/bin/p11-kit";
-    })
-
-    # Adapt paths exposed to sandbox for NixOS.
-    (substituteAll {
-      src = ./bubblewrap-paths.patch;
-      inherit (builtins) storeDir;
+      p11kit = "${p11-kit.bin}/bin/p11-kit";
     })
 
     # Allow gtk-doc to find schemas using XML_CATALOG_FILES environment variable.
     # Patch taken from gtk-doc expression.
     ./respect-xml-catalog-files-var.patch
 
-    # Don’t hardcode flatpak binary path in launchers stored under user’s profile otherwise they will break after Flatpak update.
-    # https://github.com/NixOS/nixpkgs/issues/43581
-    ./use-flatpak-from-path.patch
-
-    # Hardcode flatpak binary path for flatpak-spawn.
-    # When calling the portal’s Spawn command with FLATPAK_SPAWN_FLAGS_CLEAR_ENV flag,
-    # it will clear environment, including PATH, making the flatpak run fail.
-    # https://github.com/flatpak/flatpak/pull/4174
-    (fetchpatch {
-      url = "https://github.com/flatpak/flatpak/commit/495449daf6d3c072519a36c9e4bc6cc1da4d31db.patch";
-      sha256 = "gOX/sGupAE7Yg3MVrMhFXzWHpFn+izVyjtkuPzIckuY=";
-    })
-
     # Nix environment hacks should not leak into the apps.
     # https://github.com/NixOS/nixpkgs/issues/53441
     ./unset-env-vars.patch
 
-    # But we want the GDK_PIXBUF_MODULE_FILE from the wrapper affect the icon validator.
-    ./validate-icon-pixbuf.patch
+    # The icon validator needs to access the gdk-pixbuf loaders in the Nix store
+    # and cannot bind FHS paths since those are not available on NixOS.
+    finalAttrs.passthru.icon-validator-patch
   ];
 
   nativeBuildInputs = [
@@ -123,14 +106,15 @@ stdenv.mkDerivation rec {
     libxslt
     pkg-config
     xmlto
-    appstream-glib
     bison
     wrapGAppsNoGuiHook
   ];
 
   buildInputs = [
+    appstream
     bubblewrap
     bzip2
+    curl
     dbus
     dconf
     gpgme
@@ -138,14 +122,13 @@ stdenv.mkDerivation rec {
     libarchive
     libcap
     libseccomp
-    libsoup
     xz
     zstd
     polkit
     python3
     systemd
     xorg.libXau
-    fuse
+    fuse3
     gsettings-desktop-schemas
     glib-networking
     librsvg # for flatpak-validate-icon
@@ -157,7 +140,7 @@ stdenv.mkDerivation rec {
     ostree
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     valgrind
   ];
 
@@ -169,6 +152,7 @@ stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   configureFlags = [
+    "--with-curl"
     "--with-system-bubblewrap=${bubblewrap}/bin/bwrap"
     "--with-system-dbus-proxy=${xdg-dbus-proxy}/bin/xdg-dbus-proxy"
     "--with-dbus-config-dir=${placeholder "out"}/share/dbus-1/system.d"
@@ -189,12 +173,29 @@ stdenv.mkDerivation rec {
   in ''
     patchShebangs buildutil
     patchShebangs tests
-    PATH=${lib.makeBinPath [vsc-py]}:$PATH patchShebangs --build variant-schema-compiler/variant-schema-compiler
+    PATH=${lib.makeBinPath [vsc-py]}:$PATH patchShebangs --build subprojects/variant-schema-compiler/variant-schema-compiler
+  '';
+
+  preFixup = ''
+    gappsWrapperArgs+=(
+      # Use flatpak from PATH in exported assets (e.g. desktop files).
+      --set FLATPAK_BINARY flatpak
+    )
   '';
 
   passthru = {
+    icon-validator-patch = substituteAll {
+      src = ./fix-icon-validation.patch;
+      inherit (builtins) storeDir;
+    };
+
     tests = {
       installedTests = nixosTests.installed-tests.flatpak;
+
+      validate-icon = runCommand "test-icon-validation" { } ''
+        ${finalAttrs.finalPackage}/libexec/flatpak-validate-icon --sandbox 512 512 ${../../../applications/audio/zynaddsubfx/ZynLogo.svg} > "$out"
+        grep format=svg "$out"
+      '';
     };
   };
 
@@ -205,4 +206,4 @@ stdenv.mkDerivation rec {
     maintainers = with maintainers; [ jtojnar ];
     platforms = platforms.linux;
   };
-}
+})

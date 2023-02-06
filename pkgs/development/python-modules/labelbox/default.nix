@@ -1,38 +1,103 @@
 { lib
-, buildPythonPackage
-, fetchPypi
-, requests
-, jinja2
-, pillow
-, rasterio
-, shapely
-, ndjson
 , backoff
+, buildPythonPackage
+, fetchFromGitHub
+, geojson
 , google-api-core
-, backports-datetime-fromisoformat
+, imagesize
+, ndjson
+, numpy
+, opencv
+  # , opencv-python
+, packaging
+, pillow
+, pydantic
+  # , pygeotile
+, pyproj
+, pytest-cases
+, pytestCheckHook
+, pythonOlder
+, pythonRelaxDepsHook
+, rasterio
+, requests
+, shapely
+, tqdm
+, typeguard
+, typing-extensions
 }:
 
 buildPythonPackage rec {
   pname = "labelbox";
-  version = "2.5.1";
+  version = "3.34.0";
+  format = "setuptools";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "7f2cbc5d4869d8acde865ad519fc1cc85338247cd7cf534334f988a040679219";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "Labelbox";
+    repo = "labelbox-python";
+    rev = "refs/tags/v.${version}";
+    hash = "sha256-x/XvcGiFS//f/le3JAd2n/tuUy9MBrCsISpkIkCCNis=";
   };
 
-  propagatedBuildInputs = [
-    jinja2 requests pillow rasterio shapely ndjson backoff
-    google-api-core backports-datetime-fromisoformat
+  postPatch = ''
+    substituteInPlace pytest.ini \
+      --replace "-s -vv -x --reruns 5 --reruns-delay 10 --durations=20" "-s -vv -x --durations=20"
+  '';
+
+  nativeBuildInputs = [
+    pythonRelaxDepsHook
   ];
 
-  # Test cases are not running on pypi or GitHub
-  doCheck = false;
-  pythonImportsCheck = [ "labelbox" ];
+  pythonRelaxDeps = [
+    "backoff"
+  ];
+
+  propagatedBuildInputs = [
+    backoff
+    google-api-core
+    ndjson
+    pydantic
+    requests
+    tqdm
+  ];
+
+  passthru.optional-dependencies = {
+    data = [
+      shapely
+      geojson
+      numpy
+      pillow
+      # opencv-python
+      typeguard
+      imagesize
+      pyproj
+      # pygeotile
+      typing-extensions
+      packaging
+    ];
+  };
+
+  nativeCheckInputs = [
+    pytest-cases
+    pytestCheckHook
+  ] ++ passthru.optional-dependencies.data;
+
+  disabledTestPaths = [
+    # Requires network access
+    "tests/integration"
+    # Missing requirements
+    "tests/data"
+  ];
+
+  pythonImportsCheck = [
+    "labelbox"
+  ];
 
   meta = with lib; {
-    homepage = "https://github.com/Labelbox/Labelbox";
     description = "Platform API for LabelBox";
+    homepage = "https://github.com/Labelbox/labelbox-python";
+    changelog = "https://github.com/Labelbox/labelbox-python/blob/v.${version}/CHANGELOG.md";
     license = licenses.asl20;
     maintainers = with maintainers; [ rakesh4g ];
   };

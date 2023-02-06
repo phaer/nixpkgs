@@ -1,45 +1,80 @@
 { lib, stdenv, fetchFromGitHub, substituteAll, swaybg
-, meson, ninja, pkg-config, wayland, scdoc
-, libxkbcommon, pcre, json_c, dbus, libevdev
+, meson, ninja, pkg-config, wayland-scanner, scdoc
+, wayland, libxkbcommon, pcre2, json_c, libevdev
 , pango, cairo, libinput, libcap, pam, gdk-pixbuf, librsvg
-, wlroots, wayland-protocols, libdrm
+, wlroots_0_16, wayland-protocols, libdrm
+, nixosTests
+# Used by the NixOS module:
+, isNixOS ? false
+, enableXWayland ? true, xorg
+, systemdSupport ? lib.meta.availableOn stdenv.hostPlatform systemd, systemd
+, dbusSupport ? true
+, dbus
+, trayEnabled ? systemdSupport && dbusSupport
 }:
+
+# The "sd-bus-provider" meson option does not include a "none" option,
+# but it is silently ignored iff "-Dtray=disabled".  We use "basu"
+# (which is not in nixpkgs) instead of "none" to alert us if this
+# changes: https://github.com/swaywm/sway/issues/6843#issuecomment-1047288761
+assert trayEnabled -> systemdSupport && dbusSupport;
+let sd-bus-provider = if systemdSupport then "libsystemd" else "basu"; in
 
 stdenv.mkDerivation rec {
   pname = "sway-unwrapped";
-  version = "1.6";
+  version = "1.8";
 
   src = fetchFromGitHub {
     owner = "swaywm";
     repo = "sway";
     rev = version;
-    sha256 = "0vnplva11yafhbijrk68wy7pw0psn9jm0caaymswq1s951xsn1c8";
+    hash = "sha256-r5qf50YK0Wl0gFiFdSE/J6ZU+D/Cz32u1mKzOqnIuJ0=";
   };
 
   patches = [
-    ./sway-config-no-nix-store-references.patch
     ./load-configuration-from-etc.patch
 
     (substituteAll {
       src = ./fix-paths.patch;
       inherit swaybg;
     })
+  ] ++ lib.optionals (!isNixOS) [
+    # References to /nix/store/... will get GC'ed which causes problems when
+    # copying the default configuration:
+    ./sway-config-no-nix-store-references.patch
+  ] ++ lib.optionals isNixOS [
+    # Use /run/current-system/sw/share and /etc instead of /nix/store
+    # references:
+    ./sway-config-nixos-paths.patch
+  ];
+
+  strictDeps = true;
+  depsBuildBuild = [
+    pkg-config
   ];
 
   nativeBuildInputs = [
-    meson ninja pkg-config wayland scdoc
+    meson ninja pkg-config wayland-scanner scdoc
   ];
 
   buildInputs = [
-    wayland libxkbcommon pcre json_c dbus libevdev
+    wayland libxkbcommon pcre2 json_c libevdev
     pango cairo libinput libcap pam gdk-pixbuf librsvg
-    wlroots wayland-protocols libdrm
+    wayland-protocols libdrm
+    (wlroots_0_16.override { inherit enableXWayland; })
+  ] ++ lib.optionals dbusSupport [
+    dbus
+  ] ++ lib.optionals enableXWayland [
+    xorg.xcbutilwm
   ];
 
-  mesonFlags = [
-    "-Ddefault-wallpaper=false"
-    "-Dsd-bus-provider=libsystemd"
-  ];
+  mesonFlags =
+    [ "-Dsd-bus-provider=${sd-bus-provider}" ]
+    ++ lib.optional (!enableXWayland) "-Dxwayland=disabled"
+    ++ lib.optional (!trayEnabled)    "-Dtray=disabled"
+  ;
+
+  passthru.tests.basic = nixosTests.sway;
 
   meta = with lib; {
     description = "An i3-compatible tiling Wayland compositor";
@@ -56,6 +91,6 @@ stdenv.mkDerivation rec {
     changelog   = "https://github.com/swaywm/sway/releases/tag/${version}";
     license     = licenses.mit;
     platforms   = platforms.linux;
-    maintainers = with maintainers; [ primeos synthetica ma27 ];
+    maintainers = with maintainers; [ primeos synthetica ];
   };
 }

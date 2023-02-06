@@ -30,9 +30,8 @@ stdenv.mkDerivation rec {
 
   outputs = [ "out" "info" ];
 
-  buildInputs = [ ]
-    ++ lib.optional stdenv.isLinux acl
-    ++ lib.optional stdenv.isDarwin autoreconfHook;
+  nativeBuildInputs = lib.optional stdenv.isDarwin autoreconfHook;
+  buildInputs = lib.optional stdenv.isLinux acl;
 
   # May have some issues with root compilation because the bootstrap tool
   # cannot be used as a login shell for now.
@@ -46,9 +45,7 @@ stdenv.mkDerivation rec {
   doInstallCheck = false; # fails
 
   meta = {
-    homepage = "https://www.gnu.org/software/tar/";
     description = "GNU implementation of the `tar' archiver";
-
     longDescription = ''
       The Tar program provides the ability to create tar archives, as
       well as various other kinds of manipulation.  For example, you
@@ -63,10 +60,12 @@ stdenv.mkDerivation rec {
       pipes), it can even access remote devices or files (as
       archives).
     '';
+    homepage = "https://www.gnu.org/software/tar/";
 
     license = lib.licenses.gpl3Plus;
 
     maintainers = [ ];
+    mainProgram = "tar";
     platforms = lib.platforms.all;
 
     priority = 10;

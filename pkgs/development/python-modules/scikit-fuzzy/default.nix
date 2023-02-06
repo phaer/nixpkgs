@@ -12,18 +12,20 @@
 
 buildPythonPackage rec {
   pname = "scikit-fuzzy";
-  version = "unstable-2020-10-03";
+  version = "unstable-2022-11-07";
   disabled = isPy27;
 
   src = fetchFromGitHub {
     owner = pname;
     repo = pname;
-    rev = "eecf303b701e3efacdc9b9066207ef605d4facaa";
-    sha256 = "18dl0017iqwc7446hqgabhibgjwdakhmycpis6zpvvkkv4ip5062";
+    rev = "d8c45c259d62955004379592e45bc64c8e002fc3";
+    hash = "sha256-kS48aHC719wUdc2WcJa9geoMUcLHSj7ZsoRZYAhF2a0=";
   };
 
   propagatedBuildInputs = [ networkx numpy scipy ];
-  checkInputs = [ matplotlib nose pytestCheckHook ];
+  nativeCheckInputs = [ matplotlib nose pytestCheckHook ];
+
+  pythonImportsCheck = [ "skfuzzy" ];
 
   meta = with lib; {
     homepage = "https://github.com/scikit-fuzzy/scikit-fuzzy";

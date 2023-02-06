@@ -1,4 +1,6 @@
 { lib
+, stdenv
+, darwin
 , mkDerivation
 , fetchgit
 , gnuradio
@@ -8,6 +10,7 @@
 , mpir
 , boost
 , gmp
+, thrift
 , fftwFloat
 , python
 , swig
@@ -23,22 +26,22 @@
 let
   version = {
     "3.7" = "0.1.5";
-    "3.8" = "0.2.2";
-    "3.9" = null;
+    "3.8" = "0.2.3";
   }.${gnuradio.versionAttr.major};
   src = fetchgit {
     url = "git://git.osmocom.org/gr-osmosdr";
     rev = "v${version}";
     sha256 = {
       "3.7" = "0bf9bnc1c3c4yqqqgmg3nhygj6rcfmyk6pybi27f7461d2cw1drv";
-      "3.8" = "HT6xlN6cJAnvF+s1g2I1uENhBJJizdADlLXeSD0rEqs=";
-      "3.9" = null;
+      "3.8" = "sha256-ZfI8MshhZOdJ1U5FlnZKXsg2Rsvb6oKg943ZVYd/IWo=";
     }.${gnuradio.versionAttr.major};
   };
 in mkDerivation {
   pname = "gr-osmosdr";
   inherit version src;
   disabledForGRafter = "3.9";
+
+  outputs = [ "out" "dev" ];
 
   buildInputs = [
     log4cpp
@@ -52,11 +55,17 @@ in mkDerivation {
     libbladeRF
     rtl-sdr
     soapysdr-with-plugins
-  ] ++ lib.optional (gnuradio.hasFeature "gr-uhd" gnuradio.features) [
+  ] ++ lib.optionals (gnuradio.hasFeature "gr-uhd") [
     uhd
+  ] ++ lib.optionals (gnuradio.hasFeature "gr-ctrlport") [
+    thrift
+    python.pkgs.thrift
+  ] ++ lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.IOKit
+    darwin.apple_sdk.frameworks.Security
   ];
   cmakeFlags = [
-    (if (gnuradio.hasFeature "python-support" gnuradio.features) then
+    (if (gnuradio.hasFeature "python-support") then
       "-DENABLE_PYTHON=ON"
     else
       "-DENABLE_PYTHON=OFF"
@@ -66,7 +75,7 @@ in mkDerivation {
     cmake
     pkg-config
     swig
-  ] ++ lib.optionals (gnuradio.hasFeature "python-support" gnuradio.features) [
+  ] ++ lib.optionals (gnuradio.hasFeature "python-support") [
       (if (gnuradio.versionAttr.major == "3.7") then
         python.pkgs.cheetah
       else

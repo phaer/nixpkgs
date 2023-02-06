@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, git, lib, makeWrapper, nettools, perl }:
+{ stdenv, coreutils, fetchFromGitHub, git, lib, makeWrapper, nettools, perl, perlPackages, nixosTests }:
 
 stdenv.mkDerivation rec {
   pname = "gitolite";
@@ -25,11 +25,13 @@ stdenv.mkDerivation rec {
       --replace /usr/bin/perl "${perl}/bin/perl"
     substituteInPlace src/lib/Gitolite/Setup.pm \
       --replace hostname "${nettools}/bin/hostname"
+    substituteInPlace src/commands/sskm \
+      --replace /bin/rm "${coreutils}/bin/rm"
   '';
 
   postFixup = ''
     wrapProgram $out/bin/gitolite-shell \
-      --prefix PATH : ${lib.makeBinPath [ git perl ]}
+      --prefix PATH : ${lib.makeBinPath [ git (perl.withPackages (p: [ p.JSON ])) ]}
   '';
 
   installPhase = ''
@@ -37,6 +39,10 @@ stdenv.mkDerivation rec {
     perl ./install -to $out/bin
     echo ${version} > $out/bin/VERSION
   '';
+
+  passthru.tests = {
+    gitolite = nixosTests.gitolite;
+  };
 
   meta = with lib; {
     description = "Finely-grained git repository hosting";

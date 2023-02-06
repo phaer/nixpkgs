@@ -2,26 +2,28 @@
 
 buildGoModule rec {
   pname = "pack";
-  version = "0.18.0";
+  version = "0.28.0";
 
   src = fetchFromGitHub {
     owner = "buildpacks";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-+fYw5dIDJJKGQKBL6RQh1SCQufbAkKeuJpPlywzbbnM=";
+    sha256 = "sha256-FKnOqK3qmzWEmf+92up8ApeotyQyZpbmLDY72U3+mY8=";
   };
 
-  vendorSha256 = "sha256-fSUTl5W/DyloCuCpEqA5z4bhB7wYxzPt6E0SfjorfQ0=";
+  vendorSha256 = "sha256-dYa6OuC2ingAh2VOzyGR4lK1GbTJ/l9iKXYWqRJmByc=";
 
   nativeBuildInputs = [ installShellFiles ];
 
   subPackages = [ "cmd/pack" ];
 
-  buildFlagsArray = [ "-ldflags=-s -w -X github.com/buildpacks/pack.Version=${version}" ];
+  ldflags = [ "-s" "-w" "-X github.com/buildpacks/pack.Version=${version}" ];
 
   postInstall = ''
-    installShellCompletion --bash --name pack.bash $(PACK_HOME=$PWD $out/bin/pack completion --shell bash)
-    installShellCompletion --zsh --name _pack $(PACK_HOME=$PWD $out/bin/pack completion --shell zsh)
+    installShellCompletion --cmd pack \
+      --zsh $(PACK_HOME=$PWD $out/bin/pack completion --shell zsh) \
+      --bash $(PACK_HOME=$PWD $out/bin/pack completion --shell bash) \
+      --fish $(PACK_HOME=$PWD $out/bin/pack completion --shell fish)
   '';
 
   meta = with lib; {

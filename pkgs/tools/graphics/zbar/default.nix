@@ -3,6 +3,7 @@
 , fetchFromGitHub
 , imagemagickBig
 , pkg-config
+, withXorg ? true
 , libX11
 , libv4l
 , qtbase
@@ -15,8 +16,14 @@
 , autoreconfHook
 , dbus
 , enableVideo ? stdenv.isLinux
-, enableDbus ? stdenv.isLinux
+  # The implementation is buggy and produces an error like
+  # Name Error (Connection ":1.4380" is not allowed to own the service "org.linuxtv.Zbar" due to security policies in the configuration file)
+  # for every scanned code.
+  # see https://github.com/mchehab/zbar/issues/104
+, enableDbus ? false
 , libintl
+, libiconv
+, Foundation
 }:
 
 stdenv.mkDerivation rec {
@@ -37,16 +44,21 @@ stdenv.mkDerivation rec {
     xmlto
     autoreconfHook
     docbook_xsl
-    wrapQtAppsHook
+  ] ++ lib.optionals enableVideo [
     wrapGAppsHook
+    wrapQtAppsHook
   ];
 
   buildInputs = [
     imagemagickBig
-    libX11
     libintl
+  ] ++ lib.optionals stdenv.isDarwin [
+    libiconv
+    Foundation
   ] ++ lib.optionals enableDbus [
     dbus
+  ] ++ lib.optionals withXorg [
+    libX11
   ] ++ lib.optionals enableVideo [
     libv4l
     gtk3
@@ -79,6 +91,8 @@ stdenv.mkDerivation rec {
     wrapQtApp "$out/bin/zbarcam-qt"
   '';
 
+  enableParallelBuilding = true;
+
   meta = with lib; {
     description = "Bar code reader";
     longDescription = ''
@@ -92,5 +106,6 @@ stdenv.mkDerivation rec {
     platforms = platforms.unix;
     license = licenses.lgpl21;
     homepage = "https://github.com/mchehab/zbar";
+    mainProgram = "zbarimg";
   };
 }

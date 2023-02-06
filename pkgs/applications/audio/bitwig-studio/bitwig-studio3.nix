@@ -1,6 +1,6 @@
-{ stdenv, fetchurl, alsaLib, cairo, dpkg, freetype
+{ stdenv, fetchurl, alsa-lib, cairo, dpkg, freetype
 , gdk-pixbuf, glib, gtk3, lib, xorg
-, libglvnd, libjack2, ffmpeg_3
+, libglvnd, libjack2, ffmpeg
 , libxkbcommon, xdg-utils, zlib, pulseaudio
 , wrapGAppsHook, makeWrapper }:
 
@@ -24,16 +24,14 @@ stdenv.mkDerivation rec {
   dontWrapGApps = true; # we only want $gappsWrapperArgs here
 
   buildInputs = with xorg; [
-    alsaLib cairo freetype gdk-pixbuf glib gtk3 libxcb xcbutil xcbutilwm zlib libXtst libxkbcommon pulseaudio libjack2 libX11 libglvnd libXcursor stdenv.cc.cc.lib
-  ];
-
-  binPath = lib.makeBinPath [
-    xdg-utils ffmpeg_3
+    alsa-lib cairo freetype gdk-pixbuf glib gtk3 libxcb xcbutil xcbutilwm zlib libXtst libxkbcommon pulseaudio libjack2 libX11 libglvnd libXcursor stdenv.cc.cc.lib
   ];
 
   ldLibraryPath = lib.strings.makeLibraryPath buildInputs;
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin
     cp -r opt/bitwig-studio $out/libexec
     ln -s $out/libexec/bitwig-studio $out/bin/bitwig-studio
@@ -41,6 +39,8 @@ stdenv.mkDerivation rec {
     substitute usr/share/applications/bitwig-studio.desktop \
       $out/share/applications/bitwig-studio.desktop \
       --replace /usr/bin/bitwig-studio $out/bin/bitwig-studio
+
+      runHook postInstall
   '';
 
   postFixup = ''
@@ -56,8 +56,9 @@ stdenv.mkDerivation rec {
       patchelf --set-interpreter "${stdenv.cc.bintools.dynamicLinker}" $f
       wrapProgram $f \
         "''${gappsWrapperArgs[@]}" \
-        --prefix PATH : "${binPath}" \
-        --prefix LD_LIBRARY_PATH : "${ldLibraryPath}"
+        --prefix LD_LIBRARY_PATH : "${ldLibraryPath}" \
+        --prefix PATH : "${lib.makeBinPath [ ffmpeg ]}" \
+        --suffix PATH : "${lib.makeBinPath [ xdg-utils ]}"
     done
 
   '';

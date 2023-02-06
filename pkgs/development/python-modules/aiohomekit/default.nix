@@ -1,47 +1,66 @@
 { lib
 , buildPythonPackage
+, aiocoap
+, bleak
+, bleak-retry-connector
+, chacha20poly1305
+, chacha20poly1305-reuseable
+, commentjson
 , cryptography
 , fetchFromGitHub
-, poetry
+, orjson
+, poetry-core
 , pytest-aiohttp
 , pytestCheckHook
-, pythonAtLeast
+, pythonOlder
 , zeroconf
 }:
 
 buildPythonPackage rec {
   pname = "aiohomekit";
-  version = "0.2.61";
+  version = "2.4.6";
   format = "pyproject";
-  disabled = pythonAtLeast "3.9";
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "Jc2k";
     repo = pname;
-    rev = version;
-    sha256 = "047ql5a4i4354jgr8xr2waim8j522z58vbfi7aa62jqc9l8jzxzk";
+    rev = "refs/tags/${version}";
+    hash = "sha256-QCPZaxVCQSckZ7qjV9wF7YqgTOFPbRy4xOQVDvReav4=";
   };
 
-  nativeBuildInputs = [ poetry ];
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
   propagatedBuildInputs = [
+    aiocoap
+    bleak
+    bleak-retry-connector
+    chacha20poly1305
+    chacha20poly1305-reuseable
+    commentjson
     cryptography
+    orjson
     zeroconf
   ];
 
-  checkInputs = [
+  doCheck = lib.versionAtLeast pytest-aiohttp.version "1.0.0";
+
+  nativeCheckInputs = [
     pytest-aiohttp
     pytestCheckHook
   ];
 
-  # Some test requires network access
-  disabledTests = [
-    "test_remove_pairing"
-    "test_pair"
-    "test_add_and_remove_pairings"
+  disabledTestPaths = [
+    # Tests require network access
+    "tests/test_ip_pairing.py"
   ];
 
-  pythonImportsCheck = [ "aiohomekit" ];
+  pythonImportsCheck = [
+    "aiohomekit"
+  ];
 
   meta = with lib; {
     description = "Python module that implements the HomeKit protocol";
@@ -50,6 +69,7 @@ buildPythonPackage rec {
       Homekit accessories.
     '';
     homepage = "https://github.com/Jc2k/aiohomekit";
+    changelog = "https://github.com/Jc2k/aiohomekit/releases/tag/${version}";
     license = with licenses; [ asl20 ];
     maintainers = with maintainers; [ fab ];
   };

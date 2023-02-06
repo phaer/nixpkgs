@@ -1,4 +1,4 @@
-{ lib, buildPythonPackage, fetchPypi, pytestCheckHook, nose }:
+{ lib, buildPythonPackage, fetchPypi, nose }:
 
 buildPythonPackage rec {
   pname = "deep_merge";
@@ -9,7 +9,7 @@ buildPythonPackage rec {
     sha256 = "tUQV+Qk0xC4zQRTihky01OczWzStOW41rYYQyWBlpH4=";
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     nose
   ];
 

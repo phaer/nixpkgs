@@ -1,24 +1,51 @@
-{ lib, buildGoPackage, fetchFromGitHub }:
+{ lib, buildGoModule, fetchFromGitHub, makeWrapper, stdenv }:
 
-buildGoPackage rec {
+buildGoModule rec {
   pname = "delve";
-  version = "1.6.0";
-
-  goPackagePath = "github.com/go-delve/delve";
-  excludedPackages = "\\(_fixtures\\|scripts\\|service/test\\)";
+  version = "1.20.1";
 
   src = fetchFromGitHub {
     owner = "go-delve";
     repo = "delve";
     rev = "v${version}";
-    sha256 = "sha256-krNCS5GaEMuwQ9XS8w0myL+xZX6goNNNBgUiRVoZPIU=";
+    sha256 = "sha256-X1vds6+brQ5pl7MG2/n0CqCoS0nbjnQUcIgJqji/u60=";
   };
+
+  vendorSha256 = null;
+
+  subPackages = [ "cmd/dlv" ];
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  hardeningDisable = [ "fortify" ];
+
+  preCheck = ''
+    XDG_CONFIG_HOME=$(mktemp -d)
+  '';
+
+  # Disable tests on Darwin as they require various workarounds.
+  #
+  # - Tests requiring local networking fail with or without sandbox,
+  #   even with __darwinAllowLocalNetworking allowed.
+  # - CGO_FLAGS warnings break tests' expected stdout/stderr outputs.
+  # - DAP test binaries exit prematurely.
+  doCheck = !stdenv.isDarwin;
+
+  postInstall = ''
+    # fortify source breaks build since delve compiles with -O0
+    wrapProgram $out/bin/dlv \
+      --prefix disableHardening " " fortify
+
+    # add symlink for vscode golang extension
+    # https://github.com/golang/vscode-go/blob/master/docs/debugging.md#manually-installing-dlv-dap
+    ln $out/bin/dlv $out/bin/dlv-dap
+  '';
 
   meta = with lib; {
     description = "debugger for the Go programming language";
-    homepage = "https://github.com/derekparker/delve";
-    maintainers = with maintainers; [ vdemeester ];
+    homepage = "https://github.com/go-delve/delve";
+    maintainers = with maintainers; [ SuperSandro2000 vdemeester ];
     license = licenses.mit;
-    platforms = [ "x86_64-linux" ] ++ platforms.darwin;
+    mainProgram = "dlv";
   };
 }

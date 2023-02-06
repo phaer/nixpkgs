@@ -1,20 +1,21 @@
-{ lib, stdenv, fetchurl, meson, ninja, pkg-config, check, dbus, xvfb_run, glib, gtk, gettext, libiconv, json_c, libintl
+{ lib, stdenv, fetchurl, meson, ninja, pkg-config, check, dbus, xvfb-run, glib, gtk, gettext, libiconv, json_c, libintl
 }:
 
 stdenv.mkDerivation rec {
   pname = "girara";
-  version = "0.3.5";
+  version = "0.3.7";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "https://git.pwmt.org/pwmt/${pname}/-/archive/${version}/${pname}-${version}.tar.gz";
-    sha256 = "1n3i960b458172mc3pkq7m9dn5qxry6fms3c3k06v27cjp5whsyf";
+    sha256 = "sha256-QTQiE/jnRSWPHbKMu2zMJ6YwCaXgAb95G74BzkNtTbc=";
   };
 
-  nativeBuildInputs = [ meson ninja pkg-config gettext check dbus xvfb_run ];
+  nativeBuildInputs = [ meson ninja pkg-config gettext check dbus ];
   buildInputs = [ libintl libiconv json_c ];
   propagatedBuildInputs = [ glib gtk ];
+  nativeCheckInputs = [ xvfb-run ];
 
   doCheck = !stdenv.isDarwin;
 
@@ -25,7 +26,7 @@ stdenv.mkDerivation rec {
   checkPhase = ''
     export NO_AT_BRIDGE=1
     xvfb-run -s '-screen 0 800x600x24' dbus-run-session \
-      --config-file=${dbus.daemon}/share/dbus-1/session.conf \
+      --config-file=${dbus}/share/dbus-1/session.conf \
       meson test --print-errorlogs
   '';
 

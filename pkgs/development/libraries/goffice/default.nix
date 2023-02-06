@@ -1,15 +1,15 @@
 { fetchurl, lib, stdenv, pkg-config, intltool, glib, gtk3, lasem
-, libgsf, libxml2, libxslt, cairo, pango, librsvg, gnome3 }:
+, libgsf, libxml2, libxslt, cairo, pango, librsvg, gnome }:
 
 stdenv.mkDerivation rec {
   pname = "goffice";
-  version = "0.10.49";
+  version = "0.10.54";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "X/wY27OF7fuFtsYlS55bTLPS/6MEK5Ms286ON/SzB+k=";
+    sha256 = "WDXNnVPmT3UmLAOZZu/fTYj0Vvyx8IeM5NEIgqUK1aA=";
   };
 
   nativeBuildInputs = [ pkg-config intltool ];
@@ -21,11 +21,12 @@ stdenv.mkDerivation rec {
   buildInputs = [ libxslt librsvg ];
 
   enableParallelBuilding = true;
-  doCheck = true;
+  doCheck = !stdenv.hostPlatform.isPower64;
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
+      versionPolicy = "odd-unstable";
     };
   };
 

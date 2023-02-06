@@ -4,19 +4,27 @@
 , fe25519
 , fetchPypi
 , fountains
-, nose
 , parts
 , pytestCheckHook
+, pythonOlder
+, setuptools
 }:
 
 buildPythonPackage rec {
   pname = "ge25519";
-  version = "0.2.0";
+  version = "1.3.0";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1wgv0vqg8iv9y5d7if14gmcgslwd5zzgk322w9jaxdfbndldddik";
+    hash = "sha256-y9Nv59pLWk1kRjZG3EmalT34Mjx7RLZ4WkvJlRrK5LI=";
   };
+
+  nativeBuildInputs = [
+    setuptools
+  ];
 
   propagatedBuildInputs = [
     fe25519
@@ -25,12 +33,18 @@ buildPythonPackage rec {
     fountains
   ];
 
-  checkInputs = [
-    nose
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "ge25519" ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace "--doctest-modules --ignore=docs --cov=ge25519 --cov-report term-missing" ""
+  '';
+
+  pythonImportsCheck = [
+    "ge25519"
+  ];
 
   meta = with lib; {
     description = "Python implementation of Ed25519 group elements and operations";

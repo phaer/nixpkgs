@@ -2,11 +2,11 @@
 
 stdenv.mkDerivation rec {
   pname = "wcslib";
-  version = "7.6";
+  version = "7.12";
 
   src = fetchurl {
     url = "ftp://ftp.atnf.csiro.au/pub/software/wcslib/${pname}-${version}.tar.bz2";
-    sha256 = "sha256-VLuMkhZ6fxP4qnP8S4oJeFJW0smCE0Z968eigqQxMYs=";
+    sha256 = "sha256-nPjeUOEJqX+gRRHUER6NFL0KRAdxMqz3PmzwAp/pa9Q=";
   };
 
   nativeBuildInputs = [ flex ];

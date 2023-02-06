@@ -1,4 +1,6 @@
-import ../make-test-python.nix ({ pkgs, ...}: let
+args@{ pkgs, nextcloudVersion ? 22, ... }:
+
+(import ../make-test-python.nix ({ pkgs, ...}: let
   adminpass = "notproduction";
   adminuser = "root";
 in {
@@ -31,13 +33,22 @@ in {
     in {
       networking.firewall.allowedTCPPorts = [ 80 ];
 
+      systemd.tmpfiles.rules = [
+        "d /var/lib/nextcloud-data 0750 nextcloud nginx - -"
+      ];
+
+      system.stateVersion = "22.11"; # stateVersion >=21.11 to make sure that we use OpenSSL3
+
       services.nextcloud = {
         enable = true;
+        datadir = "/var/lib/nextcloud-data";
         hostName = "nextcloud";
         config = {
           # Don't inherit adminuser since "root" is supposed to be the default
-          inherit adminpass;
+          adminpassFile = "${pkgs.writeText "adminpass" adminpass}"; # Don't try this at home!
+          dbtableprefix = "nixos_";
         };
+        package = pkgs.${"nextcloud" + (toString nextcloudVersion)};
         autoUpdateApps = {
           enable = true;
           startAt = "20:00";
@@ -90,13 +101,19 @@ in {
     # This is just to ensure the nextcloud-occ program is working
     nextcloud.succeed("nextcloud-occ status")
     nextcloud.succeed("curl -sSf http://nextcloud/login")
+    # Ensure that no OpenSSL 1.1 is used.
+    nextcloud.succeed(
+        "${nodes.nextcloud.services.phpfpm.pools.nextcloud.phpPackage}/bin/php -i | grep 'OpenSSL Library Version' | awk -F'=>' '{ print $2 }' | awk '{ print $2 }' | grep -v 1.1"
+    )
     nextcloud.succeed(
         "${withRcloneEnv} ${copySharedFile}"
     )
     client.wait_for_unit("multi-user.target")
+    nextcloud.succeed("test -f /var/lib/nextcloud-data/data/root/files/test-shared-file")
     client.succeed(
         "${withRcloneEnv} ${diffSharedFile}"
     )
     assert "hi" in client.succeed("cat /mnt/dav/test-shared-file")
+    nextcloud.succeed("grep -vE '^HBEGIN:oc_encryption_module' /var/lib/nextcloud-data/data/root/files/test-shared-file")
   '';
-})
+})) args

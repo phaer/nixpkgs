@@ -1,20 +1,25 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , buildPythonPackage
 , fetchPypi
 , cmake
 , numpy
 , scipy
-, scikitlearn
+, scikit-learn
 , llvmPackages ? null
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "lightgbm";
-  version = "3.2.0";
+  version = "3.3.5";
+  format = "other";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "000c6e0e225834a8a94a84571cf41e4b7c7b97a0db6d286c1237de8ba6066726";
+    hash = "sha256-ELj73PhR5PaKHwLzjZm9xEx8f7mxpi3PkkoNKf9zOVw=";
   };
 
   nativeBuildInputs = [
@@ -23,29 +28,18 @@ buildPythonPackage rec {
 
   dontUseCmakeConfigure = true;
 
-  # we never actually explicitly call the install command so this is the only way
-  # to inject these options to it - however, openmp-library doesn't appear to have
-  # any effect, so we have to inject it into NIX_LDFLAGS manually below
-  postPatch = lib.optionalString stdenv.cc.isClang ''
-    cat >> setup.cfg <<EOF
-
-    [install]
-    openmp-include-dir=${llvmPackages.openmp}/include
-    openmp-library=${llvmPackages.openmp}/lib/libomp.dylib
-
-    EOF
-  '';
+  buildInputs = lib.optionals stdenv.cc.isClang [
+    llvmPackages.openmp
+  ];
 
   propagatedBuildInputs = [
     numpy
     scipy
-    scikitlearn
+    scikit-learn
   ];
 
   postConfigure = ''
     export HOME=$(mktemp -d)
-  '' + lib.optionalString stdenv.cc.isClang ''
-    export NIX_LDFLAGS="$NIX_LDFLAGS -L${llvmPackages.openmp}/lib -lomp"
   '';
 
   # The pypi package doesn't distribute the tests from the GitHub
@@ -53,9 +47,14 @@ buildPythonPackage rec {
   # `make check`.
   doCheck = false;
 
+  pythonImportsCheck = [
+    "lightgbm"
+  ];
+
   meta = with lib; {
     description = "A fast, distributed, high performance gradient boosting (GBDT, GBRT, GBM or MART) framework";
     homepage = "https://github.com/Microsoft/LightGBM";
+    changelog = "https://github.com/microsoft/LightGBM/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ teh costrouc ];
   };

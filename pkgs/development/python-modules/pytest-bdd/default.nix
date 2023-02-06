@@ -1,39 +1,61 @@
-{ lib, buildPythonPackage, fetchFromGitHub
-, execnet
-, glob2
+{ lib
+, buildPythonPackage
+, fetchFromGitHub
 , Mako
-, mock
 , parse
 , parse-type
-, py
+, poetry-core
 , pytest
-, six
+, pytestCheckHook
+, pythonOlder
+, setuptools
+, typing-extensions
 }:
 
 buildPythonPackage rec {
   pname = "pytest-bdd";
-  version = "4.0.1";
+  version = "6.1.1";
+  format = "pyproject";
 
-  # tests are not included in pypi tarball
+  disabled = pythonOlder "3.7";
+
   src = fetchFromGitHub {
     owner = "pytest-dev";
     repo = pname;
-    rev = version;
-    sha256 = "1yqzz44as4pxffmg4hk9lijvnvlc2chg1maq1fbj5i4k4jpagvjz";
+    rev = "refs/tags/${version}";
+    hash = "sha256-+76jIgfDQPdIoesTr1+QUu8wmOnrdf4KT+TJr9F2Hqk=";
   };
 
-  buildInputs = [ pytest ];
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
-  propagatedBuildInputs = [ glob2 Mako parse parse-type py six ];
+  buildInputs = [
+    pytest
+  ];
 
-  # Tests require extra dependencies
-  checkInputs = [ execnet mock pytest ];
-  checkPhase = ''
-    PATH=$PATH:$out/bin pytest
+  propagatedBuildInputs = [
+    Mako
+    parse
+    parse-type
+    typing-extensions
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    setuptools
+  ];
+
+  preCheck = ''
+    export PATH=$PATH:$out/bin
   '';
 
+  pythonImportsCheck = [
+    "pytest_bdd"
+  ];
+
   meta = with lib; {
-    description = "BDD library for the py.test runner";
+    description = "BDD library for the pytest";
     homepage = "https://github.com/pytest-dev/pytest-bdd";
     license = licenses.mit;
     maintainers = with maintainers; [ jm2dev ];

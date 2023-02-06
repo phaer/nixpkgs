@@ -2,13 +2,11 @@
 , buildPythonPackage
 , fetchPypi
 , pytestCheckHook
-, pytest
-, pytestcov
 , flaky
 , numpy
 , pandas
-, pytorch
-, scikitlearn
+, torch
+, scikit-learn
 , scipy
 , tabulate
 , tqdm
@@ -16,24 +14,35 @@
 
 buildPythonPackage rec {
   pname = "skorch";
-  version = "0.10.0";
+  version = "0.12.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "9910f97339e654c8d38e0075d87b735e69e5eb11db59c527fb36705b30c8d0a4";
+    hash = "sha256-fjNbNY/Dr7lgVGPrHJTvPGuhyPR6IVS7ohBQMI+J1+k=";
   };
 
-  propagatedBuildInputs = [ numpy pytorch scikitlearn scipy tabulate tqdm ];
-  checkInputs = [ pytest pytestcov flaky pandas pytestCheckHook ];
+  propagatedBuildInputs = [ numpy torch scikit-learn scipy tabulate tqdm ];
+  nativeCheckInputs = [ flaky pandas pytestCheckHook ];
+
+  # patch out pytest-cov dep/invocation
+  postPatch = ''
+    substituteInPlace setup.cfg  \
+      --replace "--cov=skorch" ""  \
+      --replace "--cov-report=term-missing" ""  \
+      --replace "--cov-config .coveragerc" ""
+  '';
 
   disabledTests = [
     # on CPU, these expect artifacts from previous GPU run
     "test_load_cuda_params_to_cpu"
     # failing tests
     "test_pickle_load"
-    "test_grid_search_with_slds_"
-    "test_grid_search_with_dict_works"
   ];
+
+  # tries to import `transformers` and download HuggingFace data
+  disabledTestPaths = [ "skorch/tests/test_hf.py" ];
+
+  pythonImportsCheck = [ "skorch" ];
 
   meta = with lib; {
     description = "Scikit-learn compatible neural net library using Pytorch";
@@ -41,7 +50,5 @@ buildPythonPackage rec {
     changelog = "https://github.com/skorch-dev/skorch/blob/master/CHANGES.md";
     license = licenses.bsd3;
     maintainers = with maintainers; [ bcdarwin ];
-    # TypeError: __init__() got an unexpected keyword argument 'iid'
-    broken = true;
   };
 }

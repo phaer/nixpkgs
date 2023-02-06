@@ -4,7 +4,7 @@
 , lib
 , morphys
 , pytest
-, pytestrunner
+, pytest-runner
 , python-baseconv
 , six
 }:
@@ -24,7 +24,7 @@ buildPythonPackage rec {
   '';
 
   nativeBuildInputs = [
-    pytestrunner
+    pytest-runner
   ];
 
   propagatedBuildInputs = [
@@ -33,7 +33,7 @@ buildPythonPackage rec {
     python-baseconv
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest
   ];
 

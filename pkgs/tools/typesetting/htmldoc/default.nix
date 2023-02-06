@@ -1,20 +1,34 @@
-{ lib, stdenv, fetchFromGitHub, zlib, libpng, SystemConfiguration, Foundation }:
+{ lib, stdenv, testers, fetchFromGitHub, zlib, libpng, libjpeg, SystemConfiguration, Foundation, pkg-config, htmldoc }:
 
 stdenv.mkDerivation rec {
   pname = "htmldoc";
-  version = "1.9.11";
+  version = "1.9.16";
   src = fetchFromGitHub {
     owner = "michaelrsweet";
     repo = "htmldoc";
     rev = "v${version}";
-    sha256 = "0660829zjfdm6vzx14z7gvsfipsb7h0z74gbkyp2ncg3g2432s4n";
+    sha256 = "117cj5sfzl18gan53ld8lxb0wycizcp9jcakcs3nsvnss99rw3a6";
   };
-  buildInputs = [ zlib libpng ]
+
+  nativeBuildInputs = [ pkg-config ];
+  buildInputs = [ zlib libpng libjpeg ]
     ++ lib.optionals stdenv.isDarwin [ Foundation SystemConfiguration ];
+
+  # do not generate universal binary on Darwin
+  # because it is not supported by Nix's clang
+  postPatch = ''
+    substituteInPlace configure --replace "-arch x86_64 -arch arm64" ""
+  '';
+
+  passthru.tests = testers.testVersion {
+    package = htmldoc;
+    command = "htmldoc --version";
+  };
 
   meta = with lib; {
     description = "Converts HTML files to PostScript and PDF";
     homepage    = "https://michaelrsweet.github.io/htmldoc";
+    changelog   = "https://github.com/michaelrsweet/htmldoc/releases/tag/v${version}";
     license     = licenses.gpl2Only;
     maintainers = with maintainers; [ shanemikel ];
     platforms   = platforms.unix;

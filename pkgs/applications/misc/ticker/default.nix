@@ -5,20 +5,22 @@
 
 buildGoModule rec {
   pname = "ticker";
-  version = "4.0.3";
+  version = "4.5.5";
 
   src = fetchFromGitHub {
     owner = "achannarasappa";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-YVpspFBwao/7M2nTVMw+ANc0roL0vBO4DpNUb7Thp3Q=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-7FSyW71NWmWmBNQ5QUqMJ4x9WLXpm0kvvjdjzx1yk/M=";
   };
 
-  vendorSha256 = "sha256-nidOIjrTL4llV5GORebXOOPGeL6TxkurDY82cIc7+mU=";
+  vendorHash = "sha256-6bosJ2AlbLZ551tCNPmvNyyReFJG+iS3SYUFti2/CAw=";
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags" "-s -w -X github.com/achannarasappa/ticker/cmd.Version=v${version}")
-  '';
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/achannarasappa/ticker/cmd.Version=v${version}"
+  ];
 
   # Tests require internet
   doCheck = false;
@@ -26,6 +28,7 @@ buildGoModule rec {
   meta = with lib; {
     description = "Terminal stock ticker with live updates and position tracking";
     homepage = "https://github.com/achannarasappa/ticker";
+    changelog = "https://github.com/achannarasappa/ticker/releases/tag/v${version}";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ siraben ];
   };

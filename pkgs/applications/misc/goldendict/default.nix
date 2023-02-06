@@ -4,19 +4,19 @@
 , withCC ? true, opencc
 , withEpwing ? true, libeb
 , withExtraTiff ? true, libtiff
-, withFFmpeg ? true, libao, ffmpeg_3
+, withFFmpeg ? true, libao, ffmpeg
 , withMultimedia ? true
 , withZim ? true, zstd }:
 
 mkDerivation rec {
   pname = "goldendict";
-  version = "2020-12-09";
+  version = "2022-05-10";
 
   src = fetchFromGitHub {
     owner = "goldendict";
     repo = pname;
-    rev = "261e45a5d79f9df2fbc050292410bed0f4ef3132";
-    sha256 = "01pny06d4cmwf998hpqd7xx7mccbbasb8js1bv3rkdi1ljg01f7n";
+    rev = "f810c6bd724e61977b4e94ca2d8abfa5bd766379";
+    sha256 = "sha256-gNM+iahoGQy8TlNFLQx5ksITzQznv7MWMX/88QCTnL0";
   };
 
   patches = [
@@ -27,7 +27,8 @@ mkDerivation rec {
 
   postPatch = ''
     substituteInPlace goldendict.pro \
-      --replace "hunspell-1.6.1" "hunspell-${lib.versions.majorMinor hunspell.version}"
+      --replace "hunspell-1.6.1" "hunspell-${lib.versions.majorMinor hunspell.version}" \
+      --replace "opencc.2" "opencc"
   '';
 
   nativeBuildInputs = [ pkg-config qmake ];
@@ -39,7 +40,7 @@ mkDerivation rec {
     ++ lib.optional withCC opencc
     ++ lib.optional withEpwing libeb
     ++ lib.optional withExtraTiff libtiff
-    ++ lib.optionals withFFmpeg [ libao ffmpeg_3 ]
+    ++ lib.optionals withFFmpeg [ libao ffmpeg ]
     ++ lib.optional withZim zstd;
 
   qmakeFlags = with lib; [
@@ -56,7 +57,6 @@ mkDerivation rec {
   postInstall = lib.optionalString stdenv.isDarwin ''
     mkdir -p $out/Applications
     mv GoldenDict.app $out/Applications
-    wrapQtApp $out/Applications/GoldenDict.app/Contents/MacOS/GoldenDict
   '';
 
   meta = with lib; {

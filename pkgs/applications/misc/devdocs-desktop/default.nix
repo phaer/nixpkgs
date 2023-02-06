@@ -1,13 +1,13 @@
-{ lib, appimageTools, fetchurl, gsettings-desktop-schemas, gtk3 }:
+{ lib, appimageTools, fetchurl }:
 
 let
-  version = "0.7.1";
+  version = "0.7.2";
   pname = "devdocs-desktop";
   name = "${pname}-${version}";
 
   src = fetchurl {
     url = "https://github.com/egoist/devdocs-desktop/releases/download/v${version}/DevDocs-${version}.AppImage";
-    sha256 = "5bba99a34c90a65eff67aface0b7446cbf43d620a1c195f27e7bb33ab6d3d0c2";
+    sha256 = "sha256-4ugpzh0Dweae6tKb6uqRhEW9HT+iVIo8MQRbVKTdRFw=";
   };
 
   appimageContents = appimageTools.extractType2 {
@@ -16,10 +16,6 @@ let
 
 in appimageTools.wrapType2 rec {
   inherit name src;
-
-  profile = ''
-    export XDG_DATA_DIRS=${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}:$XDG_DATA_DIRS
-  '';
 
   extraInstallCommands = ''
     mv $out/bin/${name} $out/bin/${pname}

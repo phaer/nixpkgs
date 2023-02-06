@@ -1,33 +1,38 @@
-{ lib, stdenv
+{ stdenv
+, lib
 , fetchurl
+, meson
+, ninja
 , pkg-config
 , gobject-introspection
 , vala
 , gtk-doc
-, docbook_xsl
+, docbook-xsl-nons
 , docbook_xml_dtd_412
 , glib
 , libxml2
-, gnome3
+, gnome
 }:
 
 stdenv.mkDerivation rec {
   pname = "gupnp-av";
-  version = "0.12.11";
+  version = "0.14.1";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "1p3grslwqm9bc8rmpn4l48d7v9s84nina4r9xbd932dbj8acz7b8";
+    sha256 = "t5zgzEsMZtnFS8Ihg6EOVwmgAR0q8nICWUjvyrM6Pk8=";
   };
 
   nativeBuildInputs = [
+    meson
+    ninja
     pkg-config
     gobject-introspection
     vala
     gtk-doc
-    docbook_xsl
+    docbook-xsl-nons
     docbook_xml_dtd_412
   ];
 
@@ -36,15 +41,16 @@ stdenv.mkDerivation rec {
     libxml2
   ];
 
-  configureFlags = [
-    "--enable-gtk-doc"
+  mesonFlags = [
+    "-Dgtk_doc=true"
   ];
 
   doCheck = true;
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
+      versionPolicy = "odd-unstable";
     };
   };
 
@@ -52,6 +58,6 @@ stdenv.mkDerivation rec {
     homepage = "http://gupnp.org/";
     description = "A collection of helpers for building AV (audio/video) applications using GUPnP";
     license = licenses.lgpl2Plus;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

@@ -2,11 +2,14 @@
 
 stdenv.mkDerivation rec {
   pname = "unixODBC";
-  version = "2.3.9";
+  version = "2.3.11";
 
   src = fetchurl {
-    url = "ftp://ftp.unixodbc.org/pub/unixODBC/${pname}-${version}.tar.gz";
-    sha256 = "sha256-UoM+rD1oHIsMmlpl8uvXRbOpZPII/HSPl35EAVoxsgc=";
+    urls = [
+      "ftp://ftp.unixodbc.org/pub/unixODBC/${pname}-${version}.tar.gz"
+      "http://www.unixodbc.org/${pname}-${version}.tar.gz"
+    ];
+    sha256 = "sha256-2eVcjnEYNH48ZshzOIVtrRUWtJD7fHVsFWKiwmfHO1w=";
   };
 
   configureFlags = [ "--disable-gui" "--sysconfdir=/etc" ];

@@ -40,13 +40,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "radiotray-ng";
-  version = "0.2.7";
+  version = "0.2.8";
 
   src = fetchFromGitHub {
     owner = "ebruck";
     repo = pname;
     rev = "v${version}";
-    sha256 = "1v2nsz7s0jj0wmqabzk6akcf1353rachm1lfq77hxbq9z5pw8pgb";
+    sha256 = "sha256-/0GlQdSsIPKGrDT9CgxvaH8TpAbqxFduwL2A2+BSrEI=";
   };
 
   nativeBuildInputs = [ cmake pkg-config wrapGAppsHook makeWrapper ];
@@ -80,7 +80,7 @@ stdenv.mkDerivation rec {
     "-DBUILD_TESTS=${if doCheck then "ON" else "OFF"}"
   ];
 
-  checkInputs = [ gtest ];
+  nativeCheckInputs = [ gtest ];
   doCheck = !stdenv.isAarch64; # single failure that I can't explain
 
   preFixup = ''
@@ -93,6 +93,6 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/ebruck/radiotray-ng";
     license = licenses.gpl3;
     maintainers = with maintainers; [ dtzWill ];
-    platforms = platforms.all;
+    platforms = platforms.linux;
   };
 }

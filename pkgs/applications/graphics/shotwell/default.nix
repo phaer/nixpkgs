@@ -6,13 +6,13 @@
 , libexif
 , libgphoto2
 , libwebp
-, libsoup
+, libsoup_3
 , libxml2
 , vala
 , sqlite
-, webkitgtk
+, webkitgtk_4_1
 , pkg-config
-, gnome3
+, gnome
 , gst_all_1
 , libgudev
 , libraw
@@ -30,8 +30,6 @@
 , wrapGAppsHook
 , gobject-introspection
 , itstool
-, libgdata
-, libchamplain
 , libsecret
 , gsettings-desktop-schemas
 , python3
@@ -41,11 +39,11 @@
 
 stdenv.mkDerivation rec {
   pname = "shotwell";
-  version = "0.31.3";
+  version = "0.31.5";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "1wkahbnnfxmi1jc5zmm3h761nrnkdks8lk0rj38bfkwg90h6zqwd";
+    sha256 = "sha256-OwSPxs6ZsjLR4OqbjbB0CDyGyI07bWMTaiz4IXqkXBk=";
   };
 
   nativeBuildInputs = [
@@ -66,12 +64,14 @@ stdenv.mkDerivation rec {
     libexif
     libgphoto2
     libwebp
-    libsoup
+    libsoup_3
     libxml2
     sqlite
-    webkitgtk
+    webkitgtk_4_1
     gst_all_1.gstreamer
+    gst_all_1.gst-libav
     gst_all_1.gst-plugins-base
+    gst_all_1.gst-plugins-good
     libgee
     libgudev
     gexiv2
@@ -84,9 +84,7 @@ stdenv.mkDerivation rec {
     librsvg
     librest
     gcr
-    gnome3.adwaita-icon-theme
-    libgdata
-    libchamplain
+    gnome.adwaita-icon-theme
     libsecret
   ];
 
@@ -96,9 +94,9 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
-      versionPolicy = "none";
+      versionPolicy = "odd-unstable";
     };
   };
 

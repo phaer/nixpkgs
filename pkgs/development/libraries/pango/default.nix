@@ -1,42 +1,38 @@
 { lib
 , stdenv
 , fetchurl
-, fetchpatch
 , pkg-config
 , cairo
 , harfbuzz
 , libintl
 , libthai
-, gobject-introspection
 , darwin
 , fribidi
-, gnome3
+, gnome
 , gi-docgen
 , makeFontsConf
 , freefont_ttf
 , meson
 , ninja
 , glib
+, python3
+, gobject-introspection
 , x11Support? !stdenv.isDarwin, libXft
 }:
 
 stdenv.mkDerivation rec {
   pname = "pango";
-  version = "1.48.3";
+  version = "1.50.12";
 
   outputs = [ "bin" "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "0ijbkcs6217ygzphlpi0vajxkccifdbsl0jdjpy8wz11h9f19sin";
+    sha256 = "yu+W0nu+eSpr6ScnxzRo2DKxPaV8gHHvebnfae4Fj+M=";
   };
 
-  patches = [
-    # Install developer documentation.
-    (fetchpatch {
-      url = "https://gitlab.gnome.org/GNOME/pango/commit/a2f35860115e8cd44f07d5158e2df059e8163a08.patch";
-      sha256 = "hN7O4DBk4A+TmBl6DGx6RHni5qRBg6akdjv9o3iWKDQ=";
-    })
+  depsBuildBuild = [
+    pkg-config
   ];
 
   nativeBuildInputs = [
@@ -45,6 +41,7 @@ stdenv.mkDerivation rec {
     pkg-config
     gobject-introspection
     gi-docgen
+    python3
   ];
 
   buildInputs = [
@@ -77,19 +74,30 @@ stdenv.mkDerivation rec {
     fontDirectories = [ freefont_ttf ];
   };
 
+  # Run-time dependency gi-docgen found: NO (tried pkgconfig and cmake)
+  # it should be a build-time dep for build
+  # TODO: send upstream
+  postPatch = ''
+    substituteInPlace meson.build \
+      --replace "dependency('gi-docgen', ver" "dependency('gi-docgen', native:true, ver"
+
+    substituteInPlace docs/meson.build \
+      --replace "'gi-docgen', req" "'gi-docgen', native:true, req"
+  '';
+
   doCheck = false; # test-font: FAIL
 
-  postInstall = ''
-    # So that devhelp can find this.
-    # https://gitlab.gnome.org/GNOME/pango/merge_requests/293/diffs#note_1058448
-    mkdir -p "$devdoc/share/devhelp"
-    mv "$out/share/doc/pango/reference" "$devdoc/share/devhelp/books"
-    rmdir -p --ignore-fail-on-non-empty "$out/share/doc/pango"
+  postFixup = ''
+    # Cannot be in postInstall, otherwise _multioutDocs hook in preFixup will move right back.
+    moveToOutput "share/doc" "$devdoc"
   '';
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
+      versionPolicy = "odd-unstable";
+      # 1.90 is alpha for API 2.
+      freeze = true;
     };
   };
 

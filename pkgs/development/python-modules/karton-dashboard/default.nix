@@ -1,34 +1,50 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
+, fetchpatch
 , flask
 , karton-core
 , mistune
-, prometheus_client
+, networkx
+, prometheus-client
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "karton-dashboard";
-  version = "1.1.0";
+  version = "1.4.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "CERT-Polska";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "101qmx6nmiim0vrz2ldk973ns498hnxla1xy7nys9kh9wijg4msk";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-XMyQ0mRF4y61hqlqdxC+He+697P1URfOXQUMnV0pT7o=";
   };
+
+  patches = [
+    (fetchpatch {
+      name = "update-mistune.patch";
+      url = "https://github.com/CERT-Polska/karton-dashboard/commit/d0a2a1ffd21e9066acca77434acaff7b20e460d0.patch";
+      hash = "sha256-LOqeLWoCXmVTthruBiQUYR03yPOPHhgYF/fJMhhT6Wo=";
+    })
+  ];
 
   propagatedBuildInputs = [
     flask
     karton-core
     mistune
-    prometheus_client
+    networkx
+    prometheus-client
   ];
 
   postPatch = ''
     substituteInPlace requirements.txt \
-      --replace "Flask==1.1.1" "Flask" \
-      --replace "karton-core==4.1.0" "karton-core"
+      --replace "Flask==2.0.3" "Flask" \
+      --replace "networkx==2.6.3" "networkx" \
+      --replace "prometheus_client==0.11.0" "prometheus_client"
   '';
 
   # Project has no tests. pythonImportsCheck requires MinIO configuration

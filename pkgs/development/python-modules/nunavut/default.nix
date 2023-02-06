@@ -2,21 +2,32 @@
 , buildPythonPackage
 , pythonOlder
 , fetchPypi
+, importlib-resources
 , pydsdl
+, pyyaml
 }:
 
  buildPythonPackage rec {
   pname = "nunavut";
-  version = "1.0.3";
-  disabled = pythonOlder "3.5"; # only python>=3.5 is supported
+  version = "1.9.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "474392035e9e20b2c74dced7df8bda135fd5c0ead2b2cf64523a4968c785ea73";
+    sha256 = "sha256-KhgijXJ908uxM7VZdXo1WU/RGU0cfqctBCbpF2wOcy8=";
   };
 
+  postPatch = ''
+    substituteInPlace setup.cfg \
+      --replace "pydsdl ~= 1.16" "pydsdl"
+  '';
+
   propagatedBuildInputs = [
+    importlib-resources
     pydsdl
+    pyyaml
   ];
 
   # allow for writable directory for darwin

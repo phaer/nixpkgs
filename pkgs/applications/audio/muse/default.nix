@@ -1,6 +1,6 @@
 { lib, stdenv, fetchFromGitHub, cmake, pkg-config, qttools, wrapQtAppsHook
-, alsaLib, dssi, fluidsynth, ladspaH, lash, libinstpatch, libjack2, liblo
-, libsamplerate, libsndfile, lilv, lrdf, lv2, qtsvg, rtaudio, rubberband, sord
+, alsa-lib, dssi, fluidsynth, ladspaH, lash, libinstpatch, libjack2, liblo
+, libsamplerate, libsndfile, lilv, lrdf, lv2, qtsvg, rtaudio, rubberband, sord, serd
 }:
 
 stdenv.mkDerivation rec {
@@ -16,18 +16,16 @@ stdenv.mkDerivation rec {
 
   sourceRoot = "source/muse3";
 
-  prePatch = ''
-    chmod u+w $NIX_BUILD_TOP
-  '';
-
   patches = [ ./fix-parallel-building.patch ];
 
   nativeBuildInputs = [ cmake pkg-config qttools wrapQtAppsHook ];
 
   buildInputs = [
-    alsaLib dssi fluidsynth ladspaH lash libinstpatch libjack2 liblo
+    alsa-lib dssi fluidsynth ladspaH lash libinstpatch libjack2 liblo
     libsamplerate libsndfile lilv lrdf lv2 qtsvg rtaudio rubberband sord
   ];
+
+  NIX_CFLAGS_COMPILE = [ "-I${lib.getDev serd}/include/serd-0" ];
 
   meta = with lib; {
     homepage = "https://muse-sequencer.github.io/";

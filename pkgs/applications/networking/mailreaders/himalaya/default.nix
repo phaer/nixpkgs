@@ -1,29 +1,29 @@
 { lib
-, stdenv
 , rustPlatform
 , fetchFromGitHub
-, openssl
-, pkg-config
-, installShellFiles
+, stdenv
 , enableCompletions ? stdenv.hostPlatform == stdenv.buildPlatform
+, installShellFiles
+, pkg-config
 , Security
 , libiconv
+, openssl
 }:
+
 rustPlatform.buildRustPackage rec {
   pname = "himalaya";
-  version = "0.3.0";
+  version = "0.6.0";
 
   src = fetchFromGitHub {
     owner = "soywod";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-s2QZSusJLeo4WIorSj+e1yYqWXFqTt8YF6/Tyz9fHeY=";
+    sha256 = "sha256-d+ERCUPUHx41HfBtjb6BjhGKzkUTGIb01BRWvAnLYwk=";
   };
 
-  cargoSha256 = "sha256-u9dLqr5CnrgYiDWAiW9u1zcUWmprOiq5+TfafO8M+WU=";
+  cargoSha256 = "sha256-ICaahkIP1uSm4iXvSPMo8uVTtSa1nCyJdDihGdVEQvg=";
 
-  nativeBuildInputs = [ ]
-    ++ lib.optionals (enableCompletions) [ installShellFiles ]
+  nativeBuildInputs = lib.optionals enableCompletions [ installShellFiles ]
     ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [ pkg-config ];
 
   buildInputs =
@@ -34,6 +34,10 @@ rustPlatform.buildRustPackage rec {
       openssl
     ];
 
+  # flag added because without end-to-end testing is ran which requires
+  # additional tooling and servers to test
+  cargoTestFlags = [ "--lib" ];
+
   postInstall = lib.optionalString enableCompletions ''
     # Install shell function
     installShellCompletion --cmd himalaya \
@@ -43,9 +47,10 @@ rustPlatform.buildRustPackage rec {
   '';
 
   meta = with lib; {
-    description = "CLI email client written in Rust";
+    description = "Command-line interface for email management";
     homepage = "https://github.com/soywod/himalaya";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ yanganto ];
+    changelog = "https://github.com/soywod/himalaya/blob/v${version}/CHANGELOG.md";
+    license = licenses.bsdOriginal;
+    maintainers = with maintainers; [ toastal yanganto ];
   };
 }

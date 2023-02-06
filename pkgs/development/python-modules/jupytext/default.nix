@@ -1,39 +1,86 @@
-{ lib, buildPythonPackage, fetchPypi, isPy27
+{ lib
+, stdenv
+, buildPythonPackage
+, fetchFromGitHub
+, fetchpatch
+, gitpython
+, isort
+, jupyter-client
+, jupyter-packaging
+, jupyterlab
 , markdown-it-py
+, mdit-py-plugins
 , nbformat
-, pytest
+, notebook
+, pytestCheckHook
+, pythonOlder
 , pyyaml
 , toml
 }:
 
 buildPythonPackage rec {
   pname = "jupytext";
-  version = "1.11.0";
+  version = "1.14.1";
+  format = "pyproject";
 
-  disabled = isPy27;
+  disabled = pythonOlder "3.6";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "9062d001baaa32430fbb94a2c9394ac906db0a58da94e7aa4e414b73fd7d51bc";
+  src = fetchFromGitHub {
+    owner = "mwouts";
+    repo = pname;
+    rev = "refs/tags/v${version}";
+    hash = "sha256-DDF4aTLkhEl4xViYh/E0/y6swcwZ9KbeS0qKm+HdFz8=";
   };
+
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/mwouts/jupytext/commit/be9b65b03600227b737b5f10ea259a7cdb762b76.patch";
+      hash = "sha256-3klx8I+T560EVfsKe/FlrSjF6JzdKSCt6uhAW2cSwtc=";
+    })
+  ];
+
+  buildInputs = [
+    jupyter-packaging
+    jupyterlab
+  ];
 
   propagatedBuildInputs = [
     markdown-it-py
+    mdit-py-plugins
     nbformat
     pyyaml
     toml
   ];
 
-  checkInputs = [
-    pytest
+  nativeCheckInputs = [
+    gitpython
+    isort
+    jupyter-client
+    notebook
+    pytestCheckHook
   ];
 
-  # requires test notebooks which are not shipped with the pypi release
-  # also, pypi no longer includes tests
-  doCheck = false;
-  checkPhase = ''
-    pytest
+  preCheck = ''
+    # Tests that use a Jupyter notebook require $HOME to be writable
+    export HOME=$(mktemp -d);
   '';
+
+  pytestFlagsArray = [
+    # Pre-commit tests expect the source directory to be a Git repository
+    "--ignore-glob='tests/test_pre_commit_*.py'"
+  ];
+
+  disabledTests = [
+    "test_apply_black_through_jupytext" # we can't do anything about ill-formatted notebooks
+  ] ++ lib.optionals stdenv.isDarwin [
+    # requires access to trash
+    "test_load_save_rename"
+  ];
+
+  pythonImportsCheck = [
+    "jupytext"
+    "jupytext.cli"
+  ];
 
   meta = with lib; {
     description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts";

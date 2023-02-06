@@ -1,7 +1,7 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchFromGitHub
 , nix-update-script
-, pantheon
 , pkg-config
 , meson
 , ninja
@@ -11,33 +11,31 @@
 , glib
 , granite
 , libgee
-, elementary-icon-theme
-, elementary-gtk-theme
-, gettext
+, libhandy
 , wrapGAppsHook
+, appstream
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-feedback";
-  version = "1.0";
-
-  repoName = "feedback";
+  version = "7.0.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
-    repo = repoName;
+    repo = "feedback";
     rev = version;
-    sha256 = "sha256-GkVnowqGXwnEgplT34Po/BKzC2F/IQE2kIw0SLSLhGU=";
+    sha256 = "sha256-QvqyaI9szZuYuE3D6o4zjr5J6mvEzNHqTBWii+gjyMc=";
   };
 
-  passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
-  };
+  patches = [
+    # The standard location to the metadata pool where metadata
+    # will be read from is likely hardcoded as /usr/share/metainfo
+    # https://github.com/ximion/appstream/blob/v0.15.2/src/as-pool.c#L117
+    # https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#spec-component-location
+    ./fix-metadata-path.patch
+  ];
 
   nativeBuildInputs = [
-    gettext
     meson
     ninja
     pkg-config
@@ -47,11 +45,11 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    elementary-icon-theme
+    appstream
     granite
     gtk3
-    elementary-gtk-theme
     libgee
+    libhandy
     glib
   ];
 
@@ -60,11 +58,16 @@ stdenv.mkDerivation rec {
     patchShebangs meson/post_install.py
   '';
 
+  passthru = {
+    updateScript = nix-update-script { };
+  };
+
   meta = with lib; {
     description = "GitHub Issue Reporter designed for elementary OS";
     homepage = "https://github.com/elementary/feedback";
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
-    maintainers = pantheon.maintainers;
+    maintainers = teams.pantheon.members;
+    mainProgram = "io.elementary.feedback";
   };
 }

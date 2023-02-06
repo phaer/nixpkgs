@@ -32,7 +32,7 @@ buildPythonPackage rec {
     clldutils
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
     pytestCheckHook
     pytest-mock
@@ -42,6 +42,6 @@ buildPythonPackage rec {
     description = "Unicode Standard tokenization routines and orthography profile segmentation";
     homepage = "https://github.com/cldf/segments";
     license = licenses.asl20;
-    maintainers = with maintainers; [ hexa ];
+    maintainers = with maintainers; [ ];
   };
 }

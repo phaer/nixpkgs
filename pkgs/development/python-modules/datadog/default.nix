@@ -2,6 +2,7 @@
 , buildPythonPackage
 , fetchPypi
 , pythonOlder
+, hatchling
 , decorator
 , requests
 , typing ? null
@@ -17,22 +18,27 @@
 
 buildPythonPackage rec {
   pname = "datadog";
-  version = "0.40.1";
+  version = "0.44.0";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "438c1dde5462e68c5c792b7b4a1d87a0ddd970af3db31b3cf15980eed0c44311";
+    sha256 = "sha256-BxFw8MfvIlEdv3+b12xL5QDuLT1SBykApch7VJXSxzM=";
   };
 
   postPatch = ''
     find . -name '*.pyc' -exec rm {} \;
   '';
 
+  nativeBuildInputs = [
+    hatchling
+  ];
+
   propagatedBuildInputs = [ decorator requests ]
     ++ lib.optional (pythonOlder "3.5") typing
     ++ lib.optional (pythonOlder "3.0") configparser;
 
-  checkInputs = [
+  nativeCheckInputs = [
     click
     freezegun
     mock

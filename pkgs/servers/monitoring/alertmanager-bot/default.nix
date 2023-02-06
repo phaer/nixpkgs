@@ -11,17 +11,15 @@ buildGoModule rec {
     sha256 = "1hjfkksqb675gabzjc221b33h2m4s6qsanmkm382d3fyzqj71dh9";
   };
 
-  vendorSha256 = "1v0fgin8dn81b559zz4lqmrl7hikr46g4gb18sci4riql5qs1isj";
+  vendorSha256 = null; #vendorSha256 = "";
 
   postPatch = ''
     sed "s;/templates/default.tmpl;$out/share&;" -i cmd/alertmanager-bot/main.go
   '';
 
-  preBuild = ''
-    export buildFlagsArray=(
-      "-ldflags=-s -w -X main.Version=v${version} -X main.Revision=${src.rev}"
-    )
-  '';
+  ldflags = [
+    "-s" "-w" "-X main.Version=v${version}" "-X main.Revision=${src.rev}"
+  ];
 
   postInstall = ''
     install -Dm644 -t $out/share/templates $src/default.tmpl
@@ -32,5 +30,6 @@ buildGoModule rec {
     homepage = "https://github.com/metalmatze/alertmanager-bot";
     license = licenses.mit;
     maintainers = with maintainers; [ mmahut ];
+    broken = true; # vendor isn't reproducible with go > 1.17: nix-build -A $name.go-modules --check
   };
 }

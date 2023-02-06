@@ -8,9 +8,9 @@
  <xi:include href="preface.chapter.xml" />
  <part>
   <title>Using Nixpkgs</title>
-  <xi:include href="using/configuration.xml" />
-  <xi:include href="using/overlays.xml" />
-  <xi:include href="using/overrides.xml" />
+  <xi:include href="using/configuration.chapter.xml" />
+  <xi:include href="using/overlays.chapter.xml" />
+  <xi:include href="using/overrides.chapter.xml" />
   <xi:include href="functions.xml" />
  </part>
  <part>
@@ -25,8 +25,10 @@
   <title>Builders</title>
   <xi:include href="builders/fetchers.chapter.xml" />
   <xi:include href="builders/trivial-builders.chapter.xml" />
+  <xi:include href="builders/testers.chapter.xml" />
   <xi:include href="builders/special.xml" />
   <xi:include href="builders/images.xml" />
+  <xi:include href="hooks/index.xml" />
   <xi:include href="languages-frameworks/index.xml" />
   <xi:include href="builders/packages/index.xml" />
  </part>

@@ -1,17 +1,28 @@
-{ lib, buildPythonPackage, fetchPypi, pytestCheckHook, bracex }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+, hatchling
+, pytestCheckHook
+, bracex
+}:
 
 buildPythonPackage rec {
   pname = "wcmatch";
-  version = "8.1.2";
+  version = "8.4.1";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "efda751de15201b395b6d6e64e6ae3b6b03dc502a64c3c908aa5cad14c27eee5";
+    sha256 = "sha256-sfBCqJnqTEWLcyHaG14zMePg7HgVg0NN4TAZRs6tuUM=";
   };
+
+  nativeBuildInputs = [
+    hatchling
+  ];
 
   propagatedBuildInputs = [ bracex ];
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     export HOME=$(mktemp -d)

@@ -1,4 +1,5 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchurl
 , gsl
 , mpfr
@@ -8,11 +9,11 @@
 
 stdenv.mkDerivation rec {
   pname = "ViennaRNA";
-  version = "2.4.17";
+  version = "2.5.1";
 
   src = fetchurl {
-    url = "https://www.tbi.univie.ac.at/RNA/download/sourcecode/2_4_x/${pname}-${version}.tar.gz";
-    sha256 = "08f1h2a8fn1s2zwf1244smiydhgwxgcnzy6irpdlmpvwygv0irmi";
+    url = "https://www.tbi.univie.ac.at/RNA/download/sourcecode/2_5_x/${pname}-${version}.tar.gz";
+    sha256 = "sha256-BUAEN88VWV4QsaJd9snEiFbzVhMPnR44D6iGa20n9Fc=";
   };
 
   buildInputs = [

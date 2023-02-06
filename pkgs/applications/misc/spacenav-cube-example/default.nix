@@ -10,7 +10,7 @@ stdenv.mkDerivation {
 
   buildInputs = [ libX11 mesa_glu libspnav ];
 
-  configureFlags = [ "--disable-debug" ];
+  makeFlags = [ "CC=${stdenv.cc.targetPrefix}cc" ];
 
   installPhase = ''
     runHook preInstall
@@ -20,7 +20,7 @@ stdenv.mkDerivation {
   '';
 
   meta = with lib; {
-    homepage = "http://spacenav.sourceforge.net/";
+    homepage = "https://spacenav.sourceforge.net/";
     description = "An example application to test the spacenavd driver";
     license = licenses.bsd3;
     platforms = platforms.unix;

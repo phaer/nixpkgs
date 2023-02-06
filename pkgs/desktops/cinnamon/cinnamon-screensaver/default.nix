@@ -1,4 +1,5 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchFromGitHub
 , pkg-config
 , meson
@@ -12,7 +13,7 @@
 , libxslt
 , gtk3
 , libgnomekbd
-, gnome3
+, gnome
 , libtool
 , wrapGAppsHook
 , gobject-introspection
@@ -20,20 +21,21 @@
 , pam
 , accountsservice
 , cairo
-, xapps
+, xapp
+, xdotool
 , xorg
 , iso-flags-png-320x420
 }:
 
 stdenv.mkDerivation rec {
   pname = "cinnamon-screensaver";
-  version = "4.8.1";
+  version = "5.6.3";
 
   src = fetchFromGitHub {
     owner = "linuxmint";
     repo = pname;
     rev = version;
-    hash = "sha256-gvSGxSYKnRqJhj2unRYRHp6qGw/O9SxKPzhw5xjCSSQ=";
+    hash = "sha256-S4+9ZTpDwwvYTc3gz0YQBYjgygp8KP94azkiJcH6xCk=";
   };
 
   nativeBuildInputs = [
@@ -59,23 +61,24 @@ stdenv.mkDerivation rec {
     xorg.libX11
     xorg.libXrandr
 
-    (python3.withPackages (pp: with pp; [ pygobject3 setproctitle xapp pycairo ]))
-    xapps
+    (python3.withPackages (pp: with pp; [
+      pygobject3
+      setproctitle
+      python3.pkgs.xapp # The scope prefix is required
+      pycairo
+    ]))
+    xapp
+    xdotool
     pam
     accountsservice
     cairo
     cinnamon-desktop
     cinnamon-common
     libgnomekbd
-    gnome3.caribou
+    gnome.caribou
 
     # things
     iso-flags-png-320x420
-  ];
-
-  mesonFlags = [
-    # TODO: https://github.com/NixOS/nixpkgs/issues/36468
-    "-Dc_args=-I${glib.dev}/include/gio-unix-2.0"
   ];
 
   postPatch = ''
@@ -88,6 +91,13 @@ stdenv.mkDerivation rec {
       {} +
 
     sed "s|/usr/share/locale|/run/current-system/sw/share/locale|g" -i ./src/cinnamon-screensaver-main.py
+  '';
+
+  preFixup = ''
+    # https://github.com/NixOS/nixpkgs/issues/101881
+    gappsWrapperArgs+=(
+      --prefix XDG_DATA_DIRS : "${gnome.caribou}/share"
+    )
   '';
 
   meta = with lib; {

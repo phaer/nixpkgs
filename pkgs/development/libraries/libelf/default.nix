@@ -1,5 +1,5 @@
 { lib, stdenv
-, fetchurl, autoreconfHook, gettext
+, fetchurl, autoreconfHook, gettext, freebsd, netbsd
 }:
 
 # Note: this package is used for bootstrapping fetchurl, and thus
@@ -8,10 +8,11 @@
 # files.
 
 stdenv.mkDerivation rec {
-  name = "libelf-0.8.13";
+  pname = "libelf";
+  version = "0.8.13";
 
   src = fetchurl {
-    url = "https://fossies.org/linux/misc/old/${name}.tar.gz";
+    url = "https://fossies.org/linux/misc/old/${pname}-${version}.tar.gz";
     sha256 = "0vf7s9dwk2xkmhb79aigqm0x0yfbw1j0b9ksm51207qwr179n6jr";
   };
 
@@ -22,7 +23,14 @@ stdenv.mkDerivation rec {
     ./preprocessor-warnings.patch
   ];
 
+  enableParallelBuilding = true;
+
   doCheck = true;
+
+  preConfigure = if !stdenv.hostPlatform.useAndroidPrebuilt then null else ''
+    sed -i 's|DISTSUBDIRS = lib po|DISTSUBDIRS = lib|g' Makefile.in
+    sed -i 's|SUBDIRS = lib @POSUB@|SUBDIRS = lib|g' Makefile.in
+  '';
 
   configureFlags = []
        # Configure check for dynamic lib support is broken, see
@@ -32,11 +40,16 @@ stdenv.mkDerivation rec {
        # on Darwin, so disable NLS for now.
     ++ lib.optional stdenv.hostPlatform.isDarwin "--disable-nls";
 
-  nativeBuildInputs = [ gettext ]
+  strictDeps = true;
+  nativeBuildInputs =
+    (if stdenv.hostPlatform.isFreeBSD then [ freebsd.gencat ]
+     else if stdenv.hostPlatform.isNetBSD then [ netbsd.gencat ]
+     else [ gettext ])
        # Need to regenerate configure script with newer version in order to pass
-       # "mr_cv_target_elf=yes", but `autoreconfHook` brings in `makeWrapper`
-       # which doesn't work with the bootstrapTools bash, so can only do this
-       # for cross builds when `stdenv.shell` is a newer bash.
+       # "mr_cv_target_elf=yes" and determine integer sizes correctly when
+       # cross-compiling, but `autoreconfHook` brings in `makeWrapper` which
+       # doesn't work with the bootstrapTools bash, so can only do this for
+       # cross builds when `stdenv.shell` is a newer bash.
     ++ lib.optional (stdenv.hostPlatform != stdenv.buildPlatform) autoreconfHook;
 
   meta = {

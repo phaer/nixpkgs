@@ -1,19 +1,19 @@
-{ lib, stdenv, fetchFromGitHub, zlib, pkg-config, python3, openssl }:
+{ lib, stdenv, fetchFromGitHub, zlib, zstd, pkg-config, python3, openssl, which }:
 
 stdenv.mkDerivation rec {
   pname = "rdkafka";
-  version = "1.6.1";
+  version = "1.9.2";
 
   src = fetchFromGitHub {
     owner = "edenhill";
     repo = "librdkafka";
     rev = "v${version}";
-    sha256 = "sha256-EoNzxwuLiYi6sMhyqD/x+ku6BKA+i5og4XsUy2JBN0U=";
+    sha256 = "sha256-G6rTvb2Z2O1Df5/6upEB9Eh049sx+LWhhDKvsZdDqsc=";
   };
 
-  nativeBuildInputs = [ pkg-config python3 ];
+  nativeBuildInputs = [ pkg-config python3 which ];
 
-  buildInputs = [ zlib openssl ];
+  buildInputs = [ zlib zstd openssl ];
 
   NIX_CFLAGS_COMPILE = "-Wno-error=strict-overflow";
 

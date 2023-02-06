@@ -6,7 +6,7 @@
 , six
 , decorator
 , nose
-, krb5Full
+, krb5
 , GSS
 , parameterized
 , shouldbe
@@ -17,25 +17,25 @@
 
 buildPythonPackage rec {
   pname = "gssapi";
-  version = "1.6.12";
+  version = "1.8.2";
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "pythongssapi";
     repo = "python-${pname}";
-    rev = "v${version}";
-    sha256 = "0r6w52vji1095n3wgzjz9ddaqsvsf3f4gal0rv5i62hpqwlbzkn7";
+    rev = "refs/tags/v${version}";
+    sha256 = "sha256-qz4EWAO++yq72/AGwyNOtH/fTRSFbiCo/K98htROUxI=";
   };
 
   # It's used to locate headers
   postPatch = ''
     substituteInPlace setup.py \
-      --replace 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5Full}"'
+      --replace 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5}"'
   '';
 
   nativeBuildInputs = [
     cython
-    krb5Full
+    krb5
   ];
 
   propagatedBuildInputs =  [
@@ -47,7 +47,7 @@ buildPythonPackage rec {
     GSS
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     k5test
     nose
     parameterized
@@ -67,7 +67,7 @@ buildPythonPackage rec {
     echo $'\ndel TestBaseUtilities.test_add_cred_impersonate_name' >> gssapi/tests/test_raw.py
 
     export PYTHONPATH="$out/${python.sitePackages}:$PYTHONPATH"
-    ${python.interpreter} setup.py nosetests -e 'ext_test_\d.*'
+    nosetests -e 'ext_test_\d.*'
   '';
   pythonImportsCheck = [ "gssapi" ];
 

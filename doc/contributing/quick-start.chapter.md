@@ -9,7 +9,7 @@ To add a package to Nixpkgs:
    $ cd nixpkgs
    ```
 
-2. Find a good place in the Nixpkgs tree to add the Nix expression for your package. For instance, a library package typically goes into `pkgs/development/libraries/pkgname`, while a web browser goes into `pkgs/applications/networking/browsers/pkgname`. See <xref linkend="sec-organisation" /> for some hints on the tree organisation. Create a directory for your package, e.g.
+2. Find a good place in the Nixpkgs tree to add the Nix expression for your package. For instance, a library package typically goes into `pkgs/development/libraries/pkgname`, while a web browser goes into `pkgs/applications/networking/browsers/pkgname`. See [](#sec-organisation) for some hints on the tree organisation. Create a directory for your package, e.g.
 
    ```ShellSession
    $ mkdir pkgs/development/libraries/libfoo
@@ -34,7 +34,7 @@ To add a package to Nixpkgs:
 
    - Apache HTTPD: [`pkgs/servers/http/apache-httpd/2.4.nix`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/servers/http/apache-httpd/2.4.nix). A bunch of optional features, variable substitutions in the configure flags, a post-install hook, and miscellaneous hackery.
 
-   - Thunderbird: [`pkgs/applications/networking/mailreaders/thunderbird/default.nix`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/networking/mailreaders/thunderbird/default.nix). Lots of dependencies.
+   - buildMozillaMach: [`pkgs/applications/networking/browser/firefox/common.nix`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/networking/browsers/firefox/common.nix). A reusable build function for Firefox, Thunderbird and Librewolf.
 
    - JDiskReport, a Java utility: [`pkgs/tools/misc/jdiskreport/default.nix`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/tools/misc/jdiskreport/default.nix). Nixpkgs doesn’t have a decent `stdenv` for Java yet so this is pretty ad-hoc.
 

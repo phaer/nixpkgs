@@ -8,35 +8,33 @@
 , isStereo ? false
 }:
 
-with lib;
 let
-  pname = "goattracker" + optionalString isStereo "-stereo";
+  pname = "goattracker" + lib.optionalString isStereo "-stereo";
   desktopItem = makeDesktopItem {
-    type = "Application";
     name = pname;
-    desktopName = "GoatTracker 2" + optionalString isStereo " Stereo";
+    desktopName = "GoatTracker 2" + lib.optionalString isStereo " Stereo";
     genericName = "Music Tracker";
     exec = if isStereo
       then "gt2stereo"
       else "goattrk2";
     icon = "goattracker";
-    categories = "AudioVideo;AudioVideoEditing;";
-    extraEntries = "Keywords=tracker;music;";
+    categories = [ "AudioVideo" "AudioVideoEditing" ];
+    keywords = [ "tracker" "music" ];
   };
 
 in stdenv.mkDerivation rec {
   inherit pname;
   version = if isStereo
-    then "2.76"  # stereo
-    else "2.75"; # normal
+    then "2.77"  # stereo
+    else "2.76"; # normal
 
   src = fetchurl {
-    url = "mirror://sourceforge/goattracker2/GoatTracker_${version}${optionalString isStereo "_Stereo"}.zip";
+    url = "mirror://sourceforge/goattracker2/GoatTracker_${version}${lib.optionalString isStereo "_Stereo"}.zip";
     sha256 = if isStereo
-      then "12cz3780x5k047jqdv69n6rjgbfiwv67z850kfl4i37lxja432l7"  # stereo
-      else "1km97nl7qvk6qc5l5j69wncbm76hf86j47sgzgr968423g0bxxlk"; # normal
+      then "1hiig2d152sv9kazwz33i56x1c54h5sh21ipkqnp6qlnwj8x1ksy"  # stereo
+      else "0d7a3han4jw4bwiba3j87racswaajgl3pj4sb5lawdqdxicv3dn1"; # normal
   };
-  sourceRoot = (if isStereo then "gt2stereo/trunk" else "goattrk2") + "/src";
+  sourceRoot = "src";
 
   nativeBuildInputs = [ copyDesktopItems unzip imagemagick ];
   buildInputs = [ SDL ];
@@ -64,11 +62,11 @@ in stdenv.mkDerivation rec {
 
   meta = {
     description = "A crossplatform music editor for creating Commodore 64 music. Uses reSID library by Dag Lem and supports alternatively HardSID & CatWeasel devices"
-      + optionalString isStereo " - Stereo version";
+      + lib.optionalString isStereo " - Stereo version";
     homepage = "https://cadaver.github.io/tools.html";
     downloadPage = "https://sourceforge.net/projects/goattracker2/";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ fgaz ];
-    platforms = platforms.all;
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ fgaz ];
+    platforms = lib.platforms.all;
   };
 }

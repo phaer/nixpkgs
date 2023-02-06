@@ -2,14 +2,16 @@
 
 stdenv.mkDerivation rec {
   pname = "leatherman";
-  version = "1.12.4";
+  version = "1.12.9";
 
   src = fetchFromGitHub {
-    sha256 = "sha256-7e9D9Q3CAm+2+0vl81djSZwKrQRXc5UxcbJVMt91/vU=";
+    sha256 = "sha256-TuiOAinJsQWJVJiaS8kWk4Pl+hn521f4ooJ2p+eR6mk=";
     rev = version;
     repo = "leatherman";
     owner = "puppetlabs";
   };
+
+  cmakeFlags = [ "-DLEATHERMAN_ENABLE_TESTING=OFF" ];
 
   NIX_CFLAGS_COMPILE = "-Wno-error";
 

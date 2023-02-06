@@ -1,40 +1,53 @@
-{ lib, stdenv, fetchFromGitHub, automake, autoconf, libtool, pkg-config, gnutls
-, libgcrypt, libtasn1, glib, libplist, libusbmuxd }:
+{ lib
+, stdenv
+, fetchFromGitHub
+, autoreconfHook
+, pkg-config
+, gnutls
+, libgcrypt
+, libplist
+, libtasn1
+, libusbmuxd
+, libimobiledevice-glue
+, SystemConfiguration
+, CoreFoundation
+}:
 
 stdenv.mkDerivation rec {
   pname = "libimobiledevice";
-  version = "1.3.0";
-
-  src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = version;
-    sha256 = "1jkq3hpg4n5a6s1k618ib0s80pwf00nlfcby7xckysq8mnd2pp39";
-  };
+  version = "1.3.0+date=2022-05-22";
 
   outputs = [ "out" "dev" ];
 
+  src = fetchFromGitHub {
+    owner = "libimobiledevice";
+    repo = pname;
+    rev = "12394bc7be588be83c352d7441102072a89dd193";
+    hash = "sha256-2K4gZrFnE4hlGlthcKB4n210bTK3+6NY4TYVIoghXJM=";
+  };
+
+  postPatch = ''
+    echo '${version}' > .tarball-version
+  '';
+
   nativeBuildInputs = [
-    autoconf
-    automake
-    libtool
+    autoreconfHook
     pkg-config
   ];
+
   propagatedBuildInputs = [
-    glib
     gnutls
     libgcrypt
     libplist
     libtasn1
     libusbmuxd
+    libimobiledevice-glue
+  ] ++ lib.optionals stdenv.isDarwin [
+    SystemConfiguration
+    CoreFoundation
   ];
 
-  preConfigure = "NOCONFIGURE=1 ./autogen.sh";
-
-  configureFlags = [
-    "--disable-openssl"
-    "--without-cython"
-  ];
+  configureFlags = [ "--with-gnutls" "--without-cython" ];
 
   meta = with lib; {
     homepage = "https://github.com/libimobiledevice/libimobiledevice";
@@ -52,7 +65,7 @@ stdenv.mkDerivation rec {
       devices to the Linux Desktop.
     '';
     license = licenses.lgpl21Plus;
-    platforms = platforms.linux ++ platforms.darwin;
+    platforms = platforms.unix;
     maintainers = with maintainers; [ infinisil ];
   };
 }

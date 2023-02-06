@@ -1,48 +1,96 @@
-{ lib, stdenv, fetchurl, gnome3, cmake, gettext, intltool, pkg-config, evolution-data-server, evolution
-, sqlite, gtk3, webkitgtk, libgdata, libmspack }:
+{ stdenv
+, lib
+, fetchurl
+, gnome
+, cmake
+, gettext
+, intltool
+, pkg-config
+, evolution-data-server
+, evolution
+, gtk3
+, libsoup_3
+, libical
+, json-glib
+, libmspack
+, webkitgtk_4_1
+, substituteAll
+, _experimental-update-script-combinators
+, glib
+, makeHardcodeGsettingsPatch
+}:
 
 stdenv.mkDerivation rec {
   pname = "evolution-ews";
-  version = "3.38.3";
+  version = "3.46.3";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "1s2jpviliazmhnpkh8dc57ga3c3612f2rnc0nfya5ndbi6lpzxhi";
+    sha256 = "BFnqQFY2OKWllPQt3BzHGRotOCLCEcz/+82LNtMmQCU=";
   };
 
-  nativeBuildInputs = [ cmake gettext intltool pkg-config ];
+  patches = [
+    # evolution-ews contains .so files loaded by evolution-data-server refering
+    # schemas from evolution. evolution-data-server is not wrapped with
+    # evolution's schemas because it would be a circular dependency with
+    # evolution.
+    (substituteAll {
+      src = ./hardcode-gsettings.patch;
+      evo = glib.makeSchemaPath evolution evolution.name;
+    })
+  ];
+
+  nativeBuildInputs = [
+    cmake
+    gettext
+    intltool
+    pkg-config
+  ];
 
   buildInputs = [
-    evolution-data-server evolution
-    sqlite libgdata
-    gtk3 webkitgtk
+    evolution-data-server
+    evolution
+    gtk3
+    libsoup_3
+    libical
+    json-glib
     libmspack
+    # For evolution-shell-3.0
+    webkitgtk_4_1
   ];
 
-  # Building with libmspack as reccommended: https://wiki.gnome.org/Apps/Evolution/Building#Build_evolution-ews
   cmakeFlags = [
-    "-DWITH_MSPACK=ON"
+    # don't try to install into ${evolution}
+    "-DFORCE_INSTALL_PREFIX=ON"
   ];
 
-  PKG_CONFIG_EVOLUTION_SHELL_3_0_ERRORDIR = "${placeholder "out"}/share/evolution/errors";
-  PKG_CONFIG_EVOLUTION_SHELL_3_0_PRIVLIBDIR = "${placeholder "out"}/lib/evolution";
-  PKG_CONFIG_CAMEL_1_2_CAMEL_PROVIDERDIR = "${placeholder "out"}/lib/evolution-data-server/camel-providers";
-  PKG_CONFIG_LIBEDATA_BOOK_1_2_BACKENDDIR = "${placeholder "out"}/lib/evolution-data-server/addressbook-backends";
-  PKG_CONFIG_LIBEDATA_CAL_2_0_BACKENDDIR = "${placeholder "out"}/lib/evolution-data-server/calendar-backends";
-  PKG_CONFIG_LIBEBACKEND_1_2_MODULEDIR = "${placeholder "out"}/lib/evolution-data-server/registry-modules";
-  PKG_CONFIG_EVOLUTION_SHELL_3_0_MODULEDIR = "${placeholder "out"}/lib/evolution/modules";
-  PKG_CONFIG_EVOLUTION_DATA_SERVER_1_2_PRIVDATADIR = "${placeholder "out"}/share/evolution-data-server";
-
-   passthru = {
-    updateScript = gnome3.updateScript {
-      packageName = "evolution-ews";
+  passthru = {
+    hardcodeGsettingsPatch = makeHardcodeGsettingsPatch {
+      inherit src;
+      schemaIdToVariableMapping = {
+        "org.gnome.evolution.mail" = "evo";
+        "org.gnome.evolution.calendar" = "evo";
+      };
     };
+
+    updateScript =
+      let
+        updateSource = gnome.updateScript {
+          packageName = "evolution-ews";
+          versionPolicy = "odd-unstable";
+        };
+        updatePatch = _experimental-update-script-combinators.copyAttrOutputToFile "evolution-ews.hardcodeGsettingsPatch" ./hardcode-gsettings.patch;
+      in
+      _experimental-update-script-combinators.sequence [
+        updateSource
+        updatePatch
+      ];
   };
 
   meta = with lib; {
     description = "Evolution connector for Microsoft Exchange Server protocols";
     homepage = "https://gitlab.gnome.org/GNOME/evolution-ews";
-    license = "LGPL-2.1-only OR LGPL-3.0-only"; # https://gitlab.gnome.org/GNOME/evolution-ews/issues/111
+    license = licenses.lgpl21Plus; # https://gitlab.gnome.org/GNOME/evolution-ews/issues/111
     maintainers = [ maintainers.dasj19 ];
     platforms = platforms.linux;
   };

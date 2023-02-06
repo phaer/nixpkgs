@@ -1,39 +1,51 @@
-{ lib, buildPythonPackage, fetchFromGitHub
+{ lib
+, buildPythonPackage
+, fetchFromGitHub
 , elementpath
 , lxml
-, pytest
+, pytestCheckHook
+, pythonOlder
 }:
 
 buildPythonPackage rec {
-  version = "1.5.3";
   pname = "xmlschema";
+  version = "2.1.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "sissaschool";
     repo = "xmlschema";
-    rev = "v${version}";
-    sha256 = "0pv8zdz03wjnjwrgjr5pc3q69h7zh51h0iwgwxwl65qi1r6ydk54";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-rt7QScg458ezDwktO1QRydmC3XqedX+kPpv6J+JvLzQ=";
   };
 
-  propagatedBuildInputs = [ elementpath ];
+  propagatedBuildInputs = [
+    elementpath
+  ];
 
-  checkInputs = [ lxml pytest ];
-
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "elementpath~=2.0.0" "elementpath~=2.0"
-  '';
+  nativeCheckInputs = [
+    lxml
+    pytestCheckHook
+  ];
 
   # Ignore broken fixtures, and tests for files which don't exist.
   # For darwin, we need to explicity say we can't reach network
-  checkPhase = ''
-    pytest tests \
-      --ignore=tests/test_factory.py \
-      --ignore=tests/test_schemas.py \
-      --ignore=tests/test_memory.py \
-      --ignore=tests/test_validation.py \
-      -k 'not element_tree_import_script and not export_remote'
-  '';
+  disabledTests = [
+    "export_remote"
+    "element_tree_import_script"
+  ];
+
+  disabledTestPaths = [
+    "tests/test_schemas.py"
+    "tests/test_memory.py"
+    "tests/test_validation.py"
+  ];
+
+  pythonImportsCheck = [
+    "xmlschema"
+  ];
 
   meta = with lib; {
     description = "XML Schema validator and data conversion library for Python";

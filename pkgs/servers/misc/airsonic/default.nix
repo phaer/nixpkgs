@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl }:
+{ lib, stdenv, fetchurl, nixosTests }:
 
 stdenv.mkDerivation rec {
   pname = "airsonic";
@@ -14,9 +14,14 @@ stdenv.mkDerivation rec {
     cp "$src" "$out/webapps/airsonic.war"
   '';
 
+  passthru.tests = {
+    airsonic-starts = nixosTests.airsonic;
+  };
+
   meta = with lib; {
     description = "Personal media streamer";
     homepage = "https://airsonic.github.io";
+    sourceProvenance = with sourceTypes; [ binaryBytecode ];
     license = lib.licenses.gpl3;
     platforms = platforms.all;
     maintainers = with maintainers; [ disassembler ];

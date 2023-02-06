@@ -2,6 +2,7 @@
 , fetchurl
 , ninja
 , meson
+, mesonEmulatorHook
 , pkg-config
 , vala
 , gobject-introspection
@@ -11,7 +12,7 @@
 , glib
 , libgudev
 , libevdev
-, gnome3
+, gnome
 }:
 
 stdenv.mkDerivation rec {
@@ -34,9 +35,12 @@ stdenv.mkDerivation rec {
     gtk-doc
     docbook-xsl-nons
     docbook_xml_dtd_43
+  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+    mesonEmulatorHook
   ];
 
   buildInputs = [
+    gobject-introspection
     glib
     libgudev
     libevdev
@@ -49,8 +53,9 @@ stdenv.mkDerivation rec {
   doCheck = true;
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
+      versionPolicy = "odd-unstable";
     };
   };
 

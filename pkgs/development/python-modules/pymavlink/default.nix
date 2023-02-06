@@ -2,11 +2,11 @@
 
 buildPythonPackage rec {
   pname = "pymavlink";
-  version = "2.4.15";
+  version = "2.4.37";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "106va20k0ahy0l2qvxf8k5pvqkgdmxbgzd9kij9fkrahlba5mx3v";
+    sha256 = "sha256-dU561/kOBW++mrfzX/kqNVPgi7m/QniBrCJxBD/fZ1Y=";
   };
 
   propagatedBuildInputs = [ future lxml ];
@@ -22,7 +22,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python MAVLink interface and utilities";
     homepage = "https://github.com/ArduPilot/pymavlink";
-    license = with licenses; [ lgpl3Only mit ];
+    license = with licenses; [ lgpl3Plus mit ];
     maintainers = with maintainers; [ lopsided98 ];
   };
 }

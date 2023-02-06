@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, cmake, pkg-config, zlib, libpng, libjpeg, libungif, libtiff
+{ lib, stdenv, fetchurl, cmake, pkg-config, zlib, libpng, libjpeg, giflib, libtiff
 }:
 
 stdenv.mkDerivation rec {
@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ cmake pkg-config ];
-  buildInputs = [ zlib libpng libjpeg libungif libtiff ];
+  buildInputs = [ zlib libpng libjpeg giflib libtiff ];
 
   doCheck = true;
 
@@ -34,7 +34,7 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "A C-library for generating multi page PostScript documents";
-    homepage = "http://pslib.sourceforge.net/";
+    homepage = "https://pslib.sourceforge.net/";
     changelog =
       "https://sourceforge.net/p/pslib/git/ci/master/tree/pslib/ChangeLog";
     license = licenses.gpl2;

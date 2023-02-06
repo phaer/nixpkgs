@@ -16,8 +16,6 @@ stdenv.mkDerivation {
 
   buildInputs = [ glib pcre readline systemd udev ];
 
-  enableParallelBuilding = true;
-
   mesonFlags = [
     "-Drely-udev=true"
     "-Dbuild-tests=true"
@@ -27,7 +25,7 @@ stdenv.mkDerivation {
     description = "Connect external monitors via Wi-Fi";
     homepage    = "https://github.com/albfan/miraclecast";
     license     = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ tstrobel ];
+    maintainers = with maintainers; [ ];
     platforms   = platforms.linux;
   };
 }

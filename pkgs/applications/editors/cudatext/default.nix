@@ -31,20 +31,20 @@ let
     (name: spec:
       fetchFromGitHub {
         repo = name;
-        inherit (spec) owner rev sha256;
+        inherit (spec) owner rev hash;
       }
     )
-    (builtins.fromJSON (builtins.readFile ./deps.json));
+    (lib.importJSON ./deps.json);
 in
 stdenv.mkDerivation rec {
   pname = "cudatext";
-  version = "1.131.0";
+  version = "1.176.0";
 
   src = fetchFromGitHub {
     owner = "Alexey-T";
     repo = "CudaText";
     rev = version;
-    sha256 = "1zq17yi5zn4hdgrrn3c3cdk6s38fv36r66dl0dqz2z8jjd6vy4p3";
+    hash = "sha256-7J/FAcmZYmgbmYEFm2V3+RBUcLE+8A+yOiJd/xp2Aww=";
   };
 
   postPatch = ''
@@ -66,7 +66,7 @@ stdenv.mkDerivation rec {
   NIX_LDFLAGS = "--as-needed -rpath ${lib.makeLibraryPath buildInputs}";
 
   buildPhase = lib.concatStringsSep "\n" (lib.mapAttrsToList (name: dep: ''
-    cp -r --no-preserve=mode ${dep} ${name}
+    ln -s ${dep} ${name}
   '') deps) + ''
     lazbuild --lazarusdir=${lazarus}/share/lazarus --pcp=./lazarus --ws=${widgetset} \
       bgrabitmap/bgrabitmap/bgrabitmappack.lpk \
@@ -83,7 +83,7 @@ stdenv.mkDerivation rec {
   '';
 
   installPhase = ''
-    install -Dm755 app/cudatext $out/bin/cudatext
+    install -Dm755 app/cudatext -t $out/bin
 
     install -dm755 $out/share/cudatext
     cp -r app/{data,py,settings_default} $out/share/cudatext
@@ -98,6 +98,8 @@ stdenv.mkDerivation rec {
       exit 1
     fi
   '') additionalLexers;
+
+  passthru.updateScript = ./update.sh;
 
   meta = with lib; {
     description = "Cross-platform code editor";

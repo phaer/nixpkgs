@@ -1,49 +1,79 @@
 { lib
+, stdenv
 , buildPythonPackage
+, colorama
+, fetchpatch
 , fetchPypi
+, flit-core
 , click
 , pytestCheckHook
+, rich
 , shellingham
-, pytestcov
-, pytest_xdist
+, pytest-xdist
 , pytest-sugar
 , coverage
-, mypy
-, black
-, isort
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "typer";
-  version = "0.3.2";
+  version = "0.7.0";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "00v3h63dq8yxahp9vg3yb9r27l2niwv8gv0dbds9dzrc298dfmal";
+    hash = "sha256-/3l4RleKnyogG1NEKu3rVDMZRmhw++HHAeq2bddoEWU=";
   };
 
-  propagatedBuildInputs = [ click ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace "rich >=10.11.0,<13.0.0" "rich"
+  '';
 
-  checkInputs = [
-    pytestCheckHook
-    pytestcov
-    pytest_xdist
-    pytest-sugar
-    shellingham
-    coverage
-    mypy
-    black
-    isort
+  nativeBuildInputs = [
+    flit-core
   ];
-  pytestFlagsArray = [
-    "--ignore=tests/test_completion/test_completion.py"
-    "--ignore=tests/test_completion/test_completion_install.py"
+
+  propagatedBuildInputs = [
+    click
+  ];
+
+  passthru.optional-dependencies = {
+    all = [
+      colorama
+      shellingham
+      rich
+    ];
+  };
+
+  nativeCheckInputs = [
+    coverage # execs coverage in tests
+    pytest-sugar
+    pytest-xdist
+    pytestCheckHook
+  ] ++ passthru.optional-dependencies.all;
+
+  preCheck = ''
+    export HOME=$(mktemp -d);
+  '';
+  disabledTests = lib.optionals stdenv.isDarwin [
+    # likely related to https://github.com/sarugaku/shellingham/issues/35
+    "test_show_completion"
+    "test_install_completion"
+  ] ++ lib.optionals (stdenv.isLinux && stdenv.isAarch64) [
+    "test_install_completion"
+  ];
+
+  pythonImportsCheck = [
+    "typer"
   ];
 
   meta = with lib; {
+    description = "Library for building CLI applications";
     homepage = "https://typer.tiangolo.com/";
-    description = "Typer, build great CLIs. Easy to code. Based on Python type hints.";
     license = licenses.mit;
-    maintainers = [ maintainers.winpat ];
+    maintainers = with maintainers; [ winpat ];
   };
 }

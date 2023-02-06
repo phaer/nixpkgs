@@ -1,16 +1,34 @@
-{ mkXfceDerivation, exo, gtk3, libsoup, libxfce4ui, libxfce4util, xfce4-panel, glib-networking }:
+{ lib
+, mkXfceDerivation
+, exo
+, libxml2
+, libsoup_3
+, libxfce4ui
+, libxfce4util
+, xfce4-panel
+, xfconf
+}:
 
 mkXfceDerivation {
   category = "apps";
   pname = "xfce4-screenshooter";
-  version = "1.9.8";
+  version = "1.10.3";
   odd-unstable = false;
 
-  sha256 = "0pbzjcaxm8gk0s75s99kvzygmih4yghp7ngf2mxymjiywcxqr40d";
+  sha256 = "sha256-L+qlxzNgjsoMi+VsbOFG7L/IITbF1iqMWqujhk0rAcA=";
 
-  buildInputs = [ exo gtk3 libsoup libxfce4ui libxfce4util xfce4-panel glib-networking ];
+  buildInputs = [
+    exo
+    libxml2
+    libsoup_3
+    libxfce4ui
+    libxfce4util
+    xfce4-panel
+    xfconf
+  ];
 
-  meta = {
+  meta = with lib; {
     description = "Screenshot utility for the Xfce desktop";
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

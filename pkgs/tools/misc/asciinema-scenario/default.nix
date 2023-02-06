@@ -5,14 +5,14 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "asciinema-scenario";
-  version = "0.1.0";
+  version = "0.3.0";
 
   src = fetchCrate {
     inherit pname version;
-    sha256 = "sha256-ubiVpKFU81Ot9V9oMexWSiUXHepoJ6nXtrWVAFhgcYw=";
+    sha256 = "sha256-fnX5CIYLdFqi04PQPVIAYDGn+xXi016l8pPcIrYIhmQ=";
   };
 
-  cargoSha256 = "109ij5h31bhn44l0wywgpnnlfjgyairxr5l19s6bz47sbka0xyxk";
+  cargoSha256 = "sha256-8I3mPSJ5aXvQ88nh0SWyuTq9JSTktS2lQPrXlcvD66c=";
 
   meta = with lib; {
     description = "Create asciinema videos from a text file";

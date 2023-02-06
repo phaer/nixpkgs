@@ -12,7 +12,6 @@
 , pillow
 #, pytestCheckHook#
 , pytest
-, python
 , python-dateutil
 , pyyaml
 , selenium
@@ -29,16 +28,19 @@
 , icalendar
 , pandas
 , pythonImportsCheckHook
+, contourpy
+, xyzservices
 }:
 
 buildPythonPackage rec {
   pname = "bokeh";
   # update together with panel which is not straightforward
-  version = "2.3.0";
+  version = "3.0.3";
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "dd417708f90702190222b1068a645acae99e66d4b58d7a336d545aeaa04e9b40";
+    hash= "sha256-HChHHvXmEQulvtUTE3/SYFTrxEVLx2hlDq7vxTuJioo=";
   };
 
   patches = [
@@ -59,7 +61,7 @@ buildPythonPackage rec {
     "bokeh"
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
     pytest
     pillow
@@ -71,10 +73,10 @@ buildPythonPackage rec {
     requests
     nbconvert
     icalendar
-    pandas
   ];
 
   propagatedBuildInputs = [
+    contourpy
     pillow
     jinja2
     python-dateutil
@@ -82,8 +84,10 @@ buildPythonPackage rec {
     pyyaml
     tornado
     numpy
+    pandas
     packaging
     typing-extensions
+    xyzservices
   ]
   ++ lib.optionals ( isPy27 ) [
     futures

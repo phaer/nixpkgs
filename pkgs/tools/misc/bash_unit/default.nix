@@ -4,13 +4,13 @@
 
 stdenv.mkDerivation rec {
   pname = "bash_unit";
-  version = "1.7.1";
+  version = "2.0.1";
 
   src = fetchFromGitHub {
     owner = "pgrange";
     repo = pname;
     rev = "v${version}";
-    sha256 = "02cam5gkhnlwhb9aqcqmkl8kskgikih0bmyx09ybi3gpaf4z82f7";
+    sha256 = "sha256-P3fDfv7SexrNMynZBbgwwZcH2H/t4bwFM4HULlLaiM4=";
   };
 
   installPhase = ''

@@ -16,32 +16,43 @@
 
 {
   # Build dependencies
-  appimageTools, autoPatchelfHook, fetchzip, lib, stdenv,
+  appimageTools
+, autoPatchelfHook
+, fetchzip
+, lib
+, stdenv
 
   # Runtime dependencies;
   # A few additional ones (e.g. Node) are already shipped together with the
   # AppImage, so we don't have to duplicate them here.
-  alsaLib, dbus-glib, fuse, gnome3, gtk3, libdbusmenu-gtk2, udev, nss
+, alsa-lib
+, dbus-glib
+, fuse
+, gsettings-desktop-schemas
+, gtk3
+, libdbusmenu-gtk2
+, libXdamage
+, nss
+, udev
 }:
 
 let
   pname = "pcloud";
-  version = "1.9.1";
-  code = "XZXB3fXZgXyQbnTkTm5XOJH9i6NsKX9lL21V";
-  name = "${pname}-${version}";
-
-  # Archive link's code thanks to: https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=pcloud-drive
+  version = "1.10.0";
+  code = "XZCy4sVZGb7r8VpDE4SCv2QI3OYx1HYChIvy";
+  # Archive link's codes: https://www.pcloud.com/release-notes/linux.html
   src = fetchzip {
-    url = "https://api.pcloud.com/getpubzip?code=${code}&filename=${name}.zip";
-    hash = "sha256-vUrz4thp9tcU9T8d52DJUAbt6Jnv+E3pbUytzMR8d/E=";
+    url = "https://api.pcloud.com/getpubzip?code=${code}&filename=${pname}-${version}.zip";
+    hash = "sha256-kzID1y/jVuqFfD/PIUR2TFa0AvxKVcfNQ4ZXiHx0gRk=";
   };
 
   appimageContents = appimageTools.extractType2 {
-    inherit name;
+    name = "${pname}-${version}";
     src = "${src}/pcloud";
   };
 
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   inherit pname version;
 
   src = appimageContents;
@@ -54,11 +65,12 @@ in stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    alsaLib
+    alsa-lib
     dbus-glib
     fuse
     gtk3
     libdbusmenu-gtk2
+    libXdamage
     nss
     udev
   ];
@@ -93,7 +105,7 @@ in stdenv.mkDerivation {
 
     # This is required for the file picker dialog - otherwise pcloud just
     # crashes
-    export XDG_DATA_DIRS="${gnome3.gsettings-desktop-schemas}/share/gsettings-schemas/${gnome3.gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}:$XDG_DATA_DIRS"
+    export XDG_DATA_DIRS="${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}:$XDG_DATA_DIRS"
 
     exec "$out/app/pcloud"
     EOF
@@ -104,6 +116,7 @@ in stdenv.mkDerivation {
   meta = with lib; {
     description = "Secure and simple to use cloud storage for your files; pCloud Drive, Electron Edition";
     homepage = "https://www.pcloud.com/";
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     maintainers = with maintainers; [ patryk27 ];
     platforms = [ "x86_64-linux" ];

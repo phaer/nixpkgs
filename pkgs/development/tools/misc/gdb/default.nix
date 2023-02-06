@@ -1,12 +1,13 @@
 { lib, stdenv, targetPackages
 
 # Build time
-, fetchurl, pkg-config, perl, texinfo, setupDebugInfoDirs, buildPackages
+, fetchurl, fetchpatch, pkg-config, perl, texinfo, setupDebugInfoDirs, buildPackages
 
 # Run time
-, ncurses, readline, gmp, mpfr, expat, libipt, zlib, dejagnu
+, ncurses, readline, gmp, mpfr, expat, libipt, zlib, dejagnu, sourceHighlight
 
 , pythonSupport ? stdenv.hostPlatform == stdenv.buildPlatform && !stdenv.hostPlatform.isCygwin, python3 ? null
+, enableDebuginfod ? false, elfutils
 , guile ? null
 , safePaths ? [
    # $debugdir:$datadir/auto-load are whitelisted by default by GDB
@@ -14,6 +15,7 @@
    # targetPackages so we get the right libc when cross-compiling and using buildPackages.gdb
    targetPackages.stdenv.cc.cc.lib
   ]
+, writeScript
 }:
 
 let
@@ -26,29 +28,45 @@ assert pythonSupport -> python3 != null;
 
 stdenv.mkDerivation rec {
   pname = targetPrefix + basename;
-  version = "10.1";
+  version = "12.1";
 
   src = fetchurl {
     url = "mirror://gnu/gdb/${basename}-${version}.tar.xz";
-    sha256 = "1h32dckz1y8fnyxh22iyw8h3hnhxr79v1ng85px3ljn1xv71wbzq";
+    hash = "sha256-DheTv48rVNU/Rt6oTM/URvSPgbKXsoxPf8AXuBjWn+0=";
   };
 
-  postPatch = if stdenv.isDarwin then ''
+  postPatch = lib.optionalString stdenv.isDarwin ''
     substituteInPlace gdb/darwin-nat.c \
       --replace '#include "bfd/mach-o.h"' '#include "mach-o.h"'
-  '' else null;
+  '' + lib.optionalString stdenv.hostPlatform.isMusl ''
+    substituteInPlace sim/erc32/erc32.c  --replace sys/fcntl.h fcntl.h
+    substituteInPlace sim/erc32/interf.c  --replace sys/fcntl.h fcntl.h
+    substituteInPlace sim/erc32/sis.c  --replace sys/fcntl.h fcntl.h
+    substituteInPlace sim/ppc/emul_unix.c --replace sys/termios.h termios.h
+  '';
 
   patches = [
     ./debug-info-from-env.patch
+    # backport readline=8.2 support
+    (fetchpatch {
+      name = "readline-8.2.patch";
+      url = "https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff_plain;h=1add37b567a7dee39d99f37b37802034c3fce9c4";
+      hash = "sha256-KmQXylPAWNGXF8wtXCCArhUzHi+GUY8ii2Xpx8R08jE=";
+    })
   ] ++ lib.optionals stdenv.isDarwin [
     ./darwin-target-match.patch
+  # Does not nave to be conditional. We apply it conditionally
+  # to speed up inclusion to nearby nixos release.
+  ] ++ lib.optionals stdenv.is32bit [
+    ./32-bit-BFD_VMA-format.patch
   ];
 
   nativeBuildInputs = [ pkg-config texinfo perl setupDebugInfoDirs ];
 
-  buildInputs = [ ncurses readline gmp mpfr expat libipt zlib guile ]
+  buildInputs = [ ncurses readline gmp mpfr expat libipt zlib guile sourceHighlight ]
     ++ lib.optional pythonSupport python3
-    ++ lib.optional doCheck dejagnu;
+    ++ lib.optional doCheck dejagnu
+    ++ lib.optional enableDebuginfod (elfutils.override { enableDebuginfod = true; });
 
   propagatedNativeBuildInputs = [ setupDebugInfoDirs ];
 
@@ -61,8 +79,7 @@ stdenv.mkDerivation rec {
 
   NIX_CFLAGS_COMPILE = "-Wno-format-nonliteral";
 
-  # TODO(@Ericson2314): Always pass "--target" and always prefix.
-  configurePlatforms = [ "build" "host" ] ++ lib.optional (stdenv.targetPlatform != stdenv.hostPlatform) "target";
+  configurePlatforms = [ "build" "host" "target" ];
 
   # GDB have to be built out of tree.
   preConfigure = ''
@@ -72,6 +89,14 @@ stdenv.mkDerivation rec {
   configureScript = "../configure";
 
   configureFlags = with lib; [
+    # Set the program prefix to the current targetPrefix.
+    # This ensures that the prefix always conforms to
+    # nixpkgs' expectations instead of relying on the build
+    # system which only receives `config` which is merely a
+    # subset of the platform description.
+    "--program-prefix=${targetPrefix}"
+
+    "--disable-werror"
     "--enable-targets=all" "--enable-64-bit-bfd"
     "--disable-install-libbfd"
     "--disable-shared" "--enable-static"
@@ -83,7 +108,9 @@ stdenv.mkDerivation rec {
     "--with-expat" "--with-libexpat-prefix=${expat.dev}"
     "--with-auto-load-safe-path=${builtins.concatStringsSep ":" safePaths}"
   ] ++ lib.optional (!pythonSupport) "--without-python"
-    ++ lib.optional stdenv.hostPlatform.isMusl "--disable-nls";
+    ++ lib.optional stdenv.hostPlatform.isMusl "--disable-nls"
+    ++ lib.optional stdenv.hostPlatform.isStatic "--disable-inprocess-agent"
+    ++ lib.optional enableDebuginfod "--with-debuginfod=yes";
 
   postInstall =
     '' # Remove Info files already provided by Binutils and other packages.
@@ -92,6 +119,20 @@ stdenv.mkDerivation rec {
 
   # TODO: Investigate & fix the test failures.
   doCheck = false;
+
+  passthru = {
+    updateScript = writeScript "update-gdb" ''
+      #!/usr/bin/env nix-shell
+      #!nix-shell -i bash -p curl pcre common-updater-scripts
+
+      set -eu -o pipefail
+
+      # Expect the text in format of '<h3>GDB version 12.1</h3>'
+      new_version="$(curl -s https://www.sourceware.org/gdb/ |
+          pcregrep -o1 '<h3>GDB version ([0-9.]+)</h3>')"
+      update-source-version ${pname} "$new_version"
+    '';
+  };
 
   meta = with lib; {
     description = "The GNU Project debugger";
@@ -106,7 +147,8 @@ stdenv.mkDerivation rec {
 
     license = lib.licenses.gpl3Plus;
 
-    platforms = with platforms; linux ++ cygwin ++ darwin;
+    # GDB upstream does not support ARM darwin
+    platforms = with platforms; linux ++ cygwin ++ ["x86_64-darwin"];
     maintainers = with maintainers; [ pierron globin lsix ];
   };
 }

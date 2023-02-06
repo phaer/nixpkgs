@@ -1,16 +1,39 @@
-{ mkXfceDerivation, glib, exo, gtk3, libnotify, libxfce4ui, libxfce4util
-, xfce4-panel, xfconf }:
+{ lib
+, mkXfceDerivation
+, glib
+, gtk3
+, libnotify
+, libxfce4ui
+, libxfce4util
+, xfce4-panel
+, xfconf
+}:
 
 mkXfceDerivation {
   category = "apps";
   pname = "xfce4-notifyd";
-  version = "0.6.2";
+  version = "0.6.5";
 
-  sha256 = "1q8n7dffyqbfyy6vpqlmnsfpavlc7iz6hhv1h27fkwzswy2rx28s";
+  sha256 = "sha256-NUEqQk9EcDl23twbo+DUt7QYZrPmWpsRzmi5wIdolqw=";
 
-  buildInputs = [ exo gtk3 glib libnotify libxfce4ui libxfce4util xfce4-panel xfconf ];
+  buildInputs = [
+    gtk3
+    glib
+    libnotify
+    libxfce4ui
+    libxfce4util
+    xfce4-panel
+    xfconf
+  ];
 
-  meta = {
+  NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";
+
+  configureFlags = [
+    "--enable-dbus-start-daemon"
+  ];
+
+  meta = with lib; {
     description = "Simple notification daemon for Xfce";
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

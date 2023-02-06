@@ -1,4 +1,4 @@
-{ lib, mkXfceDerivation, gtk3, gvfs, glib }:
+{ lib, mkXfceDerivation, gtk3, glib }:
 
 mkXfceDerivation {
   category = "apps";
@@ -6,17 +6,13 @@ mkXfceDerivation {
   version = "0.5.2";
   odd-unstable = false;
 
-  sha256 = "8UDb4H3zxRKx2y+MRsozQoR3es0fs5ooR/5wBIE11bY=";
+  sha256 = "sha256-8UDb4H3zxRKx2y+MRsozQoR3es0fs5ooR/5wBIE11bY=";
 
-  buildInputs = [ gtk3 glib gvfs ];
+  buildInputs = [ gtk3 glib ];
 
-  postPatch = ''
-    # exo-csource has been dropped from exo
-    substituteInPlace src/Makefile.am --replace exo-csource xdt-csource
-  '';
-
-  meta = {
+  meta = with lib; {
     description = "A frontend to easily manage connections to remote filesystems";
-    license = with lib.licenses; [ gpl2Only ];
+    license = with licenses; [ gpl2Only ];
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

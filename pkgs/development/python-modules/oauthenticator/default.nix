@@ -14,21 +14,21 @@
 
 buildPythonPackage rec {
   pname = "oauthenticator";
-  version = "0.13.0";
+  version = "15.1.0";
+  format = "setuptools";
+
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "5202adcd96ddbbccbc267da02f2d14e977300c81291aaa77be4fd9f2e27cfa37";
+    hash = "sha256-0dmHPJtm4a+XMpGWi5Vz0lN4vYxkfzDXO42PsnsaC4U=";
   };
 
   propagatedBuildInputs = [
     jupyterhub
   ];
 
-  pytestFlagsArray = [ "oauthenticator/tests" ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     google-api-python-client
     google-auth-oauthlib
     mwoauth
@@ -36,6 +36,16 @@ buildPythonPackage rec {
     pytest-asyncio
     pytestCheckHook
     requests-mock
+  ];
+
+  disabledTests = [
+    # Tests are outdated, https://github.com/jupyterhub/oauthenticator/issues/432
+    "test_azuread"
+    "test_mediawiki"
+  ];
+
+  pythonImportsCheck = [
+    "oauthenticator"
   ];
 
   meta = with lib; {

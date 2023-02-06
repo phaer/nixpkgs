@@ -1,20 +1,20 @@
 { lib, stdenv, fetchFromGitHub, kernel, bc }:
 
 stdenv.mkDerivation rec {
-  name = "rtl88x2bu-${kernel.version}-${version}";
-  version = "unstable-2021-01-21";
+  pname = "rtl88x2bu";
+  version = "${kernel.version}-unstable-2022-12-17";
 
   src = fetchFromGitHub {
-    owner = "cilynx";
-    repo = "rtl88x2BU";
-    rev = "48e7c19c92a77554403e1347447f8e2cfd780228";
-    sha256 = "0nw2kgblpq6qlr43gbfxqvq0c83664f4czfwzsyfjr47rj00iyq7";
+    owner = "morrownr";
+    repo = "88x2bu-20210702";
+    rev = "9a04d2bb9d882c7f2708560774d7b96a70d83f4b";
+    sha256 = "sha256-PxTUCYBfyCDB8IjNKsp7aiPtSI3TFzGuJsHqG66e2Q0=";
   };
 
   hardeningDisable = [ "pic" ];
 
-  nativeBuildInputs = [ bc ];
-  buildInputs = kernel.moduleBuildDependencies;
+  nativeBuildInputs = [ bc ] ++ kernel.moduleBuildDependencies;
+  makeFlags = kernel.makeFlags;
 
   prePatch = ''
     substituteInPlace ./Makefile \
@@ -28,9 +28,11 @@ stdenv.mkDerivation rec {
     mkdir -p "$out/lib/modules/${kernel.modDirVersion}/kernel/net/wireless/"
   '';
 
+  enableParallelBuilding = true;
+
   meta = with lib; {
     description = "Realtek rtl88x2bu driver";
-    homepage = "https://github.com/cilynx/rtl88x2bu";
+    homepage = "https://github.com/morrownr/88x2bu-20210702";
     license = licenses.gpl2Only;
     platforms = platforms.linux;
     maintainers = [ maintainers.ralith ];

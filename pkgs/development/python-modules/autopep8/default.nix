@@ -1,31 +1,55 @@
-{ lib, fetchPypi, buildPythonPackage, pycodestyle, glibcLocales
-, toml
+{ lib
+, buildPythonPackage
+, fetchFromGitHub
+, fetchpatch
+, glibcLocales
+, pycodestyle
+, pytestCheckHook
+, pythonOlder
+, tomli
 }:
 
 buildPythonPackage rec {
   pname = "autopep8";
-  version = "1.5.6";
+  version = "2.0.1";
+  format = "setuptools";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "5454e6e9a3d02aae38f866eec0d9a7de4ab9f93c10a273fb0340f3d6d09f7514";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "hhatto";
+    repo = "autopep8";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-YEPSsUzJG4MPiiloVAf9m/UiChkhkN0+lK6spycpSvo=";
   };
 
-  propagatedBuildInputs = [ pycodestyle toml ];
+  patches = [
+    # Ignore DeprecationWarnings to fix tests on Python 3.11, https://github.com/hhatto/autopep8/pull/665
+    (fetchpatch {
+      name = "ignore-deprecation-warnings.patch";
+      url = "https://github.com/hhatto/autopep8/commit/75b444d7cf510307ef67dc2b757d384b8a241348.patch";
+      hash = "sha256-5hcJ2yAuscvGyI7zyo4Cl3NEFG/fZItQ8URstxhzwzE=";
+    })
+  ];
 
-  # One test fails:
-  # FAIL: test_recursive_should_not_crash_on_unicode_filename (test.test_autopep8.CommandLineTests)
-#   doCheck = false;
+  propagatedBuildInputs = [
+    pycodestyle
+  ] ++ lib.optionals (pythonOlder "3.11") [
+    tomli
+  ];
 
-  checkInputs = [ glibcLocales ];
+  nativeCheckInputs = [
+    glibcLocales
+    pytestCheckHook
+  ];
 
   LC_ALL = "en_US.UTF-8";
 
   meta = with lib; {
+    changelog = "https://github.com/hhatto/autopep8/releases/tag/v${version}";
     description = "A tool that automatically formats Python code to conform to the PEP 8 style guide";
-    homepage = "https://pypi.python.org/pypi/autopep8/";
+    homepage = "https://github.com/hhatto/autopep8";
     license = licenses.mit;
-    platforms = platforms.all;
     maintainers = with maintainers; [ bjornfor ];
   };
 }

@@ -1,6 +1,6 @@
-{ stdenv, fetchurl, alsaLib, bzip2, cairo, dpkg, freetype, gdk-pixbuf
+{ stdenv, fetchurl, alsa-lib, bzip2, cairo, dpkg, freetype, gdk-pixbuf
 , wrapGAppsHook, gtk2, gtk3, harfbuzz, jdk, lib, xorg
-, libbsd, libjack2, libpng, ffmpeg_3
+, libbsd, libjack2, libpng, ffmpeg
 , libxkbcommon
 , makeWrapper, pixman, autoPatchelfHook
 , xdg-utils, zenity, zlib }:
@@ -22,13 +22,9 @@ stdenv.mkDerivation rec {
   dontWrapGApps = true; # we only want $gappsWrapperArgs here
 
   buildInputs = with xorg; [
-    alsaLib bzip2.out cairo freetype gdk-pixbuf gtk2 gtk3 harfbuzz libX11 libXau
+    alsa-lib bzip2.out cairo freetype gdk-pixbuf gtk2 gtk3 harfbuzz libX11 libXau
     libXcursor libXdmcp libXext libXfixes libXrender libbsd libjack2 libpng libxcb
     libxkbfile pixman xcbutil xcbutilwm zlib
-  ];
-
-  binPath = lib.makeBinPath [
-    xdg-utils zenity ffmpeg_3
   ];
 
   installPhase = ''
@@ -77,7 +73,8 @@ stdenv.mkDerivation rec {
       -not -path '*/resources/*' | \
     while IFS= read -r f ; do
       wrapProgram $f \
-        --prefix PATH : "${binPath}" \
+        --suffix PATH : "${lib.makeBinPath [ ffmpeg zenity ]}" \
+        --prefix PATH : "${lib.makeBinPath [ xdg-utils ]}" \
         "''${gappsWrapperArgs[@]}" \
         --set LD_PRELOAD "${libxkbcommon.out}/lib/libxkbcommon.so" || true
     done

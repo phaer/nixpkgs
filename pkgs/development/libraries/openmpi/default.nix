@@ -1,9 +1,9 @@
-{ lib, stdenv, fetchurl, gfortran, perl, libnl
+{ lib, stdenv, fetchurl, fetchpatch, gfortran, perl, libnl
 , rdma-core, zlib, numactl, libevent, hwloc, targetPackages, symlinkJoin
 , libpsm2, libfabric, pmix, ucx
 
 # Enable CUDA support
-, cudaSupport ? false, cudatoolkit ? null
+, cudaSupport ? false, cudatoolkit
 
 # Enable the Sun Grid Engine bindings
 , enableSGE ? false
@@ -13,25 +13,32 @@
 
 # Enable libfabric support (necessary for Omnipath networks) on x86_64 linux
 , fabricSupport ? stdenv.isLinux && stdenv.isx86_64
+
+# Enable Fortran support
+, fortranSupport ? true
 }:
 
-assert !cudaSupport || cudatoolkit != null;
-
 let
-  version = "4.1.1";
-
   cudatoolkit_joined = symlinkJoin {
     name = "${cudatoolkit.name}-unsplit";
     paths = [ cudatoolkit.out cudatoolkit.lib ];
   };
 in stdenv.mkDerivation rec {
   pname = "openmpi";
-  inherit version;
+  version = "4.1.4";
 
   src = with lib.versions; fetchurl {
     url = "https://www.open-mpi.org/software/ompi/v${major version}.${minor version}/downloads/${pname}-${version}.tar.bz2";
-    sha256 = "1nkwq123vvmggcay48snm9qqmrh0bdzpln0l1jnp26niidvplkz2";
+    sha256 = "03ckngrff1cl0l81vfvrfhp99rbgk7s0633kr1l468yibwbjx4cj";
   };
+
+  patches = [
+    (fetchpatch {
+      name = "RDMA-osc-perform-CAS-in-shared-memory-if-possible.patch";
+      url = "https://github.com/open-mpi/ompi/pull/10513/commits/0512c135a77a0278e5288e0e119dce24c95ebed4.patch";
+      sha256 = "sha256-K1Gc+hBUkTPY1WqLP6JWo623EUhkoL4ONrqPVDNfFuE=";
+    })
+  ];
 
   postPatch = ''
     patchShebangs ./
@@ -44,17 +51,19 @@ in stdenv.mkDerivation rec {
     find -name "Makefile.in" -exec sed -i "s/\`date\`/$ts/" \{} \;
   '';
 
-  buildInputs = with stdenv; [ gfortran zlib ]
-    ++ lib.optionals isLinux [ libnl numactl pmix ucx ]
+  buildInputs = [ zlib ]
+    ++ lib.optionals stdenv.isLinux [ libnl numactl pmix ucx ]
     ++ lib.optionals cudaSupport [ cudatoolkit ]
     ++ [ libevent hwloc ]
-    ++ lib.optional (isLinux || isFreeBSD) rdma-core
-    ++ lib.optional fabricSupport [ libpsm2 libfabric ];
+    ++ lib.optional (stdenv.isLinux || stdenv.isFreeBSD) rdma-core
+    ++ lib.optionals fabricSupport [ libpsm2 libfabric ];
 
-  nativeBuildInputs = [ perl ];
+  nativeBuildInputs = [ perl ]
+    ++ lib.optionals fortranSupport [ gfortran ];
 
-  configureFlags = with stdenv; lib.optional (!cudaSupport) "--disable-mca-dso"
-    ++ lib.optionals isLinux  [
+  configureFlags = lib.optional (!cudaSupport) "--disable-mca-dso"
+    ++ lib.optional (!fortranSupport) "--disable-mpi-fortran"
+    ++ lib.optionals stdenv.isLinux  [
       "--with-libnl=${libnl.dev}"
       "--with-pmix=${pmix}"
       "--with-pmix-libdir=${pmix}/lib"
@@ -86,6 +95,7 @@ in stdenv.mkDerivation rec {
 
     sed -i 's:compiler=.*:compiler=${targetPackages.stdenv.cc}/bin/${targetPackages.stdenv.cc.targetPrefix}c++:' \
        $out/share/openmpi/mpic++-wrapper-data.txt
+  '' + lib.optionalString fortranSupport ''
 
     sed -i 's:compiler=.*:compiler=${gfortran}/bin/${gfortran.targetPrefix}gfortran:'  \
        $out/share/openmpi/mpifort-wrapper-data.txt

@@ -1,32 +1,134 @@
 { lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, numpy
 , stdenv
 , aiohttp
+, buildPythonPackage
+, fetchFromGitHub
+, numpy
+, paramiko
+, pytest-asyncio
+, pytest-mock
 , pytest-vcr
+, pytestCheckHook
+, pythonOlder
 , requests
+, smbprotocol
+, tqdm
+
+# optionals
+, adlfs
+, dask
+, distributed
+, dropbox
+, fusepy
+, gcsfs
+, libarchive-c
+, ocifs
+, panel
+, pyarrow
+, pygit2
+, s3fs
 }:
 
 buildPythonPackage rec {
   pname = "fsspec";
-  version = "2021.04.0";
-  disabled = pythonOlder "3.5";
+  version = "2022.10.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
-    owner = "intake";
+    owner = "fsspec";
     repo = "filesystem_spec";
     rev = version;
-    sha256 = "sha256-9072kb1VEQ0xg9hB8yEzJMD2Ttd3UGjBmTuhE+Uya1k=";
+    hash = "sha256-+lPt/zqI3Mkt+QRNXq+Dxm3h/ryZJsfrmayVi/BTtbg=";
   };
 
-  checkInputs = [ pytestCheckHook numpy pytest-vcr ];
+  propagatedBuildInputs = [
+    aiohttp
+    paramiko
+    requests
+    smbprotocol
+    tqdm
+  ];
+
+  passthru.optional-dependencies = {
+    entrypoints = [
+    ];
+    abfs = [
+      adlfs
+    ];
+    adl = [
+      adlfs
+    ];
+    dask = [
+      dask
+      distributed
+    ];
+    dropbox = [
+      # missing dropboxdrivefs
+      requests
+      dropbox
+    ];
+    gcs = [
+      gcsfs
+    ];
+    git = [
+      pygit2
+    ];
+    github = [
+      requests
+    ];
+    gs = [
+      gcsfs
+    ];
+    hdfs = [
+      pyarrow
+    ];
+    arrow = [
+      pyarrow
+    ];
+    http = [
+      aiohttp
+      requests
+    ];
+    sftp = [
+      paramiko
+    ];
+    s3 = [
+      s3fs
+    ];
+    oci = [
+      ocifs
+    ];
+    smb = [
+      smbprotocol
+    ];
+    ssh = [
+      paramiko
+    ];
+    fuse = [
+      fusepy
+    ];
+    libarchive = [
+      libarchive-c
+    ];
+    gui = [
+      panel
+    ];
+    tqdm = [
+      tqdm
+    ];
+  };
+
+  nativeCheckInputs = [
+    numpy
+    pytest-asyncio
+    pytest-mock
+    pytest-vcr
+    pytestCheckHook
+  ];
 
   __darwinAllowLocalNetworking = true;
-
-  propagatedBuildInputs = [ aiohttp requests ];
 
   disabledTests = [
     # Test assumes user name is part of $HOME
@@ -43,10 +145,15 @@ buildPythonPackage rec {
     "test_touch"
   ];
 
+  pythonImportsCheck = [
+    "fsspec"
+  ];
+
   meta = with lib; {
-    description = "A specification that python filesystems should adhere to";
-    homepage = "https://github.com/intake/filesystem_spec";
+    description = "A specification that Python filesystems should adhere to";
+    homepage = "https://github.com/fsspec/filesystem_spec";
+    changelog = "https://github.com/fsspec/filesystem_spec/raw/${version}/docs/source/changelog.rst";
     license = licenses.bsd3;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = with maintainers; [ costrouc ];
   };
 }

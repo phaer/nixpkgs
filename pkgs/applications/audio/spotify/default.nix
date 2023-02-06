@@ -1,7 +1,10 @@
-{ fetchurl, lib, stdenv, squashfsTools, xorg, alsaLib, makeWrapper, openssl, freetype
+{ fetchurl, lib, stdenv, squashfsTools, xorg, alsa-lib, makeWrapper, wrapGAppsHook, openssl, freetype
 , glib, pango, cairo, atk, gdk-pixbuf, gtk3, cups, nspr, nss, libpng, libnotify
-, libgcrypt, systemd, fontconfig, dbus, expat, ffmpeg_3, curl, zlib, gnome3
+, libgcrypt, systemd, fontconfig, dbus, expat, ffmpeg, curlWithGnuTls, zlib, gnome
 , at-spi2-atk, at-spi2-core, libpulseaudio, libdrm, mesa, libxkbcommon
+  # High-DPI support: Spotify's --force-device-scale-factor argument
+  # not added if `null`, otherwise, should be a number.
+, deviceScaleFactor ? null
 }:
 
 let
@@ -10,26 +13,26 @@ let
   # If an update breaks things, one of those might have valuable info:
   # https://aur.archlinux.org/packages/spotify/
   # https://community.spotify.com/t5/Desktop-Linux
-  version = "1.1.55.498.gf9a83c60";
+  version = "1.1.84.716.gc5f8b819";
   # To get the latest stable revision:
   # curl -H 'X-Ubuntu-Series: 16' 'https://api.snapcraft.io/api/v1/snaps/details/spotify?channel=stable' | jq '.download_url,.version,.last_updated'
   # To get general information:
   # curl -H 'Snap-Device-Series: 16' 'https://api.snapcraft.io/v2/snaps/info/spotify' | jq '.'
   # More examples of api usage:
   # https://github.com/canonical-websites/snapcraft.io/blob/master/webapp/publisher/snaps/views.py
-  rev = "46";
+  rev = "60";
 
   deps = [
-    alsaLib
-    atk
+    alsa-lib
     at-spi2-atk
     at-spi2-core
+    atk
     cairo
     cups
-    curl
+    curlWithGnuTls
     dbus
     expat
-    ffmpeg_3
+    ffmpeg
     fontconfig
     freetype
     gdk-pixbuf
@@ -46,7 +49,10 @@ let
     pango
     stdenv.cc.cc
     systemd
+    xorg.libICE
+    xorg.libSM
     xorg.libX11
+    xorg.libxcb
     xorg.libXcomposite
     xorg.libXcursor
     xorg.libXdamage
@@ -56,17 +62,15 @@ let
     xorg.libXrandr
     xorg.libXrender
     xorg.libXScrnSaver
+    xorg.libxshmfence
     xorg.libXtst
-    xorg.libxcb
-    xorg.libSM
-    xorg.libICE
     zlib
   ];
 
 in
 
 stdenv.mkDerivation {
-  pname = "spotify-unwrapped";
+  pname = "spotify";
   inherit version;
 
   # fetch from snapcraft instead of the debian repository most repos fetch from.
@@ -79,10 +83,10 @@ stdenv.mkDerivation {
   # https://community.spotify.com/t5/Desktop-Linux/Redistribute-Spotify-on-Linux-Distributions/td-p/1695334
   src = fetchurl {
     url = "https://api.snapcraft.io/api/v1/snaps/download/pOBIoZ2LrCB3rDohMxoYGnbN14EHOgD7_${rev}.snap";
-    sha512 = "dabb55d2ba41f977b6d3f03bfcf147d11785136dd1277efc62011c8371ef25cc04531266bd16608639b9b6a500c1a18a45f44ba7a43e17ab5ac139e36eff7149";
+    sha512 = "1209b956822d8bb661daa2c88616bed403ec26dc22c6b866cecff59235c56112284c2f99aa06352fc0df6fcd15225a6ad60afd3b4ff4d7b948ab83e70ab31a71";
   };
 
-  nativeBuildInputs = [ makeWrapper squashfsTools ];
+  nativeBuildInputs = [ makeWrapper wrapGAppsHook squashfsTools ];
 
   dontStrip = true;
   dontPatchELF = true;
@@ -109,6 +113,9 @@ stdenv.mkDerivation {
     runHook postUnpack
   '';
 
+  # Prevent double wrapping
+  dontWrapGApps = true;
+
   installPhase =
     ''
       runHook preInstall
@@ -122,13 +129,13 @@ stdenv.mkDerivation {
       # Work around Spotify referring to a specific minor version of
       # OpenSSL.
 
-      ln -s ${openssl.out}/lib/libssl.so $libdir/libssl.so.1.0.0
-      ln -s ${openssl.out}/lib/libcrypto.so $libdir/libcrypto.so.1.0.0
+      ln -s ${lib.getLib openssl}/lib/libssl.so $libdir/libssl.so.1.0.0
+      ln -s ${lib.getLib openssl}/lib/libcrypto.so $libdir/libcrypto.so.1.0.0
       ln -s ${nspr.out}/lib/libnspr4.so $libdir/libnspr4.so
       ln -s ${nspr.out}/lib/libplc4.so $libdir/libplc4.so
 
-      ln -s ${ffmpeg_3.out}/lib/libavcodec.so* $libdir
-      ln -s ${ffmpeg_3.out}/lib/libavformat.so* $libdir
+      ln -s ${ffmpeg.out}/lib/libavcodec.so* $libdir
+      ln -s ${ffmpeg.out}/lib/libavformat.so* $libdir
 
       rpath="$out/share/spotify:$libdir"
 
@@ -138,8 +145,12 @@ stdenv.mkDerivation {
 
       librarypath="${lib.makeLibraryPath deps}:$libdir"
       wrapProgram $out/share/spotify/spotify \
+        ''${gappsWrapperArgs[@]} \
+        ${lib.optionalString (deviceScaleFactor != null) ''
+          --add-flags "--force-device-scale-factor=${toString deviceScaleFactor}" \
+        ''} \
         --prefix LD_LIBRARY_PATH : "$librarypath" \
-        --prefix PATH : "${gnome3.zenity}/bin"
+        --prefix PATH : "${gnome.zenity}/bin"
 
       # fix Icon line in the desktop file (#48062)
       sed -i "s:^Icon=.*:Icon=spotify-client:" "$out/share/spotify/spotify.desktop"
@@ -162,6 +173,7 @@ stdenv.mkDerivation {
   meta = with lib; {
     homepage = "https://www.spotify.com/";
     description = "Play music from the Spotify music service";
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     maintainers = with maintainers; [ eelco ftrvxmtrx sheenobu mudri timokau ma27 ];
     platforms = [ "x86_64-linux" ];

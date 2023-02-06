@@ -5,16 +5,18 @@ with lib;
 
 stdenv.mkDerivation rec {
   pname = "grml-zsh-config";
-  version = "0.18.0";
+  version = "0.19.4";
 
   src = fetchFromGitHub {
     owner = "grml";
     repo = "grml-etc-core";
     rev = "v${version}";
-    sha256 = "sha256-5QwP+dMOm6UBbQ1X1OcHawHSi3DJIciny2sV7biE18c=";
+    sha256 = "sha256-2TAhs2/yAVAU35IeVfT/68xLt9QZ4fLxMQjxnbCfBKs=";
   };
 
-  buildInputs = [ zsh coreutils txt2tags procps ]
+  strictDeps = true;
+  nativeBuildInputs = [ txt2tags ];
+  buildInputs = [ zsh coreutils procps ]
     ++ optional stdenv.isLinux inetutils;
 
   buildPhase = ''

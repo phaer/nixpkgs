@@ -1,19 +1,26 @@
-{ lib, buildGoPackage, fetchFromGitHub }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+}:
 
-buildGoPackage rec {
+buildGoModule rec {
   pname = "subfinder";
-  version = "2.3.0";
-
-  goPackagePath = "github.com/projectdiscovery/subfinder";
+  version = "2.5.5";
 
   src = fetchFromGitHub {
     owner = "projectdiscovery";
     repo = pname;
     rev = "v${version}";
-    sha256 = "1vjxi2h4njakyqkfzwwaacy37kqx66j2y3k5l752z9va73gv7xv1";
+    sha256 = "sha256-Wc/cm3vePIXBCcInsLZ3n/QV/3qHmGGrPr6coUqJPpE=";
   };
 
-  goDeps = ./deps.nix;
+  vendorSha256 = "sha256-uynfhwCR13UZR/Bk/oPwMuifLGn33qVPEyrpOSgeafY=";
+
+  modRoot = "./v2";
+
+  subPackages = [
+    "cmd/subfinder/"
+  ];
 
   meta = with lib; {
     description = "Subdomain discovery tool";

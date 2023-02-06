@@ -2,18 +2,28 @@
 , buildPythonPackage
 , fetchPypi
 , pytestCheckHook
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "hijri-converter";
-  version = "2.1.1";
+  version = "2.2.4";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "08gv6ypn2zd0i8yrv24m448xkic492qrgxj349slp1achhg9p7ln";
+    hash = "sha256-nh2fpMIg9oZ9oquxqWJAZ1rpdKu6lRxoangfTvasIY8=";
   };
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  pythonImportsCheck = [
+    "hijri_converter"
+  ];
 
   meta = with lib; {
     description = "Accurate Hijri-Gregorian date converter based on the Umm al-Qura calendar";

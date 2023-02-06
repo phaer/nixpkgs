@@ -1,37 +1,27 @@
 { lib
 , stdenv
-, fetchFromGitHub
-, fetchpatch
 , buildPythonPackage
+, fetchFromGitHub
 , pytestCheckHook
+, pythonOlder
 , sysctl
 }:
 
 buildPythonPackage rec {
   pname = "py-cpuinfo";
-  version = "7.0.0";
+  version = "9.0.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
      owner = "workhorsy";
      repo = pname;
      rev = "v${version}";
-     sha256 = "10qfaibyb2syiwiyv74l7d97vnmlk079qirgnw3ncklqjs0s3gbi";
+     hash = "sha256-Q5u0guAqDVhf6bvJTzNvCpWbIzjxxAjE7s0OuXj9T4Q=";
   };
 
-  patches = [
-    # Make it detect Apple Silicon, remove after https://github.com/workhorsy/py-cpuinfo/pull/161 is merged.
-    (fetchpatch {
-      url = "https://github.com/workhorsy/py-cpuinfo/commit/54c32da6678f9d75ec5acf4534056cdc85c2a04d.patch";
-      sha256 = "sha256-3R46KrpACAQ1V0CQtz48V5mQXxvplUQrXnACtiE8WqY=";
-    })
-    # Continuation of the patch above
-    (fetchpatch {
-      url = "https://github.com/workhorsy/py-cpuinfo/commit/0d00f4b99750f292c85ff23e1039ea9489cb7ec8.patch";
-      sha256 = "sha256-mHoXoCAEG2v3xpQppRFWzSvhYCp5i9CZkbEgtiLVzMs=";
-    })
-  ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
@@ -42,17 +32,21 @@ buildPythonPackage rec {
       --replace "_run_and_get_stdout(['sysctl'" "_run_and_get_stdout(['${sysctl}/bin/sysctl'"
   '';
 
-  meta = {
-    description = "Get CPU info with pure Python 2 & 3";
+  pythonImportsCheck = [
+    "cpuinfo"
+  ];
+
+  meta = with lib; {
+    description = "Get CPU info with pure Python";
     longDescription = ''
       Py-cpuinfo gets CPU info with pure Python and should work without any
       extra programs or libraries, beyond what your OS provides. It does not
       require any compilation (C/C++, assembly, etc.) to use and works with
-      Python 2 and 3.
+      Python.
     '';
-    inherit (src.meta) homepage;
+    homepage = "https://github.com/workhorsy/py-cpuinfo";
     changelog = "https://github.com/workhorsy/py-cpuinfo/blob/v${version}/ChangeLog";
-    license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ costrouc ];
+    license = licenses.mit;
+    maintainers = with maintainers; [ costrouc ];
   };
 }

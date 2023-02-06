@@ -7,11 +7,10 @@
 , features
 , versionAttr
 , sourceSha256
-# If overriden. No need to set default values, as they are given defaults in
+# If overridden. No need to set default values, as they are given defaults in
 # the main expressions
 , overrideSrc
 , fetchFromGitHub
-, fetchSubmodules
 }:
 
 rec {
@@ -26,12 +25,11 @@ rec {
       owner = "gnuradio";
       rev = "v${version}";
       sha256 = sourceSha256;
-      inherit fetchSubmodules;
     }
   ;
   # Check if a feature is enabled, while defaulting to true if feat is not
   # specified.
-  hasFeature = feat: features: (
+  hasFeature = feat: (
     if builtins.hasAttr feat features then
       features.${feat}
     else
@@ -39,7 +37,7 @@ rec {
   );
   nativeBuildInputs = lib.flatten (lib.mapAttrsToList (
     feat: info: (
-      if hasFeature feat features then
+      if hasFeature feat then
         (if builtins.hasAttr "native" info then info.native else []) ++
         (if builtins.hasAttr "pythonNative" info then info.pythonNative else [])
       else
@@ -48,7 +46,7 @@ rec {
   ) featuresInfo);
   buildInputs = lib.flatten (lib.mapAttrsToList (
     feat: info: (
-      if hasFeature feat features then
+      if hasFeature feat then
         (if builtins.hasAttr "runtime" info then info.runtime else []) ++
         (if builtins.hasAttr "pythonRuntime" info then info.pythonRuntime else [])
       else
@@ -63,7 +61,7 @@ rec {
         # satisfied, let only our cmakeFlags decide.
         "-DENABLE_DEFAULT=OFF"
       else
-        if hasFeature feat features then
+        if hasFeature feat then
           "-DENABLE_${info.cmakeEnableFlag}=ON"
         else
           "-DENABLE_${info.cmakeEnableFlag}=OFF"
@@ -75,18 +73,22 @@ rec {
     stdenv.cc.cc
   ]
     # If python-support is disabled, we probably don't want it referenced
-    ++ lib.optionals (!hasFeature "python-support" features) [ python ]
+    ++ lib.optionals (!hasFeature "python-support") [ python ]
   ;
   # Gcc references from examples
   stripDebugList = [ "lib" "bin" ]
-    ++ lib.optionals (hasFeature "gr-audio" features) [ "share/gnuradio/examples/audio" ]
-    ++ lib.optionals (hasFeature "gr-uhd" features) [ "share/gnuradio/examples/uhd" ]
-    ++ lib.optionals (hasFeature "gr-qtgui" features) [ "share/gnuradio/examples/qt-gui" ]
+    ++ lib.optionals (hasFeature "gr-audio") [ "share/gnuradio/examples/audio" ]
+    ++ lib.optionals (hasFeature "gr-uhd") [ "share/gnuradio/examples/uhd" ]
+    ++ lib.optionals (hasFeature "gr-qtgui") [ "share/gnuradio/examples/qt-gui" ]
   ;
   postInstall = ""
     # Gcc references
-    + lib.optionalString (hasFeature "gnuradio-runtime" features) ''
-      ${removeReferencesTo}/bin/remove-references-to -t ${stdenv.cc} $(readlink -f $out/lib/libgnuradio-runtime.so)
+    + lib.optionalString (hasFeature "gnuradio-runtime") ''
+      ${removeReferencesTo}/bin/remove-references-to -t ${stdenv.cc} $(readlink -f $out/lib/libgnuradio-runtime${stdenv.hostPlatform.extensions.sharedLibrary})
+    ''
+    # Clang references in InstalledDir
+    + lib.optionalString (hasFeature "gnuradio-runtime" && stdenv.isDarwin) ''
+      ${removeReferencesTo}/bin/remove-references-to -t ${stdenv.cc.cc} $(readlink -f $out/lib/libgnuradio-runtime${stdenv.hostPlatform.extensions.sharedLibrary})
     ''
   ;
   # NOTE: Outputs are disabled due to upstream not using GNU InstallDIrs cmake
@@ -101,9 +103,9 @@ rec {
       featuresInfo
       python
     ;
-  } // lib.optionalAttrs (hasFeature "gr-qtgui" features) {
+  } // lib.optionalAttrs (hasFeature "gr-qtgui") {
     inherit qt;
-  } // lib.optionalAttrs (hasFeature "gnuradio-companion" features) {
+  } // lib.optionalAttrs (hasFeature "gnuradio-companion") {
     inherit gtk;
   };
   # Wrapping is done with an external wrapper
@@ -127,6 +129,6 @@ rec {
     homepage = "https://www.gnuradio.org";
     license = licenses.gpl3;
     platforms = platforms.unix;
-    maintainers = with maintainers; [ doronbehar bjornfor fpletz ];
+    maintainers = with maintainers; [ doronbehar bjornfor fpletz jiegec ];
   };
 }

@@ -7,6 +7,7 @@
 , buildPythonPackage
 , fetchFromGitHub
 , pubnub
+, pyjwt
 , pytestCheckHook
 , python-dateutil
 , pythonOlder
@@ -16,25 +17,28 @@
 
 buildPythonPackage rec {
   pname = "yalexs";
-  version = "1.1.11";
+  version = "1.2.6";
+  format = "setuptools";
+
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "bdraco";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-fVUYrzIcW4jbxdhS/Bh8eu+aJPFOqj0LXjoQKw+FZdg=";
+    sha256 = "sha256-E+Forcx6dRtDeagcjGGE8DFkAKUgsHyCEONW7WU0lpo=";
   };
 
   propagatedBuildInputs = [
     aiofiles
     aiohttp
     pubnub
+    pyjwt
     python-dateutil
     requests
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     aioresponses
     aiounittest
     asynctest
@@ -44,10 +48,13 @@ buildPythonPackage rec {
 
   postPatch = ''
     # Not used requirement
-    substituteInPlace setup.py --replace '"vol",' ""
+    substituteInPlace setup.py \
+      --replace '"vol",' ""
   '';
 
-  pythonImportsCheck = [ "yalexs" ];
+  pythonImportsCheck = [
+    "yalexs"
+  ];
 
   meta = with lib; {
     description = "Python API for Yale Access (formerly August) Smart Lock and Doorbell";

@@ -2,28 +2,27 @@
 
 buildGoModule rec {
   pname = "mackerel-agent";
-  version = "0.71.1";
+  version = "0.75.0";
 
   src = fetchFromGitHub {
     owner = "mackerelio";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-xEUIfmQX7I+I2wi53vc1JZYDweY9OAAUd2TZJ125+iw=";
+    sha256 = "sha256-XwyBHCx3MngLItgCZfil5k/h6DfQTO+0LN3brldceXI=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
-  checkInputs = lib.optionals (!stdenv.isDarwin) [ nettools ];
+  nativeCheckInputs = lib.optionals (!stdenv.isDarwin) [ nettools ];
   buildInputs = lib.optionals (!stdenv.isDarwin) [ iproute2 ];
 
-  vendorSha256 = "sha256-yomxALecP+PycelOmwrteK/LoW7wsst7os+jcbF46Bs=";
+  vendorHash = "sha256-cSWyNGR1J2kk4XcaJXFEsMGx5OtyKyBoxY2FCa62x9c=";
 
   subPackages = [ "." ];
 
-  buildFlagsArray = ''
-    -ldflags=
-    -X=main.version=${version}
-    -X=main.gitcommit=v${version}
-  '';
+  ldflags = [
+    "-X=main.version=${version}"
+    "-X=main.gitcommit=v${version}"
+  ];
 
   postInstall = ''
     wrapProgram $out/bin/mackerel-agent \

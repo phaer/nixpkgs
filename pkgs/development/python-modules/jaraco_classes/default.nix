@@ -1,5 +1,5 @@
 { lib, buildPythonPackage, fetchFromGitHub, isPy27
-, setuptools_scm, toml
+, setuptools-scm
 , more-itertools
 , pytestCheckHook
 }:
@@ -20,11 +20,11 @@ buildPythonPackage rec {
 
   SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
-  nativeBuildInputs = [ setuptools_scm toml ];
+  nativeBuildInputs = [ setuptools-scm ];
 
   propagatedBuildInputs = [ more-itertools ];
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = with lib; {
     description = "Utility functions for Python class constructs";

@@ -1,40 +1,57 @@
 { lib
 , buildPythonPackage
-, fetchPypi
+, fetchFromGitHub
 , pythonOlder
 , isPyPy
 , lazy-object-proxy
-, wrapt
+, setuptools
+, typing-extensions
 , typed-ast
+, pylint
 , pytestCheckHook
+, wrapt
 }:
 
 buildPythonPackage rec {
   pname = "astroid";
-  version = "2.5.1";
+  version = "2.12.13"; # Check whether the version is compatible with pylint
+  format = "pyproject";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7.2";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "cfc35498ee64017be059ceffab0a25bedf7548ab76f2bea691c5565896e7128d";
+  src = fetchFromGitHub {
+    owner = "PyCQA";
+    repo = pname;
+    rev = "refs/tags/v${version}";
+    hash = "sha256-C4A/JOFdIRgaZuV/YOLc4nC05XTtRCC1i0BcGBEG5ps=";
   };
 
-  # From astroid/__pkginfo__.py
+  nativeBuildInputs = [
+    setuptools
+  ];
+
   propagatedBuildInputs = [
     lazy-object-proxy
     wrapt
-  ] ++ lib.optional (!isPyPy && pythonOlder "3.8") typed-ast;
-
-  checkInputs = [
-    pytestCheckHook
+  ] ++ lib.optionals (pythonOlder "3.10") [
+    typing-extensions
+  ] ++ lib.optionals (!isPyPy && pythonOlder "3.8") [
+    typed-ast
   ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    typing-extensions
+  ];
+
+  passthru.tests = {
+    inherit pylint;
+  };
 
   meta = with lib; {
     description = "An abstract syntax tree for Python with inference support";
     homepage = "https://github.com/PyCQA/astroid";
     license = licenses.lgpl21Plus;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ nand0p ];
+    maintainers = with maintainers; [ SuperSandro2000 ];
   };
 }

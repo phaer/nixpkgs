@@ -8,13 +8,13 @@
 
 buildPythonPackage rec {
   pname = "pytest-ansible";
-  version = "2.2.3";
+  version = "2.2.4";
 
   src = fetchFromGitHub {
     owner = "ansible";
     repo = "pytest-ansible";
     rev = "v${version}";
-    sha256 = "0vh2f34qxs8qfv15hf1q7li2iqjiydjsb4c86i2ma1b7vhi73j57";
+    sha256 = "0vr015msciwzz20zplxalfmfx5hbg8rkf8vwjdg3z12fba8z8ks4";
   };
 
   patchPhase = ''
@@ -25,7 +25,7 @@ buildPythonPackage rec {
 
   # requires pandoc < 2.0
   # buildInputs = [ setuptools-markdown ];
-  checkInputs =  [ mock ];
+  nativeCheckInputs =  [ mock ];
   propagatedBuildInputs = [ ansible ];
 
   # tests not included with release, even on github
@@ -40,5 +40,7 @@ buildPythonPackage rec {
     description = "Plugin for py.test to simplify calling ansible modules from tests or fixtures";
     license = licenses.mit;
     maintainers = [ maintainers.costrouc ];
+    # https://github.com/ansible-community/pytest-ansible/blob/v2.2.4/setup.py#L124
+    broken = lib.versionAtLeast ansible.version "2.10";
   };
 }

@@ -21,31 +21,31 @@ let newPython = python3.override {
         sha256 = "1dv6mjsm67l1razcgmq66riqmsb36wns17mnipqr610v0z0zf5j0";
       };
     });
-    urllib3 = super.urllib3.overridePythonAttrs (oldAttrs: rec {
-      version = "1.25.11";
+    distro = super.distro.overridePythonAttrs (oldAttrs: rec {
+      version = "1.5.0";
       src = oldAttrs.src.override {
         inherit version;
-        sha256 = "18hpzh1am1dqx81fypn57r2wk565fi4g14292qrc5jm1h9dalzld";
+        hash = "sha256-Dlh1auOPvY/DAg1UutuOrhfFudy+04ixe7Vbilko35I=";
       };
     });
   };
 };
 
 in newPython.pkgs.buildPythonApplication rec {
-  version = "1.35.0";
+  version = "1.53.0";
   pname = "conan";
 
   src = fetchFromGitHub {
     owner = "conan-io";
     repo = "conan";
     rev = version;
-    sha256 = "19rgylkjxvv47vz5vgh46rw108xskpv7lmax8y2fnm2wd1j3bq9c";
+    hash = "sha256-2DNDNdZO1D30egOiYa3qw8F2xsUTBOm/CHv07v5OrC8=";
   };
 
   propagatedBuildInputs = with newPython.pkgs; [
     bottle
     colorama
-    dateutil
+    python-dateutil
     deprecation
     distro
     fasteners
@@ -64,7 +64,7 @@ in newPython.pkgs.buildPythonApplication rec {
     urllib3
   ] ++ lib.optionals stdenv.isDarwin [ idna cryptography pyopenssl ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pkg-config
     git
   ] ++ (with newPython.pkgs; [
@@ -80,8 +80,7 @@ in newPython.pkgs.buildPythonApplication rec {
   doCheck = false;
 
   postPatch = ''
-    substituteInPlace conans/requirements.txt \
-      --replace "deprecation>=2.0, <2.1" "deprecation"
+    substituteInPlace conans/requirements.txt --replace 'PyYAML>=3.11, <6.0' 'PyYAML>=3.11'
   '';
 
   meta = with lib; {

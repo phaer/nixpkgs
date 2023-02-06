@@ -1,10 +1,11 @@
 {lib, stdenv, fetchurl}:
 
-stdenv.mkDerivation {
-  name = "dog-1.7";
+stdenv.mkDerivation rec {
+  pname = "dog";
+  version = "1.7";
 
   src = fetchurl {
-    url = "http://archive.debian.org/debian/pool/main/d/dog/dog_1.7.orig.tar.gz";
+    url = "http://archive.debian.org/debian/pool/main/d/dog/dog_${version}.orig.tar.gz";
     sha256 = "3ef25907ec5d1dfb0df94c9388c020b593fbe162d7aaa9bd08f35d2a125af056";
   };
 
@@ -21,7 +22,7 @@ stdenv.mkDerivation {
   '';
 
   meta = with lib; {
-    homepage = "http://lwn.net/Articles/421072/";
+    homepage = "https://lwn.net/Articles/421072/";
     description = "cat replacement";
     license = licenses.gpl2Plus;
     maintainers = with maintainers; [ qknight ];

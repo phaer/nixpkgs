@@ -7,14 +7,16 @@
 
 stdenv.mkDerivation rec {
   pname = "siege";
-  version = "4.0.8";
+  version = "4.1.6";
 
   src = fetchurl {
     url = "http://download.joedog.org/siege/${pname}-${version}.tar.gz";
-    sha256 = "01qhw52kyqwidp5bckw4xmz4ldqdwkjci7k421qm68kk0mx9l48g";
+    hash = "sha256-MJ1Ym/yBm28V0uXoWRs8DG9pNiT1Bg7qwGek2ad1fek=";
   };
 
-  NIX_LDFLAGS = lib.optionalString stdenv.isLinux "-lgcc_s";
+  NIX_LDFLAGS = lib.optionalString stdenv.isLinux [
+    "-lgcc_s"
+  ];
 
   buildInputs = [
     openssl
@@ -32,8 +34,10 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "HTTP load tester";
+    homepage = "https://www.joedog.org/siege-home/";
+    changelog = "https://github.com/JoeDog/siege/blob/v${version}/ChangeLog";
+    license = licenses.gpl2Plus;
     maintainers = with maintainers; [ raskin ];
     platforms = platforms.unix;
-    license = licenses.gpl2Plus;
   };
 }

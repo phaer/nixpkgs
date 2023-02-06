@@ -1,14 +1,14 @@
-{ mkDerivation, ansi-wl-pprint, base, fetchgit, lib, process, QuickCheck
+{ mkDerivation, ansi-wl-pprint, base, fetchFromGitHub, lib, process, QuickCheck
 , transformers, transformers-compat
 }:
 mkDerivation {
   pname = "hercules-ci-optparse-applicative";
   version = "0.16.1.0";
-  src = fetchgit {
-    url = "https://github.com/hercules-ci/optparse-applicative.git";
-    sha256 = "0v0r11jaav95im82if976256kncp0ji7nfdrlpbgmwxnkj1hxl48";
-    rev = "f9d1242f9889d2e09ff852db9dc2d231d9a3e8d8";
-    fetchSubmodules = true;
+  src = fetchFromGitHub {
+    owner = "hercules-ci";
+    repo = "optparse-applicative";
+    rev = "3d20deefbef2e66d3c075facc5d01c1aede34f3c";
+    sha256 = "sha256-FnFbPvy5iITT7rAjZBBUNQdo3UDP2z8iLg0MiIdXMdo=";
   };
   libraryHaskellDepends = [
     ansi-wl-pprint base process transformers transformers-compat

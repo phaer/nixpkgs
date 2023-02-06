@@ -1,31 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+ { lib
 , aiohttp
 , async-timeout
+, buildPythonPackage
 , crcmod
 , defusedxml
-, pyserial
-, pytz
-, python-dateutil
-, semver
+, fetchFromGitHub
+, freezegun
 , jsonpickle
+, munch
 , mypy
+, pyserial
 , pytest-aiohttp
 , pytest-asyncio
-, pytest-cov
 , pytestCheckHook
+, python-dateutil
+, pythonOlder
+, pytz
+, semver
 }:
 
 buildPythonPackage rec {
   pname = "plugwise";
-  version = "0.9.3";
+  version = "0.27.6";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = "python-plugwise";
-    rev = version;
-    sha256 = "sha256-MZ4R55vGUyWmR0Md83eNerzsgtYMch1vfQ3sqbm12bM=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-lG41y7bJkb7JdSsbv4PA2uaapkND59CDQq6Fvi+0hgU=";
   };
 
   propagatedBuildInputs = [
@@ -33,33 +38,32 @@ buildPythonPackage rec {
     async-timeout
     crcmod
     defusedxml
+    munch
     pyserial
-    pytz
     python-dateutil
+    pytz
     semver
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    freezegun
     jsonpickle
     mypy
     pytest-aiohttp
     pytest-asyncio
-    pytest-cov
-    pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "plugwise" ];
+  pythonImportsCheck = [
+    "plugwise"
+  ];
 
   __darwinAllowLocalNetworking = true;
 
   meta = with lib; {
     description = "Python module for Plugwise Smiles, Stretch and USB stick";
-    longDescription = ''
-      XKNX is an asynchronous Python library for reading and writing KNX/IP
-      packets. It provides support for KNX/IP routing and tunneling devices.
-    '';
     homepage = "https://github.com/plugwise/python-plugwise";
+    changelog = "https://github.com/plugwise/python-plugwise/releases/tag/v${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

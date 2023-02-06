@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, pkg-config, gettext, glib, gobject-introspection, gnome3 }:
+{ lib, stdenv, fetchurl, pkg-config, gettext, glib, gobject-introspection, gnome }:
 
 stdenv.mkDerivation rec {
   pname = "gnome-menus";
@@ -14,11 +14,11 @@ stdenv.mkDerivation rec {
     "INTROSPECTION_TYPELIBDIR=${placeholder "out"}/lib/girepository-1.0"
   ];
 
-  nativeBuildInputs = [ pkg-config gettext ];
-  buildInputs = [ glib gobject-introspection ];
+  nativeBuildInputs = [ pkg-config gettext gobject-introspection ];
+  buildInputs = [ glib ];
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
       versionPolicy = "none";
     };

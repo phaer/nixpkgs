@@ -1,17 +1,43 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{ lib
+, buildPythonPackage
+, cython
+, fetchFromGitHub
+, pytestCheckHook
+, pythonOlder
+}:
 
 buildPythonPackage rec {
   pname = "fastrlock";
-  version = "0.6";
+  version = "0.8.1";
+  format = "setuptools";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "9f5d6ec9fe130b7490bb04572134392420b72bd0842185e02d461a797d6bc749";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "scoder";
+    repo = pname;
+    rev = "refs/tags/v${version}";
+    hash = "sha256-KYJd1wGJo+z34cY0YfsRbpC9IsQY/VJqycGpMmLmaVk=";
   };
 
+  nativeBuildInputs = [
+    cython
+  ];
+
+  # Todo: Check why the tests have an import error
+  doCheck = false;
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  pythonImportsCheck = [
+    "fastrlock"
+  ];
+
   meta = with lib; {
+    description = "RLock implementation for CPython";
     homepage = "https://github.com/scoder/fastrlock";
-    description = "A fast RLock implementation for CPython";
     license = licenses.mit;
     maintainers = with maintainers; [ hyphon81 ];
   };

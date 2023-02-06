@@ -1,43 +1,36 @@
 { lib
 , buildPythonPackage
+, click
 , fetchPypi
-, fetchpatch
-, six
 , pyyaml
 , rdflib
 , ply
 , xmltodict
 , pytestCheckHook
-, pythonAtLeast
+, pythonOlder
 }:
+
 buildPythonPackage rec {
   pname = "spdx-tools";
-  version = "0.6.1";
+  version = "0.7.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "9a1aaae051771e865705dd2fd374c3f73d0ad595c1056548466997551cbd7a81";
+    hash = "sha256-QqKMKBedWOFYF1av9IgQuyJ6b5mNhhMpIZVJdEDcAK8=";
   };
 
-  patches = lib.optionals (pythonAtLeast "3.9") [
-    # https://github.com/spdx/tools-python/pull/159
-    # fixes tests on Python 3.9
-    (fetchpatch {
-      name = "drop-encoding-argument.patch";
-      url = "https://github.com/spdx/tools-python/commit/6c8b9a852f8a787122c0e2492126ee8aa52acff0.patch";
-      sha256 = "RhvLhexsQRjqYqJg10SAM53RsOW+R93G+mns8C9g5E8=";
-    })
-  ];
-
   propagatedBuildInputs = [
-    six
+    click
+    ply
     pyyaml
     rdflib
-    ply
     xmltodict
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
@@ -48,6 +41,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "SPDX parser and tools";
     homepage = "https://github.com/spdx/tools-python";
+    changelog = "https://github.com/spdx/tools-python/blob/v${version}/CHANGELOG.md";
     license = licenses.asl20;
     maintainers = teams.determinatesystems.members;
   };

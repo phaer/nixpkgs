@@ -1,10 +1,10 @@
 import ./make-test-python.nix ({ pkgs, ...} : {
   name = "wmderland";
-  meta = with pkgs.stdenv.lib.maintainers; {
+  meta = with pkgs.lib.maintainers; {
     maintainers = [ takagiy ];
   };
 
-  machine = { lib, ... }: {
+  nodes.machine = { lib, ... }: {
     imports = [ ./common/x11.nix ./common/user-account.nix ];
     test-support.displayManager.auto.user = "alice";
     services.xserver.displayManager.defaultSession = lib.mkForce "none+wmderland";

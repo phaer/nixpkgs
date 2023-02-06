@@ -1,30 +1,31 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
-, nose
 , pytestCheckHook
-, six
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "pysmt";
-  version = "0.9.0";
+  version = "0.9.5";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
-    owner = pname;
+    owner = "pysmt";
     repo = pname;
     rev = "v${version}";
-    sha256 = "051j36kpz11ik9bhvp5jgxzc3h7f18i1pf5ssdhjwyabr0n0zra3";
+    hash = "sha256-cE+WmKzggYof/olxQb5M7xPsBONr39KdjOTG4ofYPUM=";
   };
 
-  propagatedBuildInputs = [ six ];
-
-  checkInputs = [
-    nose
+  nativeCheckInputs = [
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "pysmt" ];
+  pythonImportsCheck = [
+    "pysmt"
+  ];
 
   meta = with lib; {
     description = "Python library for SMT formulae manipulation and solving";

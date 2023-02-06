@@ -1,70 +1,76 @@
-{ stdenv
-, lib
+{ lib
 , buildPythonPackage
+, callPackage
 , fetchFromGitHub
 , click
 , h11
 , httptools
-, uvloop
-, websockets
-, wsproto
-, pytestCheckHook
-, pytest-mock
+, python-dotenv
 , pyyaml
-, requests
-, trustme
 , typing-extensions
-, isPy27
+, uvloop
+, watchfiles
+, websockets
+, hatchling
 , pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "uvicorn";
-  version = "0.13.2";
-  disabled = isPy27;
+  version = "0.20.0";
+  disabled = pythonOlder "3.7";
+
+  format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "encode";
     repo = pname;
     rev = version;
-    sha256 = "04zgmp9z46k72ay6cz7plga6d3w3a6x41anabm7ramp7jdqf6na9";
+    hash = "sha256-yca6JI3/aqdZF7SxFeYr84GOeQnLBmbm1dIXjngX9Ng=";
   };
+
+  outputs = [
+    "out"
+    "testsout"
+  ];
+
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     click
     h11
-    httptools
-    uvloop
-    websockets
-    wsproto
   ] ++ lib.optionals (pythonOlder "3.8") [
     typing-extensions
   ];
 
-  checkInputs = [
-    pytestCheckHook
-    pytest-mock
+  passthru.optional-dependencies.standard = [
+    httptools
+    python-dotenv
     pyyaml
-    requests
-    trustme
+    uvloop
+    watchfiles
+    websockets
   ];
 
-  doCheck = !stdenv.isDarwin;
+  postInstall = ''
+    mkdir $testsout
+    cp -R tests $testsout/tests
+  '';
 
-  __darwinAllowLocalNetworking = true;
-
-  pytestFlagsArray = [
-    # watchgod required the watchgod package, which isn't available in nixpkgs
-    "--ignore=tests/supervisors/test_reload.py"
+  pythonImportsCheck = [
+    "uvicorn"
   ];
 
-  disabledTests = [
-    "test_supported_upgrade_request"
-    "test_invalid_upgrade"
-  ];
+  # check in passthru.tests.pytest to escape infinite recursion with httpx/httpcore
+  doCheck = false;
+
+  passthru.tests = {
+    pytest = callPackage ./tests.nix { };
+  };
 
   meta = with lib; {
     homepage = "https://www.uvicorn.org/";
+    changelog = "https://github.com/encode/uvicorn/blob/${src.rev}/CHANGELOG.md";
     description = "The lightning-fast ASGI server";
     license = licenses.bsd3;
     maintainers = with maintainers; [ wd15 ];

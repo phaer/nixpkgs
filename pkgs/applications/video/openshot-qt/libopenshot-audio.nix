@@ -1,34 +1,64 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, cmake, doxygen
-, alsaLib, libX11, libXft, libXrandr, libXinerama, libXext, libXcursor
-, zlib, AGL, Cocoa, Foundation
+{ lib
+, stdenv
+, fetchFromGitHub
+, fetchpatch
+, alsa-lib
+, cmake
+, doxygen
+, libX11
+, libXcursor
+, libXext
+, libXft
+, libXinerama
+, libXrandr
+, pkg-config
+, zlib
+, AGL
+, Cocoa
+, Foundation
 }:
 
-with lib;
 stdenv.mkDerivation rec {
   pname = "libopenshot-audio";
-  version = "0.2.0";
+  version = "0.3.0";
 
   src = fetchFromGitHub {
     owner = "OpenShot";
     repo = "libopenshot-audio";
     rev = "v${version}";
-    sha256 = "13if0m5mvlqly8gmbhschzb9papkgp3yqivklhb949dhy16m8zgf";
+    sha256 = "sha256-b3BZ275oJTxWfBWtdZetUQw0t7QznL0Q0lP7cKy/avg=";
   };
 
-  nativeBuildInputs =
-  [ pkg-config cmake doxygen ];
+  patches = [
+    # https://forum.juce.com/t/juce-and-macos-11-arm/40285/24
+    ./undef-fpret-on-aarch64-darwin.patch
+  ];
 
-  buildInputs =
-    optionals stdenv.isLinux [ alsaLib ]
-    ++ (if stdenv.isDarwin then
-          [ zlib AGL Cocoa Foundation ]
-        else
-          [ libX11 libXft libXrandr libXinerama libXext libXcursor ])
-  ;
+  nativeBuildInputs = [
+    cmake
+    doxygen
+    pkg-config
+  ];
+
+  buildInputs = lib.optionals stdenv.isLinux [
+    alsa-lib
+  ] ++ (if stdenv.isDarwin then [
+      AGL
+      Cocoa
+      Foundation
+      zlib
+    ] else [
+      libX11
+      libXcursor
+      libXext
+      libXft
+      libXinerama
+      libXrandr
+    ]);
 
   doCheck = false;
 
-  meta = {
+  meta = with lib; {
     homepage = "http://openshot.org/";
     description = "High-quality sound editing library";
     longDescription = ''

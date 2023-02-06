@@ -1,25 +1,56 @@
-{ lib, stdenv, cmake, python3, fetchFromGitHub, fetchpatch, emscripten }:
+{ lib, stdenv, cmake, python3, fetchFromGitHub, emscripten,
+  gtest, lit, nodejs, filecheck, fetchpatch
+}:
 
 stdenv.mkDerivation rec {
   pname = "binaryen";
-  version = "96";
+  version = "111";
 
   src = fetchFromGitHub {
     owner = "WebAssembly";
     repo = "binaryen";
     rev = "version_${version}";
-    sha256 = "1mqpb6yy87aifpbcy0lczi3bp6kddrwi6d0g6lrhjrdxx2kvbdag";
+    sha256 = "sha256-wSwLs/YvrH7nswDSbtR6onOMArCdPE2zi6G7oA10U4Y=";
   };
 
   patches = [
-    # Adds --minimize-wasm-changes option required by emscripten 2.0.1
+    # https://github.com/WebAssembly/binaryen/pull/5378
     (fetchpatch {
-      url = "https://patch-diff.githubusercontent.com/raw/WebAssembly/binaryen/pull/3044.patch";
-      sha256 = "1hdbc9h9zhh2d3bl4sqv6v9psfmny715612bwpjdln0ibdvc129s";
+      url = "https://github.com/WebAssembly/binaryen/commit/a96fe1a8422140072db7ad7db421378b87898a0d.patch";
+      sha256 = "sha256-Wred1IoRxcQBi0nLBWpiUSgt2ApGoGsq9GkoO3mSS6o=";
+    })
+    # https://github.com/WebAssembly/binaryen/pull/5391
+    (fetchpatch {
+      url = "https://github.com/WebAssembly/binaryen/commit/f92350d2949934c0e0ce4a27ec8b799ac2a85e45.patch";
+      sha256 = "sha256-fBwdGSIPjF2WKNnD8I0/2hnQvqevdk3NS9fAxutkZG0=";
     })
   ];
 
   nativeBuildInputs = [ cmake python3 ];
+
+  preConfigure = ''
+    if [ $doCheck -eq 1 ]; then
+      sed -i '/googletest/d' third_party/CMakeLists.txt
+    else
+      cmakeFlagsArray=($cmakeFlagsArray -DBUILD_TESTS=0)
+    fi
+  '';
+
+  nativeCheckInputs = [ gtest lit nodejs filecheck ];
+  checkPhase = ''
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib python3 ../check.py $tests
+  '';
+
+  tests = [
+    "version" "wasm-opt" "wasm-dis"
+    "crash" "dylink" "ctor-eval"
+    "wasm-metadce" "wasm-reduce" "spec"
+    "lld" "wasm2js" "validator"
+    "example" "unit"
+    # "binaryenjs" "binaryenjs_wasm" # not building this
+    "lit" "gtest"
+  ];
+  doCheck = stdenv.isLinux;
 
   meta = with lib; {
     homepage = "https://github.com/WebAssembly/binaryen";

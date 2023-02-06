@@ -1,15 +1,20 @@
-{ fetchurl, lib, stdenv, libgcrypt, readline, libgpgerror }:
+{ buildPackages, fetchurl, lib, stdenv, libgcrypt, readline, libgpg-error }:
 
 stdenv.mkDerivation rec {
-  version = "1.6.7";
+  version = "1.6.10";
   pname = "freeipmi";
 
   src = fetchurl {
     url = "mirror://gnu/freeipmi/${pname}-${version}.tar.gz";
-    sha256 = "1gyyx99q02p3v2nqm3h53mkjd33l0hrapwg4alg6qr9k74qik1dv";
+    sha256 = "sha256-/OSh5AG2GJwQPSsSAyYdC/v0WYXG8/pExRsYaxP+en0=";
   };
 
-  buildInputs = [ libgcrypt readline libgpgerror ];
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
+
+  buildInputs = [ libgcrypt readline libgpg-error ];
+
+  configureFlags = lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform)
+    [ "ac_cv_file__dev_urandom=true" "ac_cv_file__dev_random=true" ];
 
   doCheck = true;
 
@@ -37,8 +42,5 @@ stdenv.mkDerivation rec {
 
     maintainers = with lib.maintainers; [ raskin ];
     platforms = lib.platforms.gnu ++ lib.platforms.linux;  # arbitrary choice
-
-    updateWalker = true;
-    inherit version;
   };
 }

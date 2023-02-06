@@ -1,70 +1,68 @@
-{ lib, stdenv
+{ stdenv
+, callPackage
+, channel ? "stable"
 , fetchurl
-, appimageTools
-, makeWrapper
-, electron_11
-, openssl
-}:
+, lib
+# This is only relevant for Linux, so we need to pass it through
+, polkitPolicyOwners ? [ ] }:
 
-stdenv.mkDerivation rec {
+let
+
   pname = "1password";
-  version = "8.0.30";
+  version = if channel == "stable" then "8.9.10" else "8.9.12-4.BETA";
+
+  sources = {
+    stable = {
+      x86_64-linux = {
+        url = "https://downloads.1password.com/linux/tar/stable/x86_64/1password-${version}.x64.tar.gz";
+        sha256 = "sha256-aoa00W5zvZQeHKd2Eqyrxl5Z1PwLMHc5lkMUskLiD74=";
+      };
+      aarch64-linux = {
+        url = "https://downloads.1password.com/linux/tar/stable/aarch64/1password-${version}.arm64.tar.gz";
+        sha256 = "sha256-Zt64UGKI3+DayS6XP7jTE+pxv52tUUZbUHiuzjcm1JI=";
+      };
+      x86_64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-x86_64.zip";
+        sha256 = "sha256-sx9eASpMcgkIH1GRzJMqSQa5Y5GJlYU/20CZFyFK+OU=";
+      };
+      aarch64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-aarch64.zip";
+        sha256 = "sha256-Z1cEynO9iWZra542CVGmefrTNerMe13OcTAzWXNi8jI=";
+      };
+    };
+    beta = {
+      x86_64-linux = {
+        url = "https://downloads.1password.com/linux/tar/beta/x86_64/1password-${version}.x64.tar.gz";
+        sha256 = "sha256-/WXaLINqLFLft+wrmr+fV0kM9qS5w4etFiGltnzoVdo=";
+      };
+      aarch64-linux = {
+        url = "https://downloads.1password.com/linux/tar/beta/aarch64/1password-${version}.arm64.tar.gz";
+        sha256 = "sha256-Zv9uHkFCZ0flBMAwQBjNhqFWhAXKyHBfZk733hbSag4=";
+      };
+      x86_64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-x86_64.zip";
+        sha256 = "sha256-Vryk6nMQY+0NIgwJkZ2j3vrxyhrzxbe96jbyoNbPIR0=";
+      };
+      aarch64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-aarch64.zip";
+        sha256 = "sha256-74iOaNkuPRKUsTNNd7UTpy5ahjoMmxiNT84Op5ztRGk=";
+      };
+    };
+  };
 
   src = fetchurl {
-    url = "https://onepassword.s3.amazonaws.com/linux/appimage/${pname}-${version}.AppImage";
-    hash = "sha256-j+fp/f8nta+OOuOFU4mmUrGYlVmAqdaXO4rLJ0in+m8=";
+    inherit (sources.${channel}.${stdenv.system}) url sha256;
   };
-
-  nativeBuildInputs = [ makeWrapper ];
-
-  appimageContents = appimageTools.extractType2 {
-    name = "${pname}-${version}";
-    inherit src;
-  };
-
-  dontUnpack = true;
-  dontConfigure = true;
-  dontBuild = true;
-
-  installPhase = let
-    runtimeLibs = [
-      openssl.out
-      stdenv.cc.cc
-    ];
-  in ''
-    mkdir -p $out/bin $out/share/1password
-
-    # Applications files.
-    cp -a ${appimageContents}/{locales,resources} $out/share/${pname}
-
-    # Desktop file.
-    install -Dt $out/share/applications ${appimageContents}/${pname}.desktop
-    substituteInPlace $out/share/applications/${pname}.desktop \
-      --replace 'Exec=AppRun' 'Exec=${pname}'
-
-    # Icons.
-    cp -a ${appimageContents}/usr/share/icons $out/share
-
-    # Wrap the application with Electron.
-    makeWrapper "${electron_11}/bin/electron" "$out/bin/${pname}" \
-      --add-flags "$out/share/${pname}/resources/app.asar" \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath runtimeLibs}"
-  '';
-
-  passthru.updateScript = ./update.sh;
 
   meta = with lib; {
     description = "Multi-platform password manager";
-    longDescription = ''
-      1Password is a multi-platform package manager.
-
-      The Linux version is currently a development preview and can
-      only be used to search, view, and copy items. However items
-      cannot be created or edited.
-    '';
     homepage = "https://1password.com/";
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
-    maintainers = with maintainers; [ danieldk timstott ];
-    platforms = [ "x86_64-linux" ];
+    maintainers = with maintainers; [ timstott savannidgerinel maxeaubrey sebtm ];
+    platforms = builtins.attrNames sources.${channel};
   };
-}
+
+in if stdenv.isDarwin
+then callPackage ./darwin.nix { inherit pname version src meta; }
+else callPackage ./linux.nix { inherit pname version src meta polkitPolicyOwners; }

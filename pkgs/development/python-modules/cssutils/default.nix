@@ -1,43 +1,57 @@
 { lib
 , buildPythonPackage
+, pythonAtLeast
 , pythonOlder
+, fetchpatch
 , fetchPypi
+, setuptools
 , setuptools-scm
-, toml
 , importlib-metadata
+, cssselect
+, jaraco-test
+, lxml
 , mock
 , pytestCheckHook
+, importlib-resources
 }:
 
 buildPythonPackage rec {
   pname = "cssutils";
-  version = "2.2.0";
+  version = "2.6.0";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
+
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "5bef59f6b59bdccbea8e36cb292d2be1b6be1b485fc4a9f5886616f19eb31aaf";
+    hash = "sha256-99zSPBzskJ/fNjDeNG4UE7eyVVk23sFLouu5kTvwgY4=";
   };
 
   nativeBuildInputs = [
+    setuptools
     setuptools-scm
-    toml
   ];
 
   propagatedBuildInputs = lib.optionals (pythonOlder "3.8") [
     importlib-metadata
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    cssselect
+    jaraco-test
+    lxml
     mock
     pytestCheckHook
+  ] ++ lib.optionals (pythonOlder "3.9") [
+    importlib-resources
   ];
 
   disabledTests = [
     # access network
     "test_parseUrl"
     "encutils"
+    "website.logging"
   ];
 
   pythonImportsCheck = [ "cssutils" ];

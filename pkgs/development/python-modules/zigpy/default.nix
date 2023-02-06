@@ -4,47 +4,64 @@
 , asynctest
 , buildPythonPackage
 , crccheck
+, cryptography
+, freezegun
 , fetchFromGitHub
-, pycrypto
 , pycryptodome
-, pytest-aiohttp
+, pyserial-asyncio
 , pytest-asyncio
+, pytest-timeout
 , pytestCheckHook
-, tox
-, voluptuous }:
+, pythonOlder
+, voluptuous
+}:
 
 buildPythonPackage rec {
   pname = "zigpy";
-  version = "0.33.0";
+  version = "0.53.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy";
-    rev = version;
-    sha256 = "sha256-oEf4GnvbQ6LY4NaNFWRmnNz1TK2tMpIVUxskhU38g4w=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-1ey1JDxRF9zYSTn1EKWz1gcCw5WrCCH1eNyp6KOO8eI=";
   };
 
   propagatedBuildInputs = [
     aiohttp
     aiosqlite
     crccheck
-    pycrypto
+    cryptography
+    pyserial-asyncio
     pycryptodome
     voluptuous
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     asynctest
-    pytest-aiohttp
+    freezegun
     pytest-asyncio
+    pytest-timeout
     pytestCheckHook
+  ];
+
+  pythonImportsCheck = [
+    "zigpy.application"
+    "zigpy.config"
+    "zigpy.exceptions"
+    "zigpy.types"
+    "zigpy.zcl"
   ];
 
   meta = with lib; {
     description = "Library implementing a ZigBee stack";
     homepage = "https://github.com/zigpy/zigpy";
+    changelog = "https://github.com/zigpy/zigpy/releases/tag/${version}";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ etu mvnetbiz ];
+    maintainers = with maintainers; [ mvnetbiz ];
     platforms = platforms.linux;
   };
 }

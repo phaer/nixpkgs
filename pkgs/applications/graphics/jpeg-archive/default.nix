@@ -21,10 +21,17 @@ stdenv.mkDerivation {
     substituteInPlace Makefile --replace 'LIBJPEG =' 'LIBJPEG ?='
   '';
 
+  # Workaround build failure on -fno-common toolchains like upstream
+  # gcc-10. Otherwise build fails as:
+  #   ld: src/util.o:(.bss+0x0): multiple definition of `progname'; /build/ccBZT2Za.o:(.bss+0x20): first defined here
+  # https://github.com/danielgtaylor/jpeg-archive/issues/119
+  NIX_CFLAGS_COMPILE = "-fcommon";
+
   makeFlags = [
+    "CC=${stdenv.cc.targetPrefix}cc"
     "PREFIX=$(out)"
     "MOZJPEG_PREFIX=${mozjpeg}"
-    "LIBJPEG=${mozjpeg}/lib/libjpeg.so"
+    "LIBJPEG=${mozjpeg}/lib/libjpeg${stdenv.hostPlatform.extensions.sharedLibrary}"
   ];
 
   postInstall = ''

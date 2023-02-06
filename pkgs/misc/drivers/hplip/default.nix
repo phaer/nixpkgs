@@ -1,9 +1,9 @@
 { lib, stdenv, fetchurl, substituteAll
-, pkg-config
+, pkg-config, autoreconfHook
 , cups, zlib, libjpeg, libusb1, python3Packages, sane-backends
 , dbus, file, ghostscript, usbutils
 , net-snmp, openssl, perl, nettools, avahi
-, bash, coreutils, util-linux
+, bash, util-linux
 # To remove references to gcc-unwrapped
 , removeReferencesTo, qt5
 , withQt5 ? true
@@ -14,16 +14,16 @@
 let
 
   pname = "hplip";
-  version = "3.20.11";
+  version = "3.22.6";
 
   src = fetchurl {
     url = "mirror://sourceforge/hplip/${pname}-${version}.tar.gz";
-    sha256 = "CxZ1s9jnCaEyX+hj9arOO9NxB3mnPq6Gj3su6aVv2xE=";
+    sha256 = "sha256-J+0NSS/rsLR8ZWI0gg085XOyT/W2Ljv0ssR/goaNa7Q=";
   };
 
   plugin = fetchurl {
     url = "https://developers.hp.com/sites/default/files/${pname}-${version}-plugin.run";
-    sha256 = "r8PoQQFfjdHKySPCFwtDR8Tl6v5Eag9gXpBAp6sCF9Q=";
+    sha256 = "sha256-MSQCPnSXVLrXS1nPIIvlUx0xshbyU0OlpfLOghZMgvs=";
   };
 
   hplipState = substituteAll {
@@ -36,13 +36,13 @@ let
     x86_64-linux = "x86_64";
     armv6l-linux = "arm32";
     armv7l-linux = "arm32";
-    aarch64-linux = "aarch64";
+    aarch64-linux = "arm64";
   };
 
   hplipArch = hplipPlatforms.${stdenv.hostPlatform.system}
     or (throw "HPLIP not supported on ${stdenv.hostPlatform.system}");
 
-  pluginArches = [ "x86_32" "x86_64" "arm32" "aarch64" ];
+  pluginArches = [ "x86_32" "x86_64" "arm32" "arm64" ];
 
 in
 
@@ -71,6 +71,7 @@ python3Packages.buildPythonApplication {
   nativeBuildInputs = [
     pkg-config
     removeReferencesTo
+    autoreconfHook
   ] ++ lib.optional withQt5 qt5.wrapQtAppsHook;
 
   pythonPath = with python3Packages; [
@@ -79,29 +80,40 @@ python3Packages.buildPythonApplication {
     pygobject3
     reportlab
     usbutils
-    sip
+    sip_4
     dbus-python
+    distro
   ] ++ lib.optionals withQt5 [
     pyqt5
+    pyqt5_sip
     enum-compat
   ];
 
   makeWrapperArgs = [ "--prefix" "PATH" ":" "${nettools}/bin" ];
 
   patches = [
-    # remove ImageProcessor usage, it causes segfaults, see
-    # https://bugs.launchpad.net/hplip/+bug/1788706
-    # https://bugs.launchpad.net/hplip/+bug/1787289
-    ./image-processor.patch
-
     # HPLIP's getSystemPPDs() function relies on searching for PPDs below common FHS
     # paths, and hp-setup crashes if none of these paths actually exist (which they
     # don't on NixOS).  Add the equivalent NixOS path, /var/lib/cups/path/share.
     # See: https://github.com/NixOS/nixpkgs/issues/21796
     ./hplip-3.20.11-nixos-cups-ppd-search-path.patch
+
+    # Remove all ImageProcessor functionality since that is closed source
+    (fetchurl {
+      url = "https://sources.debian.org/data/main/h/hplip/3.22.4%2Bdfsg0-1/debian/patches/0028-Remove-ImageProcessor-binary-installs.patch";
+      sha256 = "sha256:18njrq5wrf3fi4lnpd1jqmaqr7ph5d7jxm7f15b1wwrbxir1rmml";
+    })
+
+    # Revert changes that break compilation under -Werror=format-security
+    ./revert-snprintf-change.patch
   ];
 
-  prePatch = ''
+  postPatch = ''
+    # https://github.com/NixOS/nixpkgs/issues/44230
+    substituteInPlace createPPD.sh \
+      --replace ppdc "${cups}/bin/ppdc" \
+      --replace "gzip -c" "gzip -cn"
+
     # HPLIP hardcodes absolute paths everywhere. Nuke from orbit.
     find . -type f -exec sed -i \
       -e s,/etc/hp,$out/etc/hp,g \
@@ -116,37 +128,50 @@ python3Packages.buildPythonApplication {
       -e s,/usr/share/cups/fonts,${ghostscript}/share/ghostscript/fonts,g \
       -e "s,ExecStart=/usr/bin/python /usr/bin/hp-config_usb_printer,ExecStart=$out/bin/hp-config_usb_printer,g" \
       {} +
+
+    echo 'AUTOMAKE_OPTIONS = foreign' >> Makefile.am
   '';
 
-  preConfigure = ''
-    export configureFlags="$configureFlags
-      --with-hpppddir=$out/share/cups/model/HP
-      --with-cupsfilterdir=$out/lib/cups/filter
-      --with-cupsbackenddir=$out/lib/cups/backend
-      --with-icondir=$out/share/applications
-      --with-systraydir=$out/xdg/autostart
-      --with-mimedir=$out/etc/cups
-      --enable-policykit
-      ${lib.optionalString withStaticPPDInstall "--enable-cups-ppd-install"}
-      --disable-qt4
-      ${lib.optionalString withQt5 "--enable-qt5"}
-    "
+  configureFlags = let out = placeholder "out"; in
+    [
+      "--with-hpppddir=${out}/share/cups/model/HP"
+      "--with-cupsfilterdir=${out}/lib/cups/filter"
+      "--with-cupsbackenddir=${out}/lib/cups/backend"
+      "--with-icondir=${out}/share/applications"
+      "--with-systraydir=${out}/xdg/autostart"
+      "--with-mimedir=${out}/etc/cups"
+      "--enable-policykit"
+      "--disable-qt4"
 
-    export makeFlags="
-      halpredir=$out/share/hal/fdi/preprobe/10osvendor
-      rulesdir=$out/etc/udev/rules.d
-      policykit_dir=$out/share/polkit-1/actions
-      policykit_dbus_etcdir=$out/etc/dbus-1/system.d
-      policykit_dbus_sharedir=$out/share/dbus-1/system-services
-      hplip_confdir=$out/etc/hp
-      hplip_statedir=$out/var/lib/hp
-    "
+      # remove ImageProcessor usage, it causes segfaults, see
+      # https://bugs.launchpad.net/hplip/+bug/1788706
+      # https://bugs.launchpad.net/hplip/+bug/1787289
+      "--disable-imageProcessor-build"
+    ]
+    ++ lib.optional withStaticPPDInstall "--enable-cups-ppd-install"
+    ++ lib.optional withQt5 "--enable-qt5"
+  ;
 
-    # Prevent 'ppdc: Unable to find include file "<font.defs>"' which prevent
-    # generation of '*.ppd' files.
-    # This seems to be a 'ppdc' issue when the tool is run in a hermetic sandbox.
-    # Could not find how to fix the problem in 'ppdc' so this is a workaround.
-    export CUPS_DATADIR="${cups}/share/cups"
+  # Prevent 'ppdc: Unable to find include file "<font.defs>"' which prevent
+  # generation of '*.ppd' files.
+  # This seems to be a 'ppdc' issue when the tool is run in a hermetic sandbox.
+  # Could not find how to fix the problem in 'ppdc' so this is a workaround.
+  CUPS_DATADIR = "${cups}/share/cups";
+
+  makeFlags = let out = placeholder "out"; in [
+    "halpredir=${out}/share/hal/fdi/preprobe/10osvendor"
+    "rulesdir=${out}/etc/udev/rules.d"
+    "policykit_dir=${out}/share/polkit-1/actions"
+    "policykit_dbus_etcdir=${out}/etc/dbus-1/system.d"
+    "policykit_dbus_sharedir=${out}/share/dbus-1/system-services"
+    "hplip_confdir=${out}/etc/hp"
+    "hplip_statedir=${out}/var/lib/hp"
+  ];
+
+  postConfigure = ''
+    # don't save timestamp, in order to improve reproducibility
+    substituteInPlace Makefile \
+      --replace "GZIP_ENV = --best" "GZIP_ENV = --best -n"
   '';
 
   enableParallelBuilding = true;

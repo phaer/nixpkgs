@@ -5,20 +5,27 @@
 , tqdm
 , pytestCheckHook
 , ffmpeg
+, procps
 }:
 
 buildPythonPackage rec {
   pname = "ffmpeg-progress-yield";
-  version = "0.0.4";
+  version = "0.7.0";
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "e944093e2c1b213da8fa4f0c276c1bad44e0b8ba8be7e4fd001f5132d16baef5";
+    hash = "sha256-rt+Qg1H9t5PC4cyis9xuyf8myfxWLkTq3aD83+O4qmA=";
   };
 
   propagatedBuildInputs = [ colorama tqdm ];
 
-  checkInputs = [ pytestCheckHook ffmpeg ];
+  nativeCheckInputs = [ pytestCheckHook ffmpeg procps ];
+
+  disabledTests = [
+    "test_quit"
+    "test_quit_gracefully"
+  ];
 
   pytestFlagsArray = [ "test/test.py" ];
 

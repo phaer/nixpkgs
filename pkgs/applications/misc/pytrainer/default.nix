@@ -2,7 +2,7 @@
 , python3
 , fetchFromGitHub
 , gdk-pixbuf
-, gnome3
+, gnome
 , gpsbabel
 , glib-networking
 , glibcLocales
@@ -13,7 +13,7 @@
 , tzdata
 , webkitgtk
 , wrapGAppsHook
-, xvfb_run
+, xvfb-run
 }:
 
 let
@@ -26,17 +26,17 @@ let
   };
 in python.pkgs.buildPythonApplication rec {
   pname = "pytrainer";
-  version = "2.0.2";
+  version = "2.1.0";
 
   src = fetchFromGitHub {
     owner = "pytrainer";
     repo = "pytrainer";
     rev = "v${version}";
-    sha256 = "sha256-i3QC6ct7tS8B0QQjtVqPcd03LLIxo6djQe4YX35syzk=";
+    sha256 = "sha256-U2SVQKkr5HF7LB0WuCZ1xc7TljISjCNO26QUDGR+W/4=";
   };
 
   propagatedBuildInputs = with python.pkgs; [
-    sqlalchemy_migrate
+    sqlalchemy-migrate
     python-dateutil
     matplotlib
     lxml
@@ -55,7 +55,7 @@ in python.pkgs.buildPythonApplication rec {
     gtk3
     webkitgtk
     glib-networking
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     gdk-pixbuf
   ];
 
@@ -63,10 +63,10 @@ in python.pkgs.buildPythonApplication rec {
     "--prefix" "PATH" ":" (lib.makeBinPath [ perl gpsbabel ])
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     glibcLocales
     perl
-    xvfb_run
+    xvfb-run
   ] ++ (with python.pkgs; [
     mysqlclient
     psycopg2

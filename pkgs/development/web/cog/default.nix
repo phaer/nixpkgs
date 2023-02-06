@@ -11,19 +11,19 @@
 , webkitgtk
 , makeWrapper
 , wrapGAppsHook
-, gnome3
+, gnome
 , gdk-pixbuf
 }:
 
 stdenv.mkDerivation rec {
   pname = "cog";
-  version = "0.8.0";
+  version = "0.8.1";
 
   src = fetchFromGitHub {
     owner = "igalia";
     repo = "cog";
     rev = "v${version}";
-    sha256 = "sha256-E6rACj25rdV5dww91PzYEX1r2A9YLNgAVyiYceP1KI8=";
+    sha256 = "sha256-eF7rvOjZntcMmn622342yqfp4ksZ6R/FFBT36bYCViE=";
   };
 
   buildInputs = [
@@ -34,7 +34,7 @@ stdenv.mkDerivation rec {
     webkitgtk
     glib-networking
     gdk-pixbuf
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
   ];
 
   nativeBuildInputs = [
@@ -52,6 +52,12 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DCOG_USE_WEBKITGTK=ON"
   ];
+
+  # https://github.com/Igalia/cog/issues/438
+  postPatch = ''
+    substituteInPlace core/cogcore.pc.in \
+      --replace '$'{prefix}/@CMAKE_INSTALL_LIBDIR@ @CMAKE_INSTALL_FULL_LIBDIR@
+  '';
 
   # not ideal, see https://github.com/WebPlatformForEmbedded/libwpe/issues/59
   preFixup = ''

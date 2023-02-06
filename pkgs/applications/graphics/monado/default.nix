@@ -18,6 +18,7 @@
 , libXau
 , libXdmcp
 , libXrandr
+, libbsd
 , libffi
 , libjpeg
 # , librealsense
@@ -34,6 +35,8 @@
 , vulkan-loader
 , wayland
 , wayland-protocols
+, wayland-scanner
+, libdrm
 , zlib
 # Set as 'false' to build monado without service support, i.e. allow VR
 # applications linking against libopenxr_monado.so to use OpenXR standalone
@@ -44,14 +47,14 @@
 
 stdenv.mkDerivation rec {
   pname = "monado";
-  version = "21.0.0";
+  version = "unstable-2023-01-14";
 
   src = fetchFromGitLab {
     domain = "gitlab.freedesktop.org";
-    owner = pname;
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "07zxs96i3prjqww1f68496cl2xxqaidx32lpfyy0pn5am4c297zc";
+    owner = "monado";
+    repo = "monado";
+    rev = "1ef49b92f2d6cb519039edd7ba7f70e8073fbe88";
+    sha256 = "sha256-zieJmI6BKHpYyCPOOUora9qoWn+NXehbHKvoi4h81UA=";
   };
 
   nativeBuildInputs = [
@@ -64,6 +67,7 @@ stdenv.mkDerivation rec {
 
   cmakeFlags = [
     "-DXRT_FEATURE_SERVICE=${if serviceSupport then "ON" else "OFF"}"
+    "-DXRT_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH=ON"
   ];
 
   buildInputs = [
@@ -78,6 +82,7 @@ stdenv.mkDerivation rec {
     libXau
     libXdmcp
     libXrandr
+    libbsd
     libjpeg
     libffi
     # librealsense.dev - see below
@@ -93,7 +98,9 @@ stdenv.mkDerivation rec {
     vulkan-headers
     vulkan-loader
     wayland
+    wayland-scanner
     wayland-protocols
+    libdrm
     zlib
   ];
 
@@ -118,5 +125,6 @@ stdenv.mkDerivation rec {
     license = licenses.boost;
     maintainers = with maintainers; [ expipiplus1 prusnak ];
     platforms = platforms.linux;
+    mainProgram = "monado-cli";
   };
 }

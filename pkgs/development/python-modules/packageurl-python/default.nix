@@ -1,17 +1,29 @@
-{ buildPythonPackage, fetchPypi, lib, pytestCheckHook }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+, pytestCheckHook
+, pythonOlder
+}:
 
 buildPythonPackage rec {
   pname = "packageurl-python";
-  version = "0.9.4";
+  version = "0.10.4";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0mpvj8imsaqhrgfq1cxx16flc5201y78kqa7bh2i5zxsc29843mx";
+    hash = "sha256-XJEzT5Qs1V1F6wxn3TOaU175DiXwW57AFq0YjtDvkEg=";
   };
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
 
-  pythonImportsCheck = [ "packageurl" ];
+  pythonImportsCheck = [
+    "packageurl"
+  ];
 
   meta = with lib; {
     description = "Python parser and builder for package URLs";

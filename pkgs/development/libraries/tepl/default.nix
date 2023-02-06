@@ -3,23 +3,25 @@
 , meson
 , ninja
 , amtk
-, gnome3
+, gnome
 , gobject-introspection
 , gtk3
 , gtksourceview4
 , icu
 , pkg-config
+, gtk-doc
+, docbook-xsl-nons
 }:
 
 stdenv.mkDerivation rec {
   pname = "tepl";
-  version = "5.0.1";
+  version = "6.4.0";
 
-  outputs = [ "out" "dev" ];
+  outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "sSdJZ2CfUkSEs4d1+p7LKWxtZhaqvQUvKGM5oomRKAQ=";
+    sha256 = "XlayBmnQzwX6HWS1jIw0LFkVgSLcUYEA0JPVnfm4cyE=";
   };
 
   nativeBuildInputs = [
@@ -27,6 +29,8 @@ stdenv.mkDerivation rec {
     ninja
     gobject-introspection
     pkg-config
+    gtk-doc
+    docbook-xsl-nons
   ];
 
   buildInputs = [
@@ -46,7 +50,10 @@ stdenv.mkDerivation rec {
   # correctly installed or GVfs metadata are not supported on this platform. In
   # the latter case, you should configure Tepl with --disable-gvfs-metadata.
 
-  passthru.updateScript = gnome3.updateScript { packageName = pname; };
+  passthru.updateScript = gnome.updateScript {
+    packageName = pname;
+    versionPolicy = "odd-unstable";
+  };
 
   meta = with lib; {
     homepage = "https://wiki.gnome.org/Projects/Tepl";

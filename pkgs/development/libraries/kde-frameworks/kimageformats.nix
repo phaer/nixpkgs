@@ -1,15 +1,23 @@
 {
   mkDerivation, lib,
   extra-cmake-modules,
-  ilmbase, karchive, openexr, qtbase
+  ilmbase, karchive, openexr, libavif, libheif, libjxl, qtbase
 }:
 
 let inherit (lib) getDev; in
 
 mkDerivation {
-  name = "kimageformats";
+  pname = "kimageformats";
+
   nativeBuildInputs = [ extra-cmake-modules ];
-  buildInputs = [ karchive openexr qtbase ];
+  buildInputs = [ karchive openexr libavif libheif libjxl qtbase ];
   outputs = [ "out" ]; # plugins only
   CXXFLAGS = "-I${getDev ilmbase}/include/OpenEXR";
+  cmakeFlags = [
+    "-DKIMAGEFORMATS_HEIF=ON"
+  ];
+
+  meta = with lib; {
+    broken = versionOlder qtbase.version "5.14";
+  };
 }

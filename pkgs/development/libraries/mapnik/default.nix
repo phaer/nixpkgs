@@ -1,73 +1,110 @@
-{ lib, stdenv, fetchzip
-, boost, cairo, freetype, gdal, harfbuzz, icu, libjpeg, libpng, libtiff
-, libwebp, libxml2, proj, python, sqlite, zlib
-
-# supply a postgresql package to enable the PostGIS input plugin
-, postgresql ? null
+{ lib
+, stdenv
+, fetchFromGitHub
+, buildPackages
+, cmake
+, pkg-config
+, substituteAll
+, boost
+, cairo
+, freetype
+, gdal
+, harfbuzz
+, icu
+, libjpeg
+, libpng
+, libtiff
+, libwebp
+, libxml2
+, proj
+, python3
+, sqlite
+, zlib
+, catch2
+, postgresql
 }:
 
 stdenv.mkDerivation rec {
   pname = "mapnik";
-  version = "3.1.0";
+  version = "unstable-2022-10-18";
 
-  src = fetchzip {
-    # this one contains all git submodules and is cheaper than fetchgit
-    url = "https://github.com/mapnik/mapnik/releases/download/v${version}/mapnik-v${version}.tar.bz2";
-    sha256 = "sha256-qqPqN4vs3ZsqKgnx21yQhX8OzHca/0O+3mvQ/vnC5EY=";
+  src = fetchFromGitHub {
+    owner = "mapnik";
+    repo = "mapnik";
+    rev = "05661e54392bcbb3367747f97a3ef6e468c105ba";
+    hash = "sha256-96AneLPH1gbh/u880Pdc9OdFq2MniSdaTJoKYqId7sw=";
+    fetchSubmodules = true;
   };
+
+  postPatch = ''
+    substituteInPlace configure \
+      --replace '$PYTHON scons/scons.py' ${buildPackages.scons}/bin/scons
+    rm -r scons
+  '';
 
   # a distinct dev output makes python-mapnik fail
   outputs = [ "out" ];
 
-  nativeBuildInputs = [ python ];
+  patches = [
+    # The lib/cmake/harfbuzz/harfbuzz-config.cmake file in harfbuzz.dev is faulty,
+    # as it provides the wrong libdir. The workaround is to just rely on
+    # pkg-config to locate harfbuzz shared object files.
+    # Upstream HarfBuzz wants to drop CMake support anyway.
+    # See discussion: https://github.com/mapnik/mapnik/issues/4265
+    ./cmake-harfbuzz.patch
+    # prevent CMake from trying to get libraries on the Internet
+    (substituteAll {
+      src = ./catch2-src.patch;
+      catch2_src = catch2.src;
+    })
+    ./include.patch
+  ];
 
-  buildInputs =
-    [ boost cairo freetype gdal harfbuzz icu libjpeg libpng libtiff
-      libwebp libxml2 proj python sqlite zlib
+  nativeBuildInputs = [ cmake pkg-config ];
 
-      # optional inputs
-      postgresql
-    ];
+  buildInputs = [
+    boost
+    cairo
+    freetype
+    gdal
+    harfbuzz
+    icu
+    libjpeg
+    libpng
+    libtiff
+    libwebp
+    proj
+    python3
+    sqlite
+    zlib
+    libxml2
+    postgresql
+  ];
 
-  prefixKey = "PREFIX=";
+  cmakeFlags = [
+    # Would require qt otherwise.
+    "-DBUILD_DEMO_VIEWER=OFF"
+  ];
 
-  preConfigure = ''
-    patchShebangs ./configure
+  # mapnik-config is currently not build with CMake. So we use the SCons for
+  # this one. We can't add SCons to nativeBuildInputs though, as stdenv would
+  # then try to build everything with scons.
+  preBuild = ''
+    cd ..
+    ${buildPackages.scons}/bin/scons utils/mapnik-config
+    cd build
   '';
 
-  configureFlags = [
-    "BOOST_INCLUDES=${boost.dev}/include"
-    "BOOST_LIBS=${boost.out}/lib"
-    "CAIRO_INCLUDES=${cairo.dev}/include"
-    "CAIRO_LIBS=${cairo.out}/lib"
-    "FREETYPE_INCLUDES=${freetype.dev}/include"
-    "FREETYPE_LIBS=${freetype.out}/lib"
-    "GDAL_CONFIG=${gdal}/bin/gdal-config"
-    "HB_INCLUDES=${harfbuzz.dev}/include"
-    "HB_LIBS=${harfbuzz.out}/lib"
-    "ICU_INCLUDES=${icu.dev}/include"
-    "ICU_LIBS=${icu.out}/lib"
-    "JPEG_INCLUDES=${libjpeg.dev}/include"
-    "JPEG_LIBS=${libjpeg.out}/lib"
-    "PNG_INCLUDES=${libpng.dev}/include"
-    "PNG_LIBS=${libpng.out}/lib"
-    "PROJ_INCLUDES=${proj}/include"
-    "PROJ_LIBS=${proj}/lib"
-    "SQLITE_INCLUDES=${sqlite.dev}/include"
-    "SQLITE_LIBS=${sqlite.out}/lib"
-    "TIFF_INCLUDES=${libtiff.dev}/include"
-    "TIFF_LIBS=${libtiff.out}/lib"
-    "WEBP_INCLUDES=${libwebp}/include"
-    "WEBP_LIBS=${libwebp}/lib"
-    "XML2_INCLUDES=${libxml2.dev}/include"
-    "XML2_LIBS=${libxml2.out}/lib"
-  ];
+  preInstall = ''
+    mkdir -p $out/bin
+    cp ../utils/mapnik-config/mapnik-config $out/bin/mapnik-config
+  '';
 
   meta = with lib; {
     description = "An open source toolkit for developing mapping applications";
     homepage = "https://mapnik.org";
-    maintainers = with maintainers; [ hrdinka ];
-    license = licenses.lgpl21;
+    maintainers = with maintainers; [ hrdinka erictapen ];
+    license = licenses.lgpl21Plus;
     platforms = platforms.all;
   };
 }

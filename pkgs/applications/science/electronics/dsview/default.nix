@@ -1,36 +1,29 @@
 { lib, mkDerivation, fetchFromGitHub, pkg-config, cmake
-, libzip, boost, fftw, qtbase, libusb1, libsigrok4dsl
-, libsigrokdecode4dsl, python3, fetchpatch
+, libzip, boost, fftw, qtbase, libusb1
+, python3, fetchpatch
 }:
 
 mkDerivation rec {
   pname = "dsview";
 
-  version = "1.12";
+  version = "1.2.2";
 
   src = fetchFromGitHub {
       owner = "DreamSourceLab";
       repo = "DSView";
       rev = "v${version}";
-      sha256 = "q7F4FuK/moKkouXTNPZDVon/W/ZmgtNHJka4MiTxA0U=";
+      sha256 = "sha256-QaCVu/n9PDbAiJgPDVN6SJMILeUO/KRkKcHYAstm86Q=";
   };
-
-  sourceRoot = "source/DSView";
 
   patches = [
     # Fix absolute install paths
     ./install.patch
-
-    # Fix buld with Qt5.15 already merged upstream for future release
-    # Using local file instead of content of commit #33e3d896a47 because
-    # sourceRoot make it unappliable
-    ./qt515.patch
   ];
 
   nativeBuildInputs = [ cmake pkg-config ];
 
   buildInputs = [
-    boost fftw qtbase libusb1 libzip libsigrokdecode4dsl libsigrok4dsl
+    boost fftw qtbase libusb1 libzip
     python3
   ];
 

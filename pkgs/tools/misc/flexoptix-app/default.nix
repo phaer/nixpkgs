@@ -1,25 +1,32 @@
-{ lib, appimageTools, fetchurl }: let
+{ lib, appimageTools, fetchurl, nodePackages }: let
   pname = "flexoptix-app";
-  version = "5.9.0";
-  name = "${pname}-${version}";
+  version = "5.13.3";
 
   src = fetchurl {
-    name = "${name}.AppImage";
+    name = "${pname}-${version}.AppImage";
     url = "https://flexbox.reconfigure.me/download/electron/linux/x64/FLEXOPTIX%20App.${version}.AppImage";
-    sha256 = "0gbqaj9b11mxx0knmmh2d5863kaslbb3r6c4h8rjhg8qy4cws7hj";
+    hash = "sha256-kDw9+Llqvq4NgN89Cw/HwEqYlv42wLbho1eHjI6wVSQ=";
   };
 
   udevRules = fetchurl {
-    url = "https://www.flexoptix.net/skin/udev_rules/99-tprogrammer.rules";
-    sha256 = "0mr1bhgvavq1ax4206z1vr2y64s3r676w9jjl9ysziklbrsvk5rr";
+    url = "https://www.flexoptix.net/static/frontend/Flexoptix/default/en_US/files/99-tprogrammer.rules";
+    hash = "sha256-OZe5dV50xq99olImbo7JQxPjRd7hGyBIVwFvtR9cIVc=";
   };
 
-  appimageContents = appimageTools.extractType2 {
-    inherit name src;
-  };
+  appimageContents = (appimageTools.extract { inherit pname version src; }).overrideAttrs (oA: {
+    buildCommand = ''
+      ${oA.buildCommand}
 
-in appimageTools.wrapType2 {
-  inherit name src;
+      # Get rid of the autoupdater
+      ${nodePackages.asar}/bin/asar extract $out/resources/app.asar app
+      sed -i 's/async isUpdateAvailable.*/async isUpdateAvailable(updateInfo) { return false;/g' app/node_modules/electron-updater/out/AppUpdater.js
+      ${nodePackages.asar}/bin/asar pack app $out/resources/app.asar
+    '';
+  });
+
+in appimageTools.wrapAppImage {
+  inherit pname version;
+  src = appimageContents;
 
   multiPkgs = null; # no 32bit needed
   extraPkgs = { pkgs, ... }@args: [
@@ -27,11 +34,14 @@ in appimageTools.wrapType2 {
   ] ++ appimageTools.defaultFhsEnvArgs.multiPkgs args;
 
   extraInstallCommands = ''
-    mv $out/bin/{${name},${pname}}
+    # Add desktop convencience stuff
+    mv $out/bin/{${pname}-*,${pname}}
     install -Dm444 ${appimageContents}/flexoptix-app.desktop -t $out/share/applications
     install -Dm444 ${appimageContents}/flexoptix-app.png -t $out/share/pixmaps
     substituteInPlace $out/share/applications/flexoptix-app.desktop \
-      --replace 'Exec=AppRun' "Exec=$out/bin/${pname}"
+      --replace 'Exec=AppRun' "Exec=$out/bin/${pname} --"
+
+    # Add udev rules
     mkdir -p $out/lib/udev/rules.d
     ln -s ${udevRules} $out/lib/udev/rules.d/99-tprogrammer.rules
   '';

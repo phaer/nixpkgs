@@ -1,4 +1,4 @@
-{ lib, buildPythonApplication, fetchFromGitHub, pycurl, dateutil, configobj, sqlalchemy, sdnotify, flask }:
+{ stdenv, lib, buildPythonApplication, fetchFromGitHub, pycurl, python-dateutil, configobj, sqlalchemy, sdnotify, flask }:
 
 buildPythonApplication rec {
   pname = "pyca";
@@ -13,7 +13,7 @@ buildPythonApplication rec {
 
   propagatedBuildInputs = [
     pycurl
-    dateutil
+    python-dateutil
     configobj
     sqlalchemy
     sdnotify
@@ -21,6 +21,7 @@ buildPythonApplication rec {
   ];
 
   meta = with lib; {
+    broken = stdenv.isDarwin;
     description = "A fully functional Opencast capture agent written in Python";
     homepage = "https://github.com/opencast/pyCA";
     license = licenses.lgpl3;

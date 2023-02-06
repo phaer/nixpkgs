@@ -8,34 +8,35 @@
 , gitMinimal
 , glib
 , gst_all_1
-, gtk3
-, libhandy_0
+, gtk4
+, libadwaita
 , meson
 , ninja
 , openssl
 , pkg-config
-, python3
 , rustPlatform
 , sqlite
-, wrapGAppsHook
+, wrapGAppsHook4
+, cmake
+, libshumate
 }:
 
 stdenv.mkDerivation rec {
   pname = "shortwave";
-  version = "1.1.1";
+  version = "3.1.0";
 
   src = fetchFromGitLab {
     domain = "gitlab.gnome.org";
     owner = "World";
     repo = "Shortwave";
     rev = version;
-    sha256 = "1vlhp2ss06j41simjrrjg38alp85jddhqyvccy6bhfzm0gzynwld";
+    sha256 = "sha256-N0ftIq0+sxkpo56IGHZYAK6MgRNW7T6C2jWEiJsYy/Y=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
     inherit src;
     name = "${pname}-${version}";
-    hash = "sha256-0+KEbjTLecL0u/3S9FWf2r2h9ZrgcRTY163kS3NKJqA=";
+    hash = "sha256-90JBN3cJKqIJX6DRq5FtEpIr5Isxf+jb1SlxGMbBwMQ=";
   };
 
   nativeBuildInputs = [
@@ -46,31 +47,28 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
-    python3
     rustPlatform.rust.cargo
     rustPlatform.cargoSetupHook
     rustPlatform.rust.rustc
-    wrapGAppsHook
+    wrapGAppsHook4
+    cmake
   ];
 
   buildInputs = [
     dbus
     gdk-pixbuf
     glib
-    gtk3
-    libhandy_0
+    gtk4
+    libadwaita
     openssl
     sqlite
+    libshumate
   ] ++ (with gst_all_1; [
     gstreamer
     gst-plugins-base
     gst-plugins-good
     gst-plugins-bad
   ]);
-
-  postPatch = ''
-    patchShebangs build-aux/meson/postinstall.py
-  '';
 
   meta = with lib; {
     homepage = "https://gitlab.gnome.org/World/Shortwave";

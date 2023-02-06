@@ -1,35 +1,40 @@
-{ lib, buildGoModule, fetchFromGitHub, nixosTests }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+, nixosTests
+}:
 
 buildGoModule rec {
   pname = "artifactory_exporter";
-  version = "1.9.0";
+  version = "1.11.0";
   rev = "v${version}";
 
   src = fetchFromGitHub {
     owner = "peimanja";
     repo = pname;
     rev = rev;
-    sha256 = "1zmkajg48i40jm624p2h03bwg7w28682yfcgk42ig3d50p8xwqc3";
+    hash = "sha256-dUAIPS2o+uvCGX32AgknynT0Mzzbq/7SeNmKN0Xc69o=";
   };
 
-  vendorSha256 = "1594bpfwhbjgayf4aacs7rfjxm4cnqz8iak8kpm1xzsm1cx1il17";
+  vendorHash = "sha256-5yzBKgjJCv4tgdBS6XmZUq1ebbka0LOuv6BARWO7kQg=";
 
   subPackages = [ "." ];
 
-  buildFlagsArray = ''
-     -ldflags=
-      -s -w
-      -X github.com/prometheus/common/version.Version=${version}
-      -X github.com/prometheus/common/version.Revision=${rev}
-      -X github.com/prometheus/common/version.Branch=master
-      -X github.com/prometheus/common/version.BuildDate=19700101-00:00:00
-  '';
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/prometheus/common/version.Version=${version}"
+    "-X github.com/prometheus/common/version.Revision=${rev}"
+    "-X github.com/prometheus/common/version.Branch=master"
+    "-X github.com/prometheus/common/version.BuildDate=19700101-00:00:00"
+  ];
 
   passthru.tests = { inherit (nixosTests.prometheus-exporters) artifactory; };
 
   meta = with lib; {
     description = "JFrog Artifactory Prometheus Exporter";
     homepage = "https://github.com/peimanja/artifactory_exporter";
+    changelog = "https://github.com/peimanja/artifactory_exporter/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ lbpdt ];
   };

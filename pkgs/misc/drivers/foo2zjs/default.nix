@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, foomatic-filters, bc, unzip, ghostscript, systemd, vim, time }:
+{ lib, stdenv, fetchurl, foomatic-filters, bc, ghostscript, systemd, vim, time }:
 
 stdenv.mkDerivation rec {
   pname = "foo2zjs";
@@ -9,10 +9,20 @@ stdenv.mkDerivation rec {
     sha256 = "14x3wizvncdy0xgvmcx541qanwb7bg76abygqy17bxycn1zh5r1x";
   };
 
-  nativeBuildInputs = [ unzip ];
   buildInputs = [ foomatic-filters bc ghostscript systemd vim ];
 
-  patches = [ ./no-hardcode-fw.diff ];
+  patches = [
+    ./no-hardcode-fw.diff
+    # Support HBPL1 printers. Updated patch based on
+    # https://www.dechifro.org/hbpl/
+    ./hbpl1.patch
+    # Fix "Unimplemented paper code" error for hbpl1 printers
+    # https://github.com/mikerr/foo2zjs/pull/2
+    ./papercode-format-fix.patch
+    # Fix AirPrint color printing for Dell 1250c
+    # See https://github.com/OpenPrinting/cups/issues/272
+    ./dell1250c-color-fix.patch
+  ];
 
   makeFlags = [
     "PREFIX=$(out)"
@@ -41,7 +51,7 @@ stdenv.mkDerivation rec {
     sed -e "/PRINTERID=/s@=.*@=$out/bin/usb_printerid@" -i hplj1000
   '';
 
-  checkInputs = [ time ];
+  nativeCheckInputs = [ time ];
   doCheck = false; # fails to find its own binary. Also says "Tests will pass only if you are using ghostscript-8.71-16.fc14".
 
   preInstall = ''

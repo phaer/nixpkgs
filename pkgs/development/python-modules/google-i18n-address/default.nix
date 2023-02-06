@@ -1,18 +1,26 @@
-{ buildPythonPackage, fetchPypi, pythonAtLeast, lib, requests, pytestCheckHook, mock }:
+{ lib
+, buildPythonPackage
+, fetchFromGitHub
+, requests
+, pytestCheckHook
+}:
 
 buildPythonPackage rec {
   pname = "google-i18n-address";
-  version = "2.4.0";
-  disabled = pythonAtLeast "3.9";
+  version = "2.5.2";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "8454a58f254a29988b8d1ca9ab663fd28a1f392a3d29b844d8824807db6333d7";
+  src = fetchFromGitHub {
+    owner = "mirumee";
+    repo = "google-i18n-address";
+    rev = "refs/tags/${version}";
+    sha256 = "sha256-7t5sNpEVajdwcW8+xTNZQKZVgxhUzfbVbEVgn7JJ2MY=";
   };
 
   propagatedBuildInputs = [ requests ];
 
-  checkInputs = [ pytestCheckHook mock ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "i18naddress" ];
 
   meta = with lib; {
     description = "Google's i18n address data packaged for Python";

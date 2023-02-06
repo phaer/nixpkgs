@@ -5,18 +5,20 @@
 , msrestazure
 , azure-common
 , azure-mgmt-core
-, azure-mgmt-nspkg
-, isPy3k
+, pythonOlder
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-cosmosdb";
-  version = "6.1.0";
+  version = "8.0.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
     extension = "zip";
-    sha256 = "7eb28eae4354e0a68e098de314b380d92f6482f53b2947dc8a36913195bdfde0";
+    hash = "sha256-/6ySVfCjr1YiiZIZJElrd1EfirV+TJvE/FvKs7UhoKo=";
   };
 
   propagatedBuildInputs = [
@@ -24,8 +26,6 @@ buildPythonPackage rec {
     msrestazure
     azure-common
     azure-mgmt-core
-  ] ++ lib.optionals (!isPy3k) [
-    azure-mgmt-nspkg
   ];
 
   # has no tests

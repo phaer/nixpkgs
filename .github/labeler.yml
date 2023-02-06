@@ -5,21 +5,24 @@
   - pkgs/development/libraries/agda/**/*
   - pkgs/top-level/agda-packages.nix
 
-"6.topic: bsd":
-  - pkgs/os-specific/bsd/**/*
-  - pkgs/stdenv/freebsd/**/*
-
 "6.topic: cinnamon":
   - pkgs/desktops/cinnamon/**/*
+  - nixos/modules/services/x11/desktop-managers/cinnamon.nix
+  - nixos/tests/cinnamon.nix
 
 "6.topic: emacs":
   - nixos/modules/services/editors/emacs.nix
   - nixos/modules/services/editors/emacs.xml
   - nixos/tests/emacs-daemon.nix
-  - pkgs/applications/editors/emacs-modes/**/*
+  - pkgs/applications/editors/emacs/elisp-packages/**/*
   - pkgs/applications/editors/emacs/**/*
   - pkgs/build-support/emacs/**/*
   - pkgs/top-level/emacs-packages.nix
+
+"6.topic: Enlightenment DE":
+  - nixos/modules/services/x11/desktop-managers/enlightenment.nix
+  - pkgs/desktops/enlightenment/**/*
+  - pkgs/development/python-modules/python-efl/*
 
 "6.topic: erlang":
   - doc/languages-frameworks/beam.section.md
@@ -36,24 +39,26 @@
 
 "6.topic: GNOME":
   - doc/languages-frameworks/gnome.section.md
-  - nixos/modules/services/desktops/gnome3/**/*
-  - nixos/modules/services/x11/desktop-managers/gnome3.nix
-  - nixos/tests/gnome3-xorg.nix
-  - nixos/tests/gnome3.nix
-  - pkgs/desktops/gnome-3/**/*
+  - nixos/modules/services/desktops/gnome/**/*
+  - nixos/modules/services/x11/desktop-managers/gnome.nix
+  - nixos/tests/gnome-xorg.nix
+  - nixos/tests/gnome.nix
+  - pkgs/desktops/gnome/**/*
 
 "6.topic: golang":
   - doc/languages-frameworks/go.section.md
+  - pkgs/build-support/go/**/*
   - pkgs/development/compilers/go/**/*
-  - pkgs/development/go-modules/**/*
-  - pkgs/development/go-packages/**/*
 
 "6.topic: haskell":
   - doc/languages-frameworks/haskell.section.md
+  - maintainers/scripts/haskell/**/*
   - pkgs/development/compilers/ghc/**/*
   - pkgs/development/haskell-modules/**/*
   - pkgs/development/tools/haskell/**/*
+  - pkgs/test/haskell/**/*
   - pkgs/top-level/haskell-packages.nix
+  - pkgs/top-level/release-haskell.nix
 
 "6.topic: kernel":
   - pkgs/build-support/kernel/**/*
@@ -65,8 +70,28 @@
   - pkgs/development/lua-modules/**/*
   - pkgs/top-level/lua-packages.nix
 
+"6.topic: Lumina DE":
+  - nixos/modules/services/x11/desktop-managers/lumina.nix
+  - pkgs/desktops/lumina/**/*
+
+"6.topic: LXQt":
+  - nixos/modules/services/x11/desktop-managers/lxqt.nix
+  - pkgs/desktops/lxqt/**/*
+
+"6.topic: mate":
+  - nixos/modules/services/x11/desktop-managers/mate.nix
+  - nixos/tests/mate.nix
+  - pkgs/desktops/mate/**/*
+
 "6.topic: nixos":
   - nixos/**/*
+  - pkgs/os-specific/linux/nixos-rebuild/**/*
+
+"6.topic: nim":
+  - doc/languages-frameworks/nim.section.md
+  - pkgs/development/compilers/nim/*
+  - pkgs/development/nim-packages/**/*
+  - pkgs/top-level/nim-packages.nix
 
 "6.topic: ocaml":
   - doc/languages-frameworks/ocaml.section.md
@@ -132,7 +157,12 @@
 "6.topic: vim":
   - doc/languages-frameworks/vim.section.md
   - pkgs/applications/editors/vim/**/*
-  - pkgs/misc/vim-plugins/**/*
+  - pkgs/applications/editors/vim/plugins/**/*
+  - nixos/modules/programs/neovim.nix
+  - pkgs/applications/editors/neovim/**/*
+
+"6.topic: vscode":
+  - pkgs/applications/editors/vscode/**/*
 
 "6.topic: xfce":
   - nixos/doc/manual/configuration/xfce.xml

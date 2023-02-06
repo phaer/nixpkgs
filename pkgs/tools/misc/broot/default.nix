@@ -1,35 +1,44 @@
 { lib
 , stdenv
 , rustPlatform
-, fetchCrate
+, fetchFromGitHub
 , installShellFiles
 , makeWrapper
+, pkg-config
+, libgit2
+, oniguruma
 , libiconv
-, zlib
 , Security
+, xorg
+, zlib
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "broot";
-  version = "1.3.1";
+  version = "1.20.0";
 
-  src = fetchCrate {
-    inherit pname version;
-    sha256 = "sha256-Iz9pXvgPIGUnfbnvk5kYAqlrMlz3I2kLszPe8GwwHVk=";
+  src = fetchFromGitHub {
+    owner = "Canop";
+    repo = pname;
+    rev = "v${version}";
+    hash = "sha256-+bOdUjBMxYT4qbZ8g5l0pDZJhXaeuYVygb13sx7mg28=";
   };
 
-  cargoHash = "sha256-eECAaTUgqasuDhLSk8p/CWSQmV8yV30UoMy3GZCRbGE=";
+  cargoHash = "sha256-r/oj5ZgBjJXowFa95GKPACruH3bnPHjjyaSRewogXHQ=";
 
   nativeBuildInputs = [
-    makeWrapper
     installShellFiles
+    makeWrapper
+    pkg-config
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
+  buildInputs = [ libgit2 oniguruma xorg.libxcb ] ++ lib.optionals stdenv.isDarwin [
     libiconv
     Security
     zlib
   ];
+
+  RUSTONIG_SYSTEM_LIBONIG = true;
 
   postPatch = ''
     # Fill the version stub in the man page. We can't fill the date
@@ -66,10 +75,16 @@ rustPlatform.buildRustPackage rec {
     installManPage man/broot.1
   '';
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $out/bin/broot --version | grep "${version}"
+  '';
+
   meta = with lib; {
     description = "An interactive tree view, a fuzzy search, a balanced BFS descent and customizable commands";
     homepage = "https://dystroy.org/broot/";
-    maintainers = with maintainers; [ danieldk ];
+    changelog = "https://github.com/Canop/broot/releases/tag/v${version}";
+    maintainers = with maintainers; [ dywedir ];
     license = with licenses; [ mit ];
   };
 }

@@ -2,24 +2,27 @@
 , buildPythonPackage
 , fetchPypi
 , isPy27
-, setuptools_scm
-, toml
+, setuptools-scm
+, pydantic
 , pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "inflect";
-  version = "5.3.0";
+  version = "6.0.2";
   disabled = isPy27;
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "41a23f6788962e9775e40e2ecfb1d6455d02de315022afeedd3c5dc070019d73";
+    sha256 = "sha256-8aa8sBBQRviWGf3hp9BExhLGFMLYXvGCWC2dybhtMJo=";
   };
 
-  nativeBuildInputs = [ setuptools_scm toml ];
+  nativeBuildInputs = [ setuptools-scm ];
 
-  checkInputs = [ pytestCheckHook ];
+  propagatedBuildInputs = [ pydantic ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "inflect" ];
 
@@ -28,5 +31,6 @@ buildPythonPackage rec {
     homepage = "https://github.com/jaraco/inflect";
     changelog = "https://github.com/jaraco/inflect/blob/v${version}/CHANGES.rst";
     license = licenses.mit;
+    maintainers = teams.tts.members;
   };
 }

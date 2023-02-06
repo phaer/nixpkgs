@@ -37,9 +37,9 @@ buildRebar3 {
 
   inherit src version;
 
-  buildInputs = [ erlang makeWrapper ];
+  nativeBuildInputs = [ makeWrapper erlang ];
   beamDeps    = [ proper ];
-  patches     = [ ./no-test-deps.patch ./dedup-ebins.patch ] ++ patches;
+  patches     = [ ./fix-rebar-config.patch ./dedup-ebins.patch ] ++ patches;
   doCheck     = true;
   checkTarget = "travis";
 
@@ -83,7 +83,7 @@ buildRebar3 {
       code. An LFE evaluator and shell is also included.
     '';
 
-    homepage     = "http://lfe.io";
+    homepage     = "https://lfe.io";
     downloadPage = "https://github.com/rvirding/lfe/releases";
 
     license      = licenses.asl20;

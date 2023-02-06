@@ -7,13 +7,13 @@
 
 stdenv.mkDerivation rec {
   pname = "opensc";
-  version = "0.21.0";
+  version = "0.23.0";
 
   src = fetchFromGitHub {
     owner = "OpenSC";
     repo = "OpenSC";
     rev = version;
-    sha256 = "sha256-OjOfA1pIu8NeN+hPuow5UVMKsg0PrsLojw5h05/Qm+o=";
+    sha256 = "sha256-Yo8dwk7+d6q+hi7DmJ0GJM6/pmiDOiyEm/tEBSbCU8k=";
   };
 
   nativeBuildInputs = [ pkg-config autoreconfHook ];
@@ -60,6 +60,6 @@ stdenv.mkDerivation rec {
     homepage = "https://github.com/OpenSC/OpenSC/wiki";
     license = licenses.lgpl21Plus;
     platforms = platforms.all;
-    maintainers = [ maintainers.erictapen ];
+    maintainers = [ maintainers.michaeladler ];
   };
 }

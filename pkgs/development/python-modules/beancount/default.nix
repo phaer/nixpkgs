@@ -5,25 +5,26 @@
 , beautifulsoup4
 , bottle
 , chardet
-, dateutil
+, python-dateutil
 , google-api-python-client
+, google-auth-oauthlib
 , lxml
 , oauth2client
 , ply
 , pytest
-, python_magic
+, python-magic
 , requests
 }:
 
 buildPythonPackage rec {
-  version = "2.3.4";
+  version = "2.3.5";
   pname = "beancount";
 
   disabled = !isPy3k;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-K/CM5qldmAAPTXM5WYXNHeuBwNUu1aduYQusd9gvhsA=";
+    sha256 = "sha256-FONWJaLpy9Q8rmF42gjLPxIk9iYeVBymcm3zXZjpw2o=";
   };
 
   # Tests require files not included in the PyPI archive.
@@ -33,12 +34,13 @@ buildPythonPackage rec {
     beautifulsoup4
     bottle
     chardet
-    dateutil
+    python-dateutil
     google-api-python-client
+    google-auth-oauthlib
     lxml
     oauth2client
     ply
-    python_magic
+    python-magic
     requests
     # pytest really is a runtime dependency
     # https://github.com/beancount/beancount/blob/v2/setup.py#L81-L82
@@ -46,7 +48,7 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
-    homepage = "http://furius.ca/beancount/";
+    homepage = "https://github.com/beancount/beancount";
     description = "Double-entry bookkeeping computer language";
     longDescription = ''
         A double-entry bookkeeping computer language that lets you define

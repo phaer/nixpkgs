@@ -1,22 +1,39 @@
-{ lib, stdenv, fetchurl, ncurses, pcre, buildPackages }:
+{ lib
+, stdenv
+, fetchurl
+, fetchpatch
+, autoreconfHook
+, yodl
+, perl
+, groff
+, util-linux
+, texinfo
+, ncurses
+, pcre
+, buildPackages }:
 
 let
-  version = "5.8";
-
-  documentation = fetchurl {
-    url = "mirror://sourceforge/zsh/zsh-${version}-doc.tar.xz";
-    sha256 = "1i6wdzq6rfjx5yjrpzan1jf50hk2pfzy5qib9mb7cnnbjfar6klv";
-  };
+  version = "5.9";
 in
 
 stdenv.mkDerivation {
   pname = "zsh";
   inherit version;
+  outputs = [ "out" "doc" "info" "man" ];
 
   src = fetchurl {
     url = "mirror://sourceforge/zsh/zsh-${version}.tar.xz";
-    sha256 = "09yyaadq738zlrnlh1hd3ycj1mv3q5hh4xl1ank70mjnqm6bbi6w";
+    sha256 = "sha256-m40ezt1bXoH78ZGOh2dSp92UjgXBoNuhCrhjhC1FrNU=";
   };
+
+  patches = [
+    # fix location of timezone data for TZ= completion
+    ./tz_completion.patch
+  ];
+
+  strictDeps = true;
+  nativeBuildInputs = [ autoreconfHook perl groff texinfo pcre]
+                      ++ lib.optionals stdenv.isLinux [ util-linux yodl ];
 
   buildInputs = [ ncurses pcre ];
 
@@ -27,6 +44,16 @@ stdenv.mkDerivation {
     "--enable-pcre"
     "--enable-zprofile=${placeholder "out"}/etc/zprofile"
     "--disable-site-fndir"
+  ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform && !stdenv.hostPlatform.isStatic) [
+    # Also see: https://github.com/buildroot/buildroot/commit/2f32e668aa880c2d4a2cce6c789b7ca7ed6221ba
+    "zsh_cv_shared_environ=yes"
+    "zsh_cv_shared_tgetent=yes"
+    "zsh_cv_shared_tigetstr=yes"
+    "zsh_cv_sys_dynamic_clash_ok=yes"
+    "zsh_cv_sys_dynamic_rtld_global=yes"
+    "zsh_cv_sys_dynamic_execsyms=yes"
+    "zsh_cv_sys_dynamic_strip_exe=yes"
+    "zsh_cv_sys_dynamic_strip_lib=yes"
   ];
 
   # the zsh/zpty module is not available on hydra
@@ -35,10 +62,7 @@ stdenv.mkDerivation {
 
   # XXX: think/discuss about this, also with respect to nixos vs nix-on-X
   postInstall = ''
-    mkdir -p $out/share/info
-    tar xf ${documentation} -C $out/share
-    ln -s $out/share/zsh-*/Doc/zsh.info* $out/share/info/
-
+    make install.info install.html
     mkdir -p $out/etc/
     cat > $out/etc/zprofile <<EOF
 if test -e /etc/NIXOS; then
@@ -68,6 +92,10 @@ EOF
       ${lib.getBin buildPackages.zsh}/bin/zsh -c "zcompile $out/etc/zprofile"
     ''}
     mv $out/etc/zprofile $out/etc/zprofile_zwc_is_used
+
+    rm $out/bin/zsh-${version}
+    mkdir -p $out/share/doc/
+    mv $out/share/zsh/htmldoc $out/share/doc/zsh-$version
   '';
   # XXX: patch zsh to take zwc if newer _or equal_
 
@@ -83,7 +111,7 @@ EOF
     '';
     license = "MIT-like";
     homepage = "https://www.zsh.org/";
-    maintainers = with lib.maintainers; [ pSub ];
+    maintainers = with lib.maintainers; [ pSub artturin ];
     platforms = lib.platforms.unix;
   };
 

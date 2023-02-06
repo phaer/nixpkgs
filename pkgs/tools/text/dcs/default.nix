@@ -1,8 +1,7 @@
 { lib
 , buildGoModule
 , fetchFromGitHub
-, python3Packages
-, perl
+, yuicompressor
 , zopfli
 , stdenv
 }:
@@ -23,8 +22,7 @@ buildGoModule {
   doCheck = false;
 
   nativeBuildInputs = [
-    python3Packages.slimit
-    (perl.withPackages (p: [ p.CSSMinifier ]))
+    yuicompressor
     zopfli
   ];
 
@@ -43,6 +41,7 @@ buildGoModule {
     homepage = "https://github.com/Debian/dcs";
     license = licenses.bsd3;
     maintainers = teams.determinatesystems.members;
-    broken = stdenv.isAarch64;
+    broken = stdenv.isAarch64
+      || stdenv.isDarwin; # never built on Hydra https://hydra.nixos.org/job/nixpkgs/staging-next/dcs.x86_64-darwin
   };
 }

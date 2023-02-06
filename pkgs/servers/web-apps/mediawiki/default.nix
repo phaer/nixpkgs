@@ -1,25 +1,25 @@
-{ lib, stdenv, fetchurl, makeWrapper, writeText }:
+{ lib, stdenv, fetchurl, writeText }:
 
 stdenv.mkDerivation rec {
   pname = "mediawiki";
-  version = "1.35.2";
+  version = "1.39.1";
 
-  src = with lib; fetchurl {
-    url = "https://releases.wikimedia.org/mediawiki/${versions.majorMinor version}/${pname}-${version}.tar.gz";
-    sha256 = "07cch4j2lcncfjv71351c1fxh200p83g2ijb3c9x8rv6nzcmiymz";
+  src = fetchurl {
+    url = "https://releases.wikimedia.org/mediawiki/${lib.versions.majorMinor version}/mediawiki-${version}.tar.gz";
+    sha256 = "sha256-3ew/kOHnsaxmgZF4yoEDfT+AhNxXfUq3cypLj5gNhfk=";
   };
 
-  prePatch = ''
+  postPatch = ''
     sed -i 's|$vars = Installer::getExistingLocalSettings();|$vars = null;|' includes/installer/CliInstaller.php
   '';
 
-  phpConfig = writeText "LocalSettings.php" ''
-  <?php
-    return require(getenv('MEDIAWIKI_CONFIG'));
-  ?>
-  '';
-
-  installPhase = ''
+  installPhase = let
+    phpConfig = writeText "LocalSettings.php" ''
+      <?php
+        return require(getenv('MEDIAWIKI_CONFIG'));
+      ?>
+    '';
+  in ''
     runHook preInstall
 
     mkdir -p $out/share/mediawiki
@@ -34,6 +34,6 @@ stdenv.mkDerivation rec {
     license = licenses.gpl2Plus;
     homepage = "https://www.mediawiki.org/";
     platforms = platforms.all;
-    maintainers = [ maintainers.redvers ];
+    maintainers = with maintainers; [ ] ++ teams.c3d2.members;
   };
 }

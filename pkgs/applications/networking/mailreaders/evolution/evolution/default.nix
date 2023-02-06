@@ -1,10 +1,11 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , cmake
 , ninja
 , intltool
 , fetchurl
 , libxml2
-, webkitgtk
+, webkitgtk_4_1
 , highlight
 , pkg-config
 , gtk3
@@ -13,7 +14,6 @@
 , libpst
 , gspell
 , evolution-data-server
-, libgdata
 , libgweather
 , glib-networking
 , gsettings-desktop-schemas
@@ -22,9 +22,9 @@
 , shared-mime-info
 , libical
 , db
-, gcr
 , sqlite
-, gnome3
+, gnome
+, gnome-desktop
 , librsvg
 , gdk-pixbuf
 , libsecret
@@ -32,6 +32,8 @@
 , nspr
 , icu
 , libcanberra-gtk3
+, geocode-glib_2
+, cmark
 , bogofilter
 , gst_all_1
 , procps
@@ -42,11 +44,11 @@
 
 stdenv.mkDerivation rec {
   pname = "evolution";
-  version = "3.38.4";
+  version = "3.46.3";
 
   src = fetchurl {
     url = "mirror://gnome/sources/evolution/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "NB+S0k4rRMJ4mwA38aiU/xZUh9qksAuA+uMTii4Fr9Q=";
+    sha256 = "riIQdCXTDRejo0w1bNpfQKrXhG12vbYINEUYtdQpwfM=";
   };
 
   nativeBuildInputs = [
@@ -60,15 +62,14 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     bogofilter
     db
     evolution-data-server
-    gcr
     gdk-pixbuf
     glib
     glib-networking
-    gnome3.gnome-desktop
+    gnome-desktop
     gsettings-desktop-schemas
     gst_all_1.gst-plugins-base
     gst_all_1.gstreamer
@@ -77,7 +78,8 @@ stdenv.mkDerivation rec {
     highlight
     icu
     libcanberra-gtk3
-    libgdata
+    geocode-glib_2
+    cmark
     libgweather
     libical
     libnotify
@@ -91,7 +93,7 @@ stdenv.mkDerivation rec {
     procps
     shared-mime-info
     sqlite
-    webkitgtk
+    webkitgtk_4_1
   ];
 
   propagatedUserEnvPkgs = [
@@ -100,7 +102,6 @@ stdenv.mkDerivation rec {
 
   cmakeFlags = [
     "-DENABLE_AUTOAR=OFF"
-    "-DENABLE_LIBCRYPTUI=OFF"
     "-DENABLE_YTNEF=OFF"
     "-DWITH_SPAMASSASSIN=${spamassassin}/bin/spamassassin"
     "-DWITH_SA_LEARN=${spamassassin}/bin/sa-learn"
@@ -114,16 +115,14 @@ stdenv.mkDerivation rec {
 
   doCheck = true;
 
-  patches = [
-    ./moduledir_from_env.patch
-  ];
-
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = "evolution";
+      versionPolicy = "odd-unstable";
     };
   };
 
+  PKG_CONFIG_CAMEL_1_2_CAMEL_PROVIDERDIR = "${placeholder "out"}/lib/evolution-data-server/camel-providers";
   PKG_CONFIG_LIBEDATASERVERUI_1_2_UIMODULEDIR = "${placeholder "out"}/lib/evolution-data-server/ui-modules";
 
   meta = with lib; {

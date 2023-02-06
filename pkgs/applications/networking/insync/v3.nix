@@ -3,14 +3,12 @@
 , fetchurl
 , makeWrapper
 , dpkg
-, glibc
-, glib
 , libxcb
 , libGL
 , nss
 , libthai
 , wayland
-, alsaLib
+, alsa-lib
 , qtvirtualkeyboard
 , qtwebchannel
 , qtwebsockets
@@ -22,11 +20,11 @@
 
 stdenv.mkDerivation rec {
   pname = "insync";
-  version = "3.2.4.40856";
+  version = "3.3.5.40925";
 
   src = fetchurl {
     url = "http://s.insynchq.com/builds/${pname}_${version}-focal_amd64.deb";
-    sha256 = "1bvqbbrfn5784nmb2qaflm1rzczqhvghhb6y5zaxrapyhygxbcis";
+    sha256 = "sha256-lYlG/8d7teX98F5eDxm4EdBfFs7Sz3Td4kKLC6KZqnQ=";
   };
 
   postPatch = ''
@@ -34,7 +32,7 @@ stdenv.mkDerivation rec {
   '';
 
   buildInputs = [
-    alsaLib
+    alsa-lib
     libGL
     libthai
     libxcb
@@ -67,8 +65,9 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     platforms = ["x86_64-linux"];
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
-    maintainers = with maintainers; [ benley ];
+    maintainers = with maintainers; [ ];
     homepage = "https://www.insynchq.com";
     description = "Google Drive sync and backup with multiple account support";
     longDescription = ''
@@ -79,5 +78,7 @@ stdenv.mkDerivation rec {
 
      There is a 15-day free trial, and it is a paid application after that.
     '';
+    # download URL removed
+    broken = true;
   };
 }

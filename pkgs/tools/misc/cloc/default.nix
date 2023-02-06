@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   pname = "cloc";
-  version = "1.88";
+  version = "1.96";
 
   src = fetchFromGitHub {
     owner = "AlDanial";
     repo = "cloc";
-    rev = version;
-    sha256 = "1ixgswzbzv63bl50gb2kgaqr0jcicjz6w610hi9fal1i7744zraw";
+    rev = "v${version}";
+    sha256 = "sha256-20vL+SX8Tbp6QxErDn76c6sLWnB1IJwHlQX4YAvj+Eg=";
   };
 
   setSourceRoot = ''
@@ -16,7 +16,12 @@ stdenv.mkDerivation rec {
   '';
 
   nativeBuildInputs = [ makeWrapper ];
-  buildInputs = (with perlPackages; [ perl AlgorithmDiff ParallelForkManager RegexpCommon ]);
+  buildInputs = with perlPackages; [
+    perl
+    AlgorithmDiff
+    ParallelForkManager
+    RegexpCommon
+  ];
 
   makeFlags = [ "prefix=" "DESTDIR=$(out)" "INSTALL=install" ];
 

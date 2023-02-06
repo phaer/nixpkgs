@@ -1,16 +1,27 @@
-{ lib, stdenv, rustPlatform, fetchFromGitHub, llvmPackages, sqlite, installShellFiles, Security, libiconv }:
+{ lib
+, stdenv
+, rustPlatform
+, fetchFromGitHub
+, llvmPackages
+, sqlite
+, installShellFiles
+, Security
+, libiconv
+, innernet
+, testers
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "innernet";
-  version = "1.2.0";
+  version = "1.5.5";
 
   src = fetchFromGitHub {
     owner = "tonarino";
-    repo = pname;
+    repo = "innernet";
     rev = "v${version}";
-    sha256 = "sha256-Z4F5RYPVgFiiDBg6lxILjAh/a/rL7IJBqHIJ/tQyLnE=";
+    sha256 = "sha256-jUL7/jHjfgpLg6728JQETbBcC2Q3G8d31oiwhkS+FD0=";
   };
-  cargoSha256 = "sha256-WSkN5aXMgfqZJAV1b3elF7kwf2f5OpcntKSf8620YcY=";
+  cargoSha256 = "sha256-qQ6yRI0rNxV/TRZHCR69h6kx6L2Wp75ziw+B2P8LZmE=";
 
   nativeBuildInputs = with llvmPackages; [
     llvm
@@ -19,28 +30,22 @@ rustPlatform.buildRustPackage rec {
   ];
   buildInputs = [ sqlite ] ++ lib.optionals stdenv.isDarwin [ Security libiconv ];
 
-  LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
+  LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
 
   postInstall = ''
     installManPage doc/innernet-server.8.gz
     installManPage doc/innernet.8.gz
-  '';
+    installShellCompletion doc/innernet.completions.{bash,fish,zsh}
+    installShellCompletion doc/innernet-server.completions.{bash,fish,zsh}
+  '' + (lib.optionalString stdenv.isLinux ''
+    find . -regex '.*\.\(target\|service\)' | xargs install -Dt $out/lib/systemd/system
+    find $out/lib/systemd/system -type f | xargs sed -i "s|/usr/bin/innernet|$out/bin/innernet|"
+  '');
 
-  doInstallCheck = true;
-  installCheckPhase = ''
-    if [[ "$("$out/bin/${pname}"-server --version)" == "${pname}-server ${version}" ]]; then
-      echo '${pname}-server smoke check passed'
-    else
-      echo '${pname}-server smoke check failed'
-      return 1
-    fi
-    if [[ "$("$out/bin/${pname}" --version)" == "${pname} ${version}" ]]; then
-      echo '${pname} smoke check passed'
-    else
-      echo '${pname} smoke check failed'
-      return 1
-    fi
-  '';
+  passthru.tests = {
+    serverVersion = testers.testVersion { package = innernet; command = "innernet-server --version"; };
+    version = testers.testVersion { package = innernet; command = "innernet --version"; };
+  };
 
   meta = with lib; {
     description = "A private network system that uses WireGuard under the hood";

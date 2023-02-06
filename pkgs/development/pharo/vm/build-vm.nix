@@ -8,7 +8,7 @@
 , libGLU, libGL
 , freetype
 , xorg
-, alsaLib
+, alsa-lib
 , cairo
 , libuuid
 , autoreconfHook
@@ -64,7 +64,7 @@ stdenv.mkDerivation rec {
     xorg.libX11
     xorg.libICE
     xorg.libSM
-    alsaLib
+    alsa-lib
     cairo
     pharo-share
     libuuid
@@ -85,6 +85,13 @@ stdenv.mkDerivation rec {
   configureFlags = [ "--without-npsqueak"
                      "--with-vmversion=5.0"
                      "--with-src=${vm}" ];
+
+  # -fcommon is a workaround build failure on -fno-common toolchains like upstream
+  # gcc-10. Otherwise build fails as:
+  #   ld: vm/vm.a(cogit.o):/build/source/spur64src/vm/cointerp.h:358: multiple definition of `checkAllocFiller';
+  #     vm/vm.a(gcc3x-cointerp.o):/build/source/spur64src/vm/cointerp.h:358: first defined here
+  NIX_CFLAGS_COMPILE = "-fcommon";
+
   CFLAGS = "-DPharoVM -DIMMUTABILITY=1 -msse2 -D_GNU_SOURCE -DCOGMTVM=0 -g -O2 -DNDEBUG -DDEBUGVM=0";
   LDFLAGS = "-Wl,-z,now";
 
@@ -115,7 +122,7 @@ stdenv.mkDerivation rec {
       freetype
       openssl
       libuuid
-      alsaLib
+      alsa-lib
       xorg.libICE
       xorg.libSM
     ];

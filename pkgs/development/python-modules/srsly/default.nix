@@ -6,40 +6,49 @@
 , catalogue
 , mock
 , numpy
-, pathlib
+, psutil
 , pytest
-, pytz
+, ruamel-yaml
+, setuptools
+, tornado
 }:
 
 buildPythonPackage rec {
   pname = "srsly";
-  version = "2.4.0";
+  version = "2.4.5";
+  format = "pyproject";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "e29730be53015970e4a59050e8e9f9be44d762108a617df56c9dfc981b515ab7";
+    hash = "sha256-yEIliWe6pSfOqTZ5huQrgUOhqJDn1KGNJaNu3Dx6M8c=";
   };
 
-  nativeBuildInputs = [ cython ];
-
-  propagatedBuildInputs = [ catalogue ];
-
-  checkInputs = [
-    mock
-    numpy
-    pytest
-    pytz
+  nativeBuildInputs = [
+    cython
+    setuptools
   ];
 
-  # TypeError: cannot serialize '_io.BufferedRandom' object
-  # Possibly because of sandbox restrictions.
-  doCheck = false;
+  propagatedBuildInputs = [
+    catalogue
+  ];
 
-  pythonImportsCheck = [ "srsly" ];
+  nativeCheckInputs = [
+    mock
+    numpy
+    psutil
+    pytest
+    ruamel-yaml
+    tornado
+  ];
+
+  pythonImportsCheck = [
+    "srsly"
+  ];
 
   meta = with lib; {
+    changelog = "https://github.com/explosion/srsly/releases/tag/v${version}";
     description = "Modern high-performance serialization utilities for Python";
     homepage = "https://github.com/explosion/srsly";
     license = licenses.mit;

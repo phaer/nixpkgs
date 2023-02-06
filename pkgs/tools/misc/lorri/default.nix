@@ -12,10 +12,12 @@
 
 let
   # Run `eval $(nix-build -A lorri.updater)` after updating the revision!
-  version = "1.4.0";
-  gitRev = "fee4ffac9ee16fc921d413789cc059b043f2db3d";
-  sha256 = "sha256:0ix0k85ywlvkxsampajkq521d290gb0n60qwhnk6j0sc55yn558h";
-  cargoSha256 = "sha256:1ngn4wnyh6cjnyg7mb48zvng0zn5fcn8s75y88nh91xq9x1bi2d9";
+  # It will copy some required files if necessary.
+  # Also don’t forget to run `nix-build -A lorri.tests`
+  version = "1.6.0";
+  gitRev = "1.6.0";
+  sha256 = "sha256-peelMKv9GOTPdyb1iifzlFikeayTchqaYCgeXyR5EgM=";
+  cargoSha256 = "sha256-UFAmTYnCqsQxBnCm1zMu+BcWIZMuuxvpF7poLlzC6Kg=";
 
 in (rustPlatform.buildRustPackage rec {
   pname = "lorri";

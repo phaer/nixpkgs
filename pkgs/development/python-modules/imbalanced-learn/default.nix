@@ -4,21 +4,21 @@
 , isPy27
 , pandas
 , pytestCheckHook
-, scikitlearn
+, scikit-learn
 }:
 
 buildPythonPackage rec {
   pname = "imbalanced-learn";
-  version = "0.8.0";
+  version = "0.10.1";
   disabled = isPy27; # scikit-learn>=0.21 doesn't work on python2
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0a9xrw4qsh95g85pg2611hvj6xcfncw646si2icaz22haw1x410w";
+    sha256 = "sha256-vHYJYZ7Dw4xEIpKSgjmtPRC13rCviinIOCK3tXsxn4s=";
   };
 
-  propagatedBuildInputs = [ scikitlearn ];
-  checkInputs = [ pytestCheckHook pandas ];
+  propagatedBuildInputs = [ scikit-learn ];
+  nativeCheckInputs = [ pytestCheckHook pandas ];
   preCheck = ''
     export HOME=$TMPDIR
   '';

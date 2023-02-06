@@ -13,7 +13,7 @@ in stdenv.mkDerivation {
     sha256 = "05c6zskj50g29f51lx8fvgzsi3f31z01zj6ssjjrgr7jfs7ak70p";
   };
 
-  checkInputs = (with dotnetPackages; [ NUnitConsole ]);
+  nativeCheckInputs = (with dotnetPackages; [ NUnitConsole ]);
   nativeBuildInputs = [ mono makeWrapper ];
 
   buildPhase = ''
@@ -56,7 +56,7 @@ in stdenv.mkDerivation {
     description = "Convert MIDI Files to Piano Sheet Music for two hands";
     homepage = "http://midisheetmusic.com";
     license = licenses.gpl2;
-    maintainers = [ maintainers.gnidorah ];
+    maintainers = [ ];
     platforms = platforms.linux;
   };
 }

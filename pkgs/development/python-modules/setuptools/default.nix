@@ -1,11 +1,7 @@
 { stdenv
-, fetchurl
 , buildPythonPackage
 , fetchFromGitHub
 , python
-, wrapPython
-, unzip
-, callPackage
 , bootstrapped-pip
 , lib
 , pipInstallHook
@@ -14,12 +10,7 @@
 
 let
   pname = "setuptools";
-  version = "54.2.0";
-
-  bootstrap = fetchurl {
-    url = "https://raw.githubusercontent.com/pypa/setuptools/v52.0.0/bootstrap.py";
-    sha256 = "sha256-HzhlnJvMskBfb3kVnYltdnjS63wt1GWd0RK+VQqrJQ8=";
-  };
+  version = "65.6.3";
 
   # Create an sdist of setuptools
   sdist = stdenv.mkDerivation rec {
@@ -28,18 +19,18 @@ let
     src = fetchFromGitHub {
       owner = "pypa";
       repo = pname;
-      rev = "v${version}";
-      sha256 = "sha256-ZHJZiwlWLHP4vf2TLwj/DYB9wjbRp0apVmmjsKCLPq0=";
+      rev = "refs/tags/v${version}";
+      hash = "sha256-B/1MhH0RDW7/pUam2FHnIcUPN6NpvQYBjRyHIm+E9rI=";
       name = "${pname}-${version}-source";
     };
 
     patches = [
       ./tag-date.patch
+      ./setuptools-distutils-C++.patch
     ];
 
     buildPhase = ''
-      cp ${bootstrap} bootstrap.py
-      ${python.pythonForBuild.interpreter} bootstrap.py
+      ${python.pythonForBuild.interpreter} setup.py egg_info
       ${python.pythonForBuild.interpreter} setup.py sdist --formats=gztar
 
       # Here we untar the sdist and retar it in order to control the timestamps
@@ -68,7 +59,7 @@ in buildPythonPackage rec {
     (setuptoolsBuildHook.override{setuptools=null; wheel=null;})
   ];
 
-  preBuild = lib.strings.optionalString (!stdenv.hostPlatform.isWindows) ''
+  preBuild = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     export SETUPTOOLS_INSTALL_WINDOWS_SPECIFIC_FILES=0
   '';
 
@@ -86,5 +77,6 @@ in buildPythonPackage rec {
     license = with licenses; [ psfl zpl20 ];
     platforms = python.meta.platforms;
     priority = 10;
+    maintainers = teams.python.members;
   };
 }

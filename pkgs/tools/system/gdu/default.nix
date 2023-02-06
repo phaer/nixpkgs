@@ -1,47 +1,48 @@
 { lib
+, stdenv
 , buildGoModule
 , fetchFromGitHub
 , installShellFiles
+, testers
+, gdu
 }:
 
 buildGoModule rec {
   pname = "gdu";
-  version = "4.11.1";
+  version = "5.22.0";
 
   src = fetchFromGitHub {
     owner = "dundee";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-e9TYArmNWnK8XXcniAQCegrfWAUfTKKuClgdSTQep0U=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-bWeMZ1tQkJsRJbolZBue9UzM4Qs7K5Rj5Z80Uotyb8I=";
   };
 
-  vendorSha256 = "sha256-QiO5p0x8kmIN6f0uYS0IR2MlWtRYTHeZpW6Nmupjias=";
+  vendorHash = "sha256-UP6IdJLc93gRP4vwKKOJl3sNt4sOFeYXjvwk8QM+D48=";
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [
+    installShellFiles
+  ];
 
-  buildFlagsArray = [
-    "-ldflags="
+  ldflags = [
     "-s"
     "-w"
     "-X github.com/dundee/gdu/v${lib.versions.major version}/build.Version=${version}"
   ];
 
   postPatch = ''
-    substituteInPlace cmd/app/app_test.go --replace "development" "${version}"
+    substituteInPlace cmd/gdu/app/app_test.go --replace "development" "${version}"
   '';
 
   postInstall = ''
     installManPage gdu.1
   '';
 
-  # tests fail with:
-  #  dir_test.go:76:
-  #              Error Trace:    dir_test.go:76
-  #              Error:          Not equal:
-  #                              expected: 0
-  #                              actual  : 512
-  #              Test:           TestFlags
-  doCheck = false;
+  doCheck = !stdenv.isDarwin;
+
+  passthru.tests.version = testers.testVersion {
+    package = gdu;
+  };
 
   meta = with lib; {
     description = "Disk usage analyzer with console interface";
@@ -51,8 +52,8 @@ buildGoModule rec {
       the performance gain is not so huge.
     '';
     homepage = "https://github.com/dundee/gdu";
+    changelog = "https://github.com/dundee/gdu/releases/tag/v${version}";
     license = with licenses; [ mit ];
-    maintainers = [ maintainers.fab ];
-    platforms = platforms.unix;
+    maintainers = with maintainers; [ fab zowoq ];
   };
 }

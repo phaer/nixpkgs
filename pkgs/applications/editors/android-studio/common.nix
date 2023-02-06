@@ -1,11 +1,12 @@
-{ channel, pname, version, build ? null, sha256Hash }:
+{ channel, pname, version, sha256Hash }:
 
-{ alsaLib
+{ alsa-lib
 , bash
 , buildFHSUserEnv
 , cacert
 , coreutils
 , dbus
+, e2fsprogs
 , expat
 , fetchurl
 , findutils
@@ -46,16 +47,18 @@
 , stdenv
 , systemd
 , unzip
+, usbutils
 , which
 , runCommand
 , xkeyboard_config
 , zlib
 , makeDesktopItem
+, tiling_wm # if we are using a tiling wm, need to set _JAVA_AWT_WM_NONREPARENTING in wrapper
 }:
 
 let
   drvName = "android-studio-${channel}-${version}";
-  filename = "android-studio-" + (if (build != null) then "ide-${build}" else version) + "-linux.tar.gz";
+  filename = "android-studio-${version}-linux.tar.gz";
 
   androidStudio = stdenv.mkDerivation {
     name = "${drvName}-unwrapped";
@@ -65,16 +68,21 @@ let
       sha256 = sha256Hash;
     };
 
-    nativeBuildInputs = [ unzip ];
-    buildInputs = [
+    nativeBuildInputs = [
+      unzip
       makeWrapper
     ];
+
+    # Causes the shebangs in interpreter scripts deployed to mobile devices to be patched, which Android does not understand
+    dontPatchShebangs = true;
+
     installPhase = ''
       cp -r . $out
       wrapProgram $out/bin/studio.sh \
-        --set-default JAVA_HOME "$out/jre" \
+        --set-default JAVA_HOME "$out/jbr" \
         --set ANDROID_EMULATOR_USE_SYSTEM_LIBS 1 \
         --set QT_XKB_CONFIG_ROOT "${xkeyboard_config}/share/X11/xkb" \
+        ${lib.optionalString tiling_wm "--set _JAVA_AWT_WM_NONREPARENTING 1"} \
         --set FONTCONFIG_FILE ${fontsConf} \
         --prefix PATH : "${lib.makeBinPath [
 
@@ -98,6 +106,7 @@ let
           # Runtime stuff
           git
           ps
+          usbutils
         ]}" \
         --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [
 
@@ -108,6 +117,9 @@ let
           libXi
           libXrender
           libXtst
+
+          # No crash, but attempted to load at startup
+          e2fsprogs
 
           # Gradle wants libstdc++.so.6
           stdenv.cc.cc.lib
@@ -121,7 +133,7 @@ let
           libXrandr
 
           # For Android emulator
-          alsaLib
+          alsa-lib
           dbus
           expat
           libpulseaudio
@@ -145,25 +157,22 @@ let
         ]}"
 
       # AS launches LLDBFrontend with a custom LD_LIBRARY_PATH
-      wrapProgram $out/bin/lldb/bin/LLDBFrontend --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [
+      wrapProgram $(find $out -name LLDBFrontend) --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [
         ncurses5
         zlib
       ]}"
     '';
   };
 
-  # Causes the shebangs in interpreter scripts deployed to mobile devices to be patched, which Android does not understand
-  dontPatchShebangs = true;
-
   desktopItem = makeDesktopItem {
-    name = drvName;
+    name = pname;
     exec = pname;
-    icon = drvName;
+    icon = pname;
     desktopName = "Android Studio (${channel} channel)";
     comment = "The official Android IDE";
-    categories = "Development;IDE;";
-    startupNotify = "true";
-    extraEntries="StartupWMClass=jetbrains-studio";
+    categories = [ "Development" "IDE" ];
+    startupNotify = true;
+    startupWMClass = "jetbrains-studio";
   };
 
   # Android Studio downloads prebuilt binaries as part of the SDK. These tools
@@ -187,7 +196,7 @@ in runCommand
   {
     startScript = ''
       #!${bash}/bin/bash
-      ${fhsEnv}/bin/${drvName}-fhs-env ${androidStudio}/bin/studio.sh
+      ${fhsEnv}/bin/${drvName}-fhs-env ${androidStudio}/bin/studio.sh "$@"
     '';
     preferLocalBuild = true;
     allowSubstitutes = false;
@@ -213,9 +222,9 @@ in runCommand
       # source-code itself).
       platforms = [ "x86_64-linux" ];
       maintainers = with maintainers; rec {
-        stable = [ meutraa ];
-        beta = [ meutraa ];
-        canary = [ meutraa ];
+        stable = [ alapshin ];
+        beta = [ alapshin ];
+        canary = [ alapshin ];
         dev = canary;
       }."${channel}";
     };
@@ -226,6 +235,6 @@ in runCommand
     echo -n "$startScript" > $out/bin/${pname}
     chmod +x $out/bin/${pname}
 
-    ln -s ${androidStudio}/bin/studio.png $out/share/pixmaps/${drvName}.png
+    ln -s ${androidStudio}/bin/studio.png $out/share/pixmaps/${pname}.png
     ln -s ${desktopItem}/share/applications $out/share/applications
   ''

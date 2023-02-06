@@ -1,20 +1,22 @@
-{ lib, fetchFromGitHub, rustPlatform, openssl, pkg-config, ncurses }:
+{ lib, stdenv, fetchFromGitHub, rustPlatform, openssl, pkg-config, ncurses
+, libiconv, Security }:
 
 rustPlatform.buildRustPackage rec {
-  version = "0.6.0";
+  version = "0.6.3";
   pname = "rink";
 
   src = fetchFromGitHub {
     owner = "tiffany352";
     repo = "rink-rs";
     rev = "v${version}";
-    sha256 = "sha256-3uhKevuUVh7AObn2GDW2T+5wttX20SbVP+sFaFj3Jmk=";
+    sha256 = "sha256-AhC3c6CpV0tlD6d/hFWt7hGj2UsXsOCeujkRSDlpvCM=";
   };
 
-  cargoSha256 = "sha256-luJzIGdcitH+PNgr86AYX6wKEkQlsRhwwylo+hzeovE=";
+  cargoSha256 = "sha256-Xo5iYwL4Db+GWMl5UXbPmj0Y0PJYR4Q0aUGnYCd+NB8=";
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ openssl ncurses ];
+  buildInputs = [ ncurses ]
+    ++ (if stdenv.isDarwin then [ libiconv Security ] else [ openssl ]);
 
   # Some tests fail and/or attempt to use internet servers.
   doCheck = false;

@@ -5,7 +5,7 @@
 , gettext
 , pkg-config
 , networkmanager
-, gnome3
+, gnome
 , libnotify
 , libsecret
 , polkit
@@ -25,11 +25,11 @@
 
 stdenv.mkDerivation rec {
   pname = "network-manager-applet";
-  version = "1.20.0";
+  version = "1.30.0";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "0lsjkbv66hn7acl2pg9h6hz4b700zzv4cjwrwjvy7043blw0bcla";
+    sha256 = "sha256-lRa4Tp2fEA24mgxny/5XztsFYjENRcqvtjMuJ7vrXNM=";
   };
 
   mesonFlags = [
@@ -43,7 +43,6 @@ stdenv.mkDerivation rec {
     libnma
     gtk3
     networkmanager
-    libnotify
     libsecret
     gsettings-desktop-schemas
     polkit
@@ -53,7 +52,7 @@ stdenv.mkDerivation rec {
     glib
     glib-networking
     libappindicator-gtk3
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
   ];
 
   nativeBuildInputs = [
@@ -72,9 +71,10 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
       attrPath = "networkmanagerapplet";
+      versionPolicy = "odd-unstable";
     };
   };
 
@@ -82,7 +82,7 @@ stdenv.mkDerivation rec {
     homepage = "https://gitlab.gnome.org/GNOME/network-manager-applet/";
     description = "NetworkManager control applet for GNOME";
     license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ phreedom ];
+    maintainers = with maintainers; [ ];
     platforms = platforms.linux;
   };
 }

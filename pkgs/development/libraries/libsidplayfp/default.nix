@@ -1,7 +1,7 @@
 { stdenv
 , lib
 , fetchFromGitHub
-, fetchpatch
+, nix-update-script
 , autoreconfHook
 , pkg-config
 , perl
@@ -16,28 +16,15 @@
 
 stdenv.mkDerivation rec {
   pname = "libsidplayfp";
-  version = "2.1.1";
+  version = "2.4.2";
 
   src = fetchFromGitHub {
     owner = "libsidplayfp";
     repo = "libsidplayfp";
     rev = "v${version}";
     fetchSubmodules = true;
-    sha256 = "0487gap2b0ypikyra74lk1qwqwr0vncldamk5xb1db2x97v504fd";
+    sha256 = "sha256-e+blEdO2KA/noW9pq56qZ0/vvtqQwiDbBJoQR0cQeds=";
   };
-
-  # https://github.com/libsidplayfp/libsidplayfp/issues/13
-  # Remove on next version bump
-  patches = [
-    (fetchpatch {
-      url = "https://github.com/libsidplayfp/libsidplayfp/commit/84f5498f5653261ed84328e1b5676c31e3ba9e6e.patch";
-      sha256 = "1vysbl4fkdzm11k40msng2ag6i6mb6z9jsw32vyj9calcfha5957";
-    })
-    (fetchpatch {
-      url = "https://github.com/libsidplayfp/libsidplayfp/commit/c1a1b732cc2e791d910522d58f47c6d094493c6d.patch";
-      sha256 = "1d3sgdly0q9dysgkx5afxbwfas6p0m8n3lw1hmj4n6wm3j9sdz4g";
-    })
-  ];
 
   postPatch = ''
     patchShebangs .
@@ -50,7 +37,7 @@ stdenv.mkDerivation rec {
 
   doCheck = true;
 
-  checkInputs = [ unittest-cpp ];
+  nativeCheckInputs = [ unittest-cpp ];
 
   enableParallelBuilding = true;
 
@@ -71,6 +58,10 @@ stdenv.mkDerivation rec {
     mkdir -p $doc/share/doc/libsidplayfp
     mv docs/html $doc/share/doc/libsidplayfp/
   '';
+
+  passthru = {
+    updateScript = nix-update-script { };
+  };
 
   meta = with lib; {
     description = "A library to play Commodore 64 music derived from libsidplay2";

@@ -1,5 +1,5 @@
 { stdenv, lib, fetchurl, bash, pkg-config, autoconf, cpio, file, which, unzip
-, zip, perl, cups, freetype, alsaLib, libjpeg, giflib, libpng, zlib, lcms2
+, zip, perl, cups, freetype, harfbuzz, alsa-lib, libjpeg, giflib, libpng, zlib, lcms2
 , libX11, libICE, libXrender, libXext, libXt, libXtst, libXi, libXinerama
 , libXcursor, libXrandr, fontconfig, openjdk11, fetchpatch
 , setJavaClassPath
@@ -24,7 +24,7 @@ let
 
     nativeBuildInputs = [ pkg-config autoconf unzip ];
     buildInputs = [
-      cpio file which zip perl zlib cups freetype alsaLib libjpeg giflib
+      cpio file which zip perl zlib cups freetype harfbuzz alsa-lib libjpeg giflib
       libpng zlib lcms2 libX11 libICE libXrender libXext libXtst libXt libXtst
       libXi libXinerama libXcursor libXrandr fontconfig openjdk11
     ] ++ lib.optionals (!headless && enableGnome2) [
@@ -63,6 +63,8 @@ let
       "--with-version-pre="
       "--enable-unlimited-crypto"
       "--with-native-debug-symbols=internal"
+      "--with-freetype=system"
+      "--with-harfbuzz=system"
       "--with-libjpeg=system"
       "--with-giflib=system"
       "--with-libpng=system"
@@ -82,6 +84,12 @@ let
     ] ++ lib.optionals (!headless && enableGnome2) [
       "-lgtk-3" "-lgio-2.0" "-lgnomevfs-2" "-lgconf-2"
     ];
+
+    # -j flag is explicitly rejected by the build system:
+    #     Error: 'make -jN' is not supported, use 'make JOBS=N'
+    # Note: it does not make build sequential. Build system
+    # still runs in parallel.
+    enableParallelBuilding = false;
 
     buildFlags = [ "all" ];
 
@@ -127,12 +135,12 @@ let
     postFixup = ''
       # Build the set of output library directories to rpath against
       LIBDIRS=""
-      for output in $outputs; do
+      for output in $(getAllOutputNames); do
         if [ "$output" = debug ]; then continue; fi
         LIBDIRS="$(find $(eval echo \$$output) -name \*.so\* -exec dirname {} \+ | sort | uniq | tr '\n' ':'):$LIBDIRS"
       done
       # Add the local library paths to remove dependencies on the bootstrap
-      for output in $outputs; do
+      for output in $(getAllOutputNames); do
         if [ "$output" = debug ]; then continue; fi
         OUTPUTDIR=$(eval echo \$$output)
         BINLIBS=$(find $OUTPUTDIR/bin/ -type f; find $OUTPUTDIR -name \*.so\*)
@@ -145,14 +153,7 @@ let
 
     disallowedReferences = [ openjdk11 ];
 
-    meta = with lib; {
-      homepage = "http://openjdk.java.net/";
-      license = licenses.gpl2;
-      description = "The open-source Java Development Kit";
-      maintainers = with maintainers; [ edwtjo ];
-      platforms = [ "i686-linux" "x86_64-linux" "aarch64-linux" "armv7l-linux" "armv6l-linux" ];
-      mainProgram = "java";
-    };
+    meta = import ./meta.nix lib version;
 
     passthru = {
       architecture = "";

@@ -5,16 +5,16 @@
 
 buildGoModule rec {
   pname = "rclone";
-  version = "1.55.1";
+  version = "1.61.1";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = pname;
     rev = "v${version}";
-    sha256 = "1fyi12qz2igcf9rqsp9gmcgfnmgy4g04s2b03b95ml6klbf73cns";
+    sha256 = "sha256-mBnpmCzuMCXZPM3Tq2SsOPwEfTUn1StahkB5U/6Fe+A=";
   };
 
-  vendorSha256 = "199z3j62xw9h8yviyv4jfls29y2ri9511hcyp5ix8ahgk6ypz8vw";
+  vendorSha256 = "sha256-EGNRKSlpdH/NNfLzSDL3lQzArVsVM6oRkyZm31V8cgM=";
 
   subPackages = [ "." ];
 
@@ -23,8 +23,9 @@ buildGoModule rec {
   buildInputs = lib.optional enableCmount (if stdenv.isDarwin then macfuse-stubs else fuse);
   nativeBuildInputs = [ installShellFiles makeWrapper ];
 
-  buildFlagsArray = lib.optionals enableCmount [ "-tags=cmount" ]
-    ++ [ "-ldflags=-s -w -X github.com/rclone/rclone/fs.Version=${version}" ];
+  tags = lib.optionals enableCmount [ "cmount" ];
+
+  ldflags = [ "-s" "-w" "-X github.com/rclone/rclone/fs.Version=${version}" ];
 
   postInstall =
     let
@@ -39,8 +40,13 @@ buildGoModule rec {
         ${rcloneBin}/bin/rclone genautocomplete $shell rclone.$shell
         installShellCompletion rclone.$shell
       done
-    '' + lib.optionalString (enableCmount && !stdenv.isDarwin) ''
-      wrapProgram $out/bin/rclone --prefix LD_LIBRARY_PATH : "${fuse}/lib"
+    '' + lib.optionalString (enableCmount && !stdenv.isDarwin)
+      # use --suffix here to ensure we don't shadow /run/wrappers/bin/fusermount,
+      # as the setuid wrapper is required as non-root on NixOS.
+      ''
+      wrapProgram $out/bin/rclone \
+                  --suffix PATH : "${lib.makeBinPath [ fuse ] }" \
+                  --prefix LD_LIBRARY_PATH : "${fuse}/lib"
     '';
 
   meta = with lib; {

@@ -1,5 +1,4 @@
-{ mkDerivation, lib, config
-, extra-cmake-modules, kdoctools
+{ mkDerivation, lib, extra-cmake-modules, kdoctools
 , breeze-icons, karchive, kconfig, kcrash, kdbusaddons, ki18n
 , kiconthemes, kitemmodels, khtml, kio, kparts, kpty, kservice, kwidgetsaddons
 , libarchive, libzip
@@ -30,6 +29,7 @@ mkDerivation {
   qtWrapperArgs = [ "--prefix" "PATH" ":" (lib.makeBinPath extraTools) ];
 
   meta = with lib; {
+    homepage = "https://apps.kde.org/ark/";
     description = "Graphical file compression/decompression utility";
     license = with licenses; [ gpl2 lgpl3 ] ++ optional unfreeEnableUnrar unfree;
     maintainers = [ maintainers.ttuegel ];

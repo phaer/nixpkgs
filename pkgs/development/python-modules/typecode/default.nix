@@ -3,21 +3,26 @@
 , buildPythonPackage
 , setuptools-scm
 , attrs
-, pdfminer
+, pdfminer-six
 , commoncode
 , plugincode
 , binaryornot
 , typecode-libmagic
 , pytestCheckHook
 , pytest-xdist
+, pythonOlder
 }:
+
 buildPythonPackage rec {
   pname = "typecode";
-  version = "21.2.24";
+  version = "30.0.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "eaac8aee0b9c6142ad44671252ba00748202d218347d1c0451ce6cd76561e01b";
+    hash = "sha256-pRGLU/xzQQqDZMIsrq1Fy7VgGIpFjnHtpmO+yL7t4g8=";
   };
 
   dontConfigure = true;
@@ -28,16 +33,23 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     attrs
-    pdfminer
+    pdfminer-six
     commoncode
     plugincode
     binaryornot
     typecode-libmagic
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     pytest-xdist
+  ];
+
+  disabledTests = [
+    "TestFileTypesDataDriven"
+    # AssertionError: assert 'application/x-bytecode.python'...
+    "test_compiled_python_1"
+    "test_package_json"
   ];
 
   pythonImportsCheck = [

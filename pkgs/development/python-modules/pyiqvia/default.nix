@@ -2,6 +2,7 @@
 , buildPythonPackage
 , aiohttp
 , aresponses
+, backoff
 , fetchFromGitHub
 , poetry-core
 , pytest-aiohttp
@@ -12,35 +13,45 @@
 
 buildPythonPackage rec {
   pname = "pyiqvia";
-  version = "0.3.3";
+  version = "2022.10.0";
   format = "pyproject";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "bachya";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-XYWoHKa/yq7MtGVM6eVgLtR2E3VmqsjX3TNcQcd7dEQ=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-4xoK/SwpcsjIpGUertWoSlRsKIpgpV1XmuIzDJcZMZg=";
   };
 
-  nativeBuildInputs = [ poetry-core ];
+  nativeBuildInputs = [
+    poetry-core
+  ];
 
-  propagatedBuildInputs = [ aiohttp ];
+  propagatedBuildInputs = [
+    aiohttp
+    backoff
+  ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     aresponses
     pytest-aiohttp
     pytest-asyncio
     pytestCheckHook
   ];
 
-  # Ignore the examples as they are prefixed with test_
-  pytestFlagsArray = [ "--ignore examples/" ];
-  pythonImportsCheck = [ "pyiqvia" ];
+  disabledTestPaths = [
+    # Ignore the examples as they are prefixed with test_
+    "examples/"
+  ];
+
+  pythonImportsCheck = [
+    "pyiqvia"
+  ];
 
   meta = with lib; {
-    description = "Python3 API for IQVIA data";
+    description = "Module for working with IQVIA data";
     longDescription = ''
       pyiqvia is an async-focused Python library for allergen, asthma, and
       disease data from the IQVIA family of websites (such as https://pollen.com,

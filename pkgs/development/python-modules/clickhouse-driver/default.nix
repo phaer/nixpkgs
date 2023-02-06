@@ -1,6 +1,6 @@
 { lib
 , buildPythonPackage
-, fetchPypi
+, fetchFromGitHub
 , setuptools
 , pytz
 , tzlocal
@@ -10,15 +10,20 @@
 , freezegun
 , mock
 , nose
+, pytestCheckHook
+, pytest-xdist
 }:
 
 buildPythonPackage rec {
   pname = "clickhouse-driver";
-  version = "0.2.0";
+  version = "0.2.5";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "62d37f93872d5a13eb6b0d52bab2b593ed0e14cf9200949aa2d02f9801064c0f";
+  # pypi source doesn't contain tests
+  src = fetchFromGitHub {
+    owner = "mymarilyn";
+    repo = "clickhouse-driver";
+    rev = version;
+    hash = "sha256-o5v37jPKmvUW4GFVD742nHSdO0g0z2FA4FkacbaRfNA=";
   };
 
   propagatedBuildInputs = [
@@ -30,13 +35,32 @@ buildPythonPackage rec {
     lz4
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     freezegun
     mock
     nose
+    pytest-xdist
+    pytestCheckHook
   ];
 
-  doCheck = true;
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace "lz4<=3.0.1" "lz4<=4"
+  '';
+
+  # remove source to prevent pytest testing source instead of the build artifacts
+  # (the source doesn't contain the extension modules)
+  preCheck = ''
+    rm -rf clickhouse_driver
+  '';
+
+  # some test in test_buffered_reader.py doesn't seem to return
+  disabledTestPaths = [ "tests/test_buffered_reader.py" ];
+
+  # most tests require `clickhouse`
+  # TODO: enable tests after `clickhouse` unbroken
+  doCheck = false;
+
   pythonImportsCheck = [ "clickhouse_driver" ];
 
   meta = with lib; {

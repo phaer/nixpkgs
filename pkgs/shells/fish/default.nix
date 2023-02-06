@@ -1,8 +1,8 @@
 { stdenv
 , lib
 , fetchurl
+, fetchpatch
 , coreutils
-, util-linux
 , which
 , gnused
 , gnugrep
@@ -19,9 +19,13 @@
 , fishPlugins
 , procps
 
+# used to generate autocompletions from manpages and for configuration editing in the browser
+, usePython ? true
+
 , runCommand
 , writeText
 , nixosTests
+, nix-update-script
 , useOperatingSystemEtc ? true
   # An optional string containing Fish code that initializes the environment.
   # This is run at the very beginning of initialization. If it sets $NIX_PROFILES
@@ -131,7 +135,7 @@ let
 
   fish = stdenv.mkDerivation rec {
     pname = "fish";
-    version = "3.2.2";
+    version = "3.6.0";
 
     src = fetchurl {
       # There are differences between the release tarball and the tarball GitHub
@@ -141,7 +145,7 @@ let
       # --version`), as well as the local documentation for all builtins (and
       # maybe other things).
       url = "https://github.com/fish-shell/fish-shell/releases/download/${version}/${pname}-${version}.tar.xz";
-      sha256 = "WUTaGoiT0RsIKKT9kTbuF0VJ2v+z0K392JF4Vv5rQAk=";
+      hash = "sha512-oR6nYa2s4C73+IsliTMoAFzvB/ktNi+8eUVA3KJunPyXCHjQMSyuvRnWRIPp88PiStbCffziZNF3+T1lx+9plg==";
     };
 
     # Fix FHS paths in tests
@@ -177,10 +181,17 @@ let
       rm tests/pexpects/exit.py
       rm tests/pexpects/job_summary.py
       rm tests/pexpects/signals.py
+    '' + lib.optionalString stdenv.isLinux ''
+      # pexpect tests are flaky on aarch64-linux (also x86_64-linux)
+      # See https://github.com/fish-shell/fish-shell/issues/8789
+      rm tests/pexpects/exit_handlers.py
     '';
 
+    outputs = [ "out" "doc" ];
+    strictDeps = true;
     nativeBuildInputs = [
       cmake
+      gettext
     ];
 
     buildInputs = [
@@ -190,29 +201,33 @@ let
     ];
 
     cmakeFlags = [
-      "-DCMAKE_INSTALL_DOCDIR=${placeholder "out"}/share/doc/fish"
+      "-DCMAKE_INSTALL_DOCDIR=${placeholder "doc"}/share/doc/fish"
     ] ++ lib.optionals stdenv.isDarwin [
       "-DMAC_CODESIGN_ID=OFF"
     ];
 
+    # The optional string is kind of an inelegant way to get fish to cross compile.
+    # Fish needs coreutils as a runtime dependency, and it gets put into
+    # CMAKE_PREFIX_PATH, which cmake uses to look up build time programs, so it
+    # was clobbering the PATH. It probably needs to be fixed at a lower level.
     preConfigure = ''
       patchShebangs ./build_tools/git_version_gen.sh
+    '' + lib.optionalString (stdenv.hostPlatform != stdenv.buildPlatform) ''
+      export CMAKE_PREFIX_PATH=
     '';
 
     # Required binaries during execution
-    # Python: Autocompletion generated from manpages and config editing
     propagatedBuildInputs = [
       coreutils
       gnugrep
       gnused
-      python3
       groff
       gettext
     ] ++ lib.optional (!stdenv.isDarwin) man-db;
 
     doCheck = true;
 
-    checkInputs = [
+    nativeCheckInputs = [
       coreutils
       (python3.withPackages (ps: [ ps.pexpect ]))
       procps
@@ -233,18 +248,17 @@ let
       sed -e "s|sed |${gnused}/bin/sed |"                  \
           -i "$out/share/fish/functions/alias.fish"        \
              "$out/share/fish/functions/prompt_pwd.fish"
-      sed -i "s|nroff |${groff}/bin/nroff |"               \
+      sed -i "s|nroff|${groff}/bin/nroff|"                 \
              "$out/share/fish/functions/__fish_print_help.fish"
       sed -e "s|clear;|${getBin ncurses}/bin/clear;|"      \
           -i "$out/share/fish/functions/fish_default_key_bindings.fish"
-      sed -e "s|python3|${getBin python3}/bin/python3|"    \
-          -i $out/share/fish/functions/{__fish_config_interactive.fish,fish_config.fish,fish_update_completions.fish}
       sed -i "s|/usr/local/sbin /sbin /usr/sbin||"         \
              $out/share/fish/completions/{sudo.fish,doas.fish}
       sed -e "s| awk | ${gawk}/bin/awk |"                  \
           -i $out/share/fish/functions/{__fish_print_packages.fish,__fish_print_addresses.fish,__fish_describe_command.fish,__fish_complete_man.fish,__fish_complete_convert_options.fish} \
              $out/share/fish/completions/{cwebp,adb,ezjail-admin,grunt,helm,heroku,lsusb,make,p4,psql,rmmod,vim-addons}.fish
 
+    '' + optionalString usePython ''
       cat > $out/share/fish/functions/__fish_anypython.fish <<EOF
       function __fish_anypython
           echo ${python3.interpreter}
@@ -253,8 +267,6 @@ let
       EOF
 
     '' + optionalString stdenv.isLinux ''
-      sed -e "s| ul| ${util-linux}/bin/ul|" \
-          -i "$out/share/fish/functions/__fish_print_help.fish"
       for cur in $out/share/fish/functions/*.fish; do
         sed -e "s|/usr/bin/getent|${getent}/bin/getent|" \
             -i "$cur"
@@ -273,10 +285,10 @@ let
 
     meta = with lib; {
       description = "Smart and user-friendly command line shell";
-      homepage = "http://fishshell.com/";
+      homepage = "https://fishshell.com/";
       license = licenses.gpl2;
       platforms = platforms.unix;
-      maintainers = with maintainers; [ cole-h ];
+      maintainers = with maintainers; [ cole-h winter srapenne ];
     };
 
     passthru = {
@@ -315,6 +327,7 @@ let
             ${fish}/bin/fish ${fishScript} && touch $out
           '';
       };
+      updateScript = nix-update-script { };
     };
   };
 in

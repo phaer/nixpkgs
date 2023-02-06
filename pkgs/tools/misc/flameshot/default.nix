@@ -1,14 +1,26 @@
-{ mkDerivation, lib, fetchFromGitHub, qtbase, cmake, qttools, qtsvg }:
+{ mkDerivation
+, lib
+, fetchFromGitHub
+, qtbase
+, cmake
+, qttools
+, qtsvg
+, nix-update-script
+}:
 
 mkDerivation rec {
   pname = "flameshot";
-  version = "0.9.0";
+  version = "12.1.0";
 
   src = fetchFromGitHub {
     owner = "flameshot-org";
     repo = "flameshot";
     rev = "v${version}";
-    sha256 = "sha256-E5J61k1tVpbwlzYHbCY1rf9+GODcJRRAQwb0jR4s7BU=";
+    sha256 = "sha256-omyMN8d+g1uYsEw41KmpJCwOmVWLokEfbW19vIvG79w=";
+  };
+
+  passthru = {
+    updateScript = nix-update-script { };
   };
 
   nativeBuildInputs = [ cmake qttools qtsvg ];
@@ -17,8 +29,8 @@ mkDerivation rec {
   meta = with lib; {
     description = "Powerful yet simple to use screenshot software";
     homepage = "https://github.com/flameshot-org/flameshot";
-    maintainers = [ maintainers.scode ];
-    license = lib.licenses.gpl3Plus;
-    platforms = lib.platforms.linux;
+    maintainers = with maintainers; [ scode oxalica ];
+    license = licenses.gpl3Plus;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }

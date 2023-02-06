@@ -1,5 +1,5 @@
 { lib
-, stdenv
+, gccStdenv
 , fetchFromGitHub
 , autoreconfHook
 , xorgproto
@@ -7,7 +7,7 @@
 , libXpm
 }:
 
-stdenv.mkDerivation rec {
+gccStdenv.mkDerivation rec {
   pname = "0verkill";
   version = "unstable-2011-01-13";
 
@@ -27,6 +27,9 @@ stdenv.mkDerivation rec {
     autoupdate
   '';
 
+  # The code needs an update for gcc-10:
+  #   https://github.com/hackndev/0verkill/issues/7
+  NIX_CFLAGS_COMPILE = "-fcommon";
   hardeningDisable = [ "all" ]; # Someday the upstream will update the code...
 
   meta = with lib; {

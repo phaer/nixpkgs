@@ -27,12 +27,9 @@ stdenv.mkDerivation rec {
   buildInputs = [ libxml2 libxslt docbook_xml_dtd_45 docbook_xsl ];
 
   postInstall = ''
-    wrapProgram "$out/bin/xmlto" \
-       --prefix PATH : "${lib.makeBinPath [ libxslt libxml2 getopt ]}"
-
     # `w3m' is needed for HTML to text conversions.
-    substituteInPlace "$out/share/xmlto/format/docbook/txt" \
-      --replace "/usr/bin/w3m" "${w3m}/bin/w3m"
+    wrapProgram "$out/bin/xmlto" \
+       --prefix PATH : "${lib.makeBinPath [ libxslt libxml2 getopt w3m ]}"
   '';
 
   meta = {
@@ -46,7 +43,7 @@ stdenv.mkDerivation rec {
     '';
 
     license = lib.licenses.gpl2Plus;
-    homepage = "https://fedorahosted.org/xmlto/";
+    homepage = "https://pagure.io/xmlto/";
     platforms = lib.platforms.unix;
   };
 }

@@ -4,30 +4,35 @@
 , oauthlib
 , pythonOlder
 , requests
-, requests_oauthlib
+, requests-oauthlib
 }:
 
 buildPythonPackage rec {
   pname = "ondilo";
-  version = "0.2.0";
+  version = "0.3.0";
+  format = "setuptools";
+
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "JeromeHXP";
     repo = pname;
     rev = version;
-    sha256 = "0k7c9nacf7pxvfik3hkv9vvvda2sx5jrf6zwq7r077x7fw5l8d2b";
+    hash = "sha256-MI6K+41I/IVi+GRBdmRIHbljULDFLAwpo3W8tdxCOBM=";
   };
 
   propagatedBuildInputs = [
     oauthlib
     requests
-    requests_oauthlib
+    requests-oauthlib
   ];
 
   # Project has no tests
   doCheck = false;
-  pythonImportsCheck = [ "ondilo" ];
+
+  pythonImportsCheck = [
+    "ondilo"
+  ];
 
   meta = with lib; {
     description = "Python package to access Ondilo ICO APIs";

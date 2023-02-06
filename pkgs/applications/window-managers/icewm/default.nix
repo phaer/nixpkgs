@@ -1,16 +1,17 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, fetchpatch
 , cmake
-, pkg-config
-, asciidoc
 , expat
+, flac
 , fontconfig
 , freetype
 , fribidi
 , gdk-pixbuf
 , gdk-pixbuf-xlib
 , gettext
+, giflib
 , glib
 , imlib2
 , libICE
@@ -26,42 +27,45 @@
 , libXpm
 , libXrandr
 , libjpeg
+, libogg
 , libpng
 , libpthreadstubs
 , libsndfile
 , libtiff
-, libungif
 , libxcb
 , mkfontdir
-, pcre
+, pcre2
 , perl
+, pkg-config
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "icewm";
-  version = "2.2.0";
+  version = "3.3.1";
 
   src = fetchFromGitHub {
-    owner  = "bbidulock";
-    repo = pname;
-    rev = version;
-    hash = "sha256-STM8t311lf0xIqs2Onmwg48xgE7V9VZrUfJrUzYRxL4=";
+    owner = "ice-wm";
+    repo = "icewm";
+    rev = finalAttrs.version;
+    hash = "sha256-2gEZRkym21X4rvj6kzZh9WChZUkfqgS1wiWh7LBioZM=";
   };
 
   nativeBuildInputs = [
-    asciidoc
     cmake
     perl
     pkg-config
   ];
+
   buildInputs = [
     expat
+    flac
     fontconfig
     freetype
     fribidi
     gdk-pixbuf
     gdk-pixbuf-xlib
     gettext
+    giflib
     glib
     imlib2
     libICE
@@ -77,25 +81,29 @@ stdenv.mkDerivation rec {
     libXpm
     libXrandr
     libjpeg
+    libogg
     libpng
     libpthreadstubs
     libsndfile
     libtiff
-    libungif
     libxcb
     mkfontdir
-    pcre
+    pcre2
   ];
 
-  cmakeFlags = [ "-DPREFIX=$out" "-DCFGDIR=/etc/icewm" ];
+  cmakeFlags = [
+    "-DPREFIX=$out"
+    "-DCFGDIR=/etc/icewm"
+  ];
 
   # install legacy themes
   postInstall = ''
-    cp -r ../lib/themes/{gtk2,Natural,nice,nice2,warp3,warp4,yellowmotif} $out/share/icewm/themes/
+    cp -r ../lib/themes/{gtk2,Natural,nice,nice2,warp3,warp4,yellowmotif} \
+      $out/share/icewm/themes/
   '';
 
   meta = with lib; {
-    homepage = "https://www.ice-wm.org/";
+    homepage = "https://ice-wm.org/";
     description = "A simple, lightweight X window manager";
     longDescription = ''
       IceWM is a window manager for the X Window System. The goal of IceWM is
@@ -104,14 +112,14 @@ stdenv.mkDerivation rec {
       system. Application windows can be managed by keyboard and mouse. Windows
       can be iconified to the taskbar, to the tray, to the desktop or be made
       hidden. They are controllable by a quick switch window (Alt+Tab) and in a
-      window list. A handful of configurable focus models are
-      menu-selectable. Setups with multiple monitors are supported by RandR and
-      Xinerama. IceWM is very configurable, themeable and well documented. It
-      includes an optional external background wallpaper manager with
-      transparency support, a simple session manager and a system tray.
+      window list. A handful of configurable focus models are menu-selectable.
+      Setups with multiple monitors are supported by RandR and Xinerama. IceWM
+      is very configurable, themeable and well documented. It includes an
+      optional external background wallpaper manager with transparency support,
+      a simple session manager and a system tray.
     '';
     license = licenses.lgpl2Only;
     maintainers = [ maintainers.AndersonTorres ];
     platforms = platforms.linux;
   };
-}
+})

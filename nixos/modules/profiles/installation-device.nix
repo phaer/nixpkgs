@@ -20,12 +20,13 @@ with lib;
     ];
 
   config = {
+    system.nixos.variant_id = lib.mkDefault "installer";
 
     # Enable in installer, even if the minimal profile disables it.
-    documentation.enable = mkForce true;
+    documentation.enable = mkImageMediaOverride true;
 
     # Show the manual.
-    documentation.nixos.enable = mkForce true;
+    documentation.nixos.enable = mkImageMediaOverride true;
 
     # Use less privileged nixos user
     users.users.nixos = {
@@ -41,7 +42,7 @@ with lib;
     # Allow passwordless sudo from nixos user
     security.sudo = {
       enable = mkDefault true;
-      wheelNeedsPassword = mkForce false;
+      wheelNeedsPassword = mkImageMediaOverride false;
     };
 
     # Automatically log in at the virtual consoles.
@@ -54,7 +55,12 @@ with lib;
       An ssh daemon is running. You then must set a password
       for either "root" or "nixos" with `passwd` or add an ssh key
       to /home/nixos/.ssh/authorized_keys be able to login.
+
+      If you need a wireless connection, type
+      `sudo systemctl start wpa_supplicant` and configure a
+      network using `wpa_cli`. See the NixOS manual for details.
     '' + optionalString config.services.xserver.enable ''
+
       Type `sudo systemctl start display-manager' to
       start the graphical user interface.
     '';
@@ -66,11 +72,12 @@ with lib;
     # mounting the storage in a different system.
     services.openssh = {
       enable = true;
-      permitRootLogin = "yes";
+      settings.PermitRootLogin = "yes";
     };
 
     # Enable wpa_supplicant, but don't start it by default.
     networking.wireless.enable = mkDefault true;
+    networking.wireless.userControlled.enable = true;
     systemd.services.wpa_supplicant.wantedBy = mkOverride 50 [];
 
     # Tell the Nix evaluator to garbage collect more aggressively.
@@ -93,11 +100,23 @@ with lib;
         stdenvNoCC # for runCommand
         busybox
         jq # for closureInfo
+        # For boot.initrd.systemd
+        makeInitrdNGTool
+        systemdStage1
+        systemdStage1Network
       ];
 
     # Show all debug messages from the kernel but don't log refused packets
     # because we have the firewall enabled. This makes installs from the
     # console less cumbersome if the machine has a public IP.
     networking.firewall.logRefusedConnections = mkDefault false;
+
+    # Prevent installation media from evacuating persistent storage, as their
+    # var directory is not persistent and it would thus result in deletion of
+    # those entries.
+    environment.etc."systemd/pstore.conf".text = ''
+      [PStore]
+      Unlink=no
+    '';
   };
 }

@@ -2,7 +2,6 @@
 
 { fetchurl, lib, stdenv, xorg, glib, glibcLocales, gtk3, cairo, pango, libredirect, makeWrapper, wrapGAppsHook
 , pkexecPath ? "/run/wrappers/bin/pkexec"
-, writeScript, common-updater-scripts, curl, gnugrep
 , openssl, bzip2, bash, unzip, zip
 }:
 
@@ -102,14 +101,14 @@ in let
         "''${gappsWrapperArgs[@]}"
 
       # Without this, plugin_host crashes, even though it has the rpath
-      wrapProgram $out/plugin_host --prefix LD_PRELOAD : ${stdenv.cc.cc.lib}/lib${lib.optionalString stdenv.is64bit "64"}/libgcc_s.so.1:${openssl.out}/lib/libssl.so:${bzip2.out}/lib/libbz2.so
+      wrapProgram $out/plugin_host --prefix LD_PRELOAD : ${stdenv.cc.cc.lib}/lib${lib.optionalString stdenv.is64bit "64"}/libgcc_s.so.1:${lib.getLib openssl}/lib/libssl.so:${bzip2.out}/lib/libbz2.so
     '';
   };
 in stdenv.mkDerivation (rec {
   inherit pname;
   version = buildVersion;
 
-  phases = [ "installPhase" ];
+  dontUnpack = true;
 
   ${primaryBinary} = binaryPackage;
 
@@ -128,30 +127,11 @@ in stdenv.mkDerivation (rec {
     done
   '';
 
-  passthru.updateScript = writeScript "${pname}-update-script" ''
-    #!${stdenv.shell}
-    set -o errexit
-    PATH=${lib.makeBinPath [ common-updater-scripts curl gnugrep ]}
-
-    latestVersion=$(curl -s ${versionUrl})
-
-    if [[ "${buildVersion}" = "$latestVersion" ]]; then
-        echo "The new version same as the old version."
-        exit 0
-    fi
-
-    for platform in ${lib.concatStringsSep " " meta.platforms}; do
-        # The script will not perform an update when the version attribute is up to date from previous platform run
-        # We need to clear it before each run
-        update-source-version ${packageAttribute}.${primaryBinary} 0 0000000000000000000000000000000000000000000000000000000000000000 --file=${versionFile} --version-key=buildVersion --system=$platform
-        update-source-version ${packageAttribute}.${primaryBinary} $latestVersion --file=${versionFile} --version-key=buildVersion --system=$platform
-    done
-  '';
-
   meta = with lib; {
     description = "Sophisticated text editor for code, markup and prose";
     homepage = "https://www.sublimetext.com/";
     maintainers = with maintainers; [ jtojnar wmertens demin-dmitriy zimbatm ];
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     platforms = [ "x86_64-linux" "i686-linux" ];
   };

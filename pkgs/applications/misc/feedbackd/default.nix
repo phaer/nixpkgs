@@ -1,52 +1,93 @@
 { lib
 , stdenv
 , fetchFromGitLab
+, docbook-xsl-nons
+, gobject-introspection
+, gtk-doc
+, libxslt
 , meson
 , ninja
 , pkg-config
+, vala
 , wrapGAppsHook
 , glib
 , gsound
-, libgudev
 , json-glib
-, vala
-, gobject-introspection
+, libgudev
+, dbus
 }:
 
+let
+  themes = fetchFromGitLab {
+    domain = "source.puri.sm";
+    owner = "Librem5";
+    repo = "feedbackd-device-themes";
+    rev = "v0.0.20220523";
+    sha256 = "sha256-RyUZj+tpJSYhyoK+E98CTIoHwXwBdB1YHVnO5821exo=";
+  };
+in
 stdenv.mkDerivation rec {
-  pname = "feedbackd-unstable";
-  version = "2021-01-25";
+  pname = "feedbackd";
+  # Not an actual upstream project release,
+  # only a Debian package release that is tagged in the upstream repo
+  version = "0.0.1";
+
+  outputs = [ "out" "dev" ]
+    # remove if cross-compiling gobject-introspection works
+    ++ lib.optionals (stdenv.buildPlatform == stdenv.hostPlatform) [ "devdoc" ];
 
   src = fetchFromGitLab {
     domain = "source.puri.sm";
     owner = "Librem5";
     repo = "feedbackd";
-    rev = "v0.0.0+git${builtins.replaceStrings ["-"] [""] version}";
-    sha256 = "184ag10sfzrka533inv6f38x6z769kq5jj56vdkcm65j5h786w5v";
+    rev = "v${version}";
+    hash = "sha256-l1FhECLPq8K9lzQ50sI/aH7fwR9xW1ATyk7EWRmLzuQ=";
   };
 
   nativeBuildInputs = [
+    docbook-xsl-nons
+    gobject-introspection
+    gtk-doc
+    libxslt
     meson
     ninja
     pkg-config
-    wrapGAppsHook
     vala
-    gobject-introspection
+    wrapGAppsHook
   ];
 
   buildInputs = [
     glib
     gsound
-    libgudev
     json-glib
+    libgudev
   ];
+
+  mesonFlags = [
+    "-Dgtk_doc=${lib.boolToString (stdenv.buildPlatform == stdenv.hostPlatform)}"
+    "-Dman=true"
+    # TODO(mindavi): introspection broken due to https://github.com/NixOS/nixpkgs/issues/72868
+    #                can be removed if cross-compiling gobject-introspection works.
+    "-Dintrospection=${if (stdenv.buildPlatform == stdenv.hostPlatform) then "enabled" else "disabled"}"
+  ];
+
+  nativeCheckInputs = [
+    dbus
+  ];
+
+  doCheck = true;
+
+  postInstall = ''
+    mkdir -p $out/lib/udev/rules.d
+    sed "s|/usr/libexec/|$out/libexec/|" < $src/debian/feedbackd.udev > $out/lib/udev/rules.d/90-feedbackd.rules
+    cp ${themes}/data/* $out/share/feedbackd/themes/
+  '';
 
   meta = with lib; {
     description = "A daemon to provide haptic (and later more) feedback on events";
     homepage = "https://source.puri.sm/Librem5/feedbackd";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ pacman99 ];
+    maintainers = with maintainers; [ pacman99 tomfitzhenry ];
     platforms = platforms.linux;
   };
 }
-

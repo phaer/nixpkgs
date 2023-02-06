@@ -3,22 +3,17 @@
 , langAda ? false
 , langObjC ? stdenv.targetPlatform.isDarwin
 , langObjCpp ? stdenv.targetPlatform.isDarwin
+, langD ? false
 , langGo ? false
 , reproducibleBuild ? true
 , profiledCompiler ? false
 , langJit ? false
 , staticCompiler ? false
-, # N.B. the defult is intentionally not from an `isStatic`. See
-  # https://gcc.gnu.org/install/configure.html - this is about target
-  # platform libraries not host platform ones unlike normal. But since
-  # we can't rebuild those without also rebuilding the compiler itself,
-  # we opt to always build everything unlike our usual policy.
-  enableShared ? true
-, enableLTO ? true
+, enableShared ? !stdenv.targetPlatform.isStatic
+, enableLTO ? !stdenv.hostPlatform.isStatic
 , texinfo ? null
 , perl ? null # optional, for texi2pod (then pod2man)
-, gmp, mpfr, libmpc, gettext, which, patchelf
-, libelf                      # optional, for link-time optimizations (LTO)
+, gmp, mpfr, libmpc, gettext, which, patchelf, binutils
 , isl ? null # optional, for the Graphite optimization framework.
 , zlib ? null
 , gnatboot ? null
@@ -28,26 +23,21 @@
 , libcCross ? null
 , threadsCross ? null # for MinGW
 , crossStageStatic ? false
-, # Strip kills static libs of other archs (hence no cross)
-  stripped ? stdenv.hostPlatform.system == stdenv.buildPlatform.system
-          && stdenv.targetPlatform.system == stdenv.hostPlatform.system
 , gnused ? null
 , cloog # unused; just for compat with gcc4, as we override the parameter on some places
 , buildPackages
+, libxcrypt
 }:
 
-# LTO needs libelf and zlib.
-assert libelf != null -> zlib != null;
-
 # Make sure we get GNU sed.
-assert stdenv.hostPlatform.isDarwin -> gnused != null;
+assert stdenv.buildPlatform.isDarwin -> gnused != null;
 
 # The go frontend is written in c++
 assert langGo -> langCC;
 assert langAda -> gnatboot != null;
 
 # threadsCross is just for MinGW
-assert threadsCross != null -> stdenv.targetPlatform.isWindows;
+assert threadsCross != {} -> stdenv.targetPlatform.isWindows;
 
 # profiledCompiler builds inject non-determinism in one of the compilation stages.
 # If turned on, we can't provide reproducible builds anymore
@@ -57,23 +47,42 @@ with lib;
 with builtins;
 
 let majorVersion = "11";
-    version = "${majorVersion}.1.0";
+    version = "${majorVersion}.3.0";
 
     inherit (stdenv) buildPlatform hostPlatform targetPlatform;
 
-    patches =
-         optional (targetPlatform != hostPlatform) ../libstdc++-target.patch
+    patches = [
+      # Fix https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80431
+      (fetchurl {
+        name = "fix-bug-80431.patch";
+        url = "https://gcc.gnu.org/git/?p=gcc.git;a=patch;h=de31f5445b12fd9ab9969dc536d821fe6f0edad0";
+        sha256 = "0sd52c898msqg7m316zp0ryyj7l326cjcn2y19dcxqp15r74qj0g";
+      })
+    ] ++ optional (targetPlatform != hostPlatform) ../libstdc++-target.patch
       ++ optional noSysDirs ../no-sys-dirs.patch
+      ++ optional (noSysDirs && hostPlatform.isRiscV) ../no-sys-dirs-riscv.patch
       /* ++ optional (hostPlatform != buildPlatform) (fetchpatch { # XXX: Refine when this should be applied
         url = "https://git.busybox.net/buildroot/plain/package/gcc/${version}/0900-remove-selftests.patch?id=11271540bfe6adafbc133caf6b5b902a816f5f02";
         sha256 = ""; # TODO: uncomment and check hash when available.
       }) */
-      ++ optional langAda ../gnat-cflags.patch
+      ++ optional langAda ../gnat-cflags-11.patch
+      ++ optional langD ../libphobos.patch
       ++ optional langFortran ../gfortran-driving.patch
       ++ optional (targetPlatform.libc == "musl" && targetPlatform.isPower) ../ppc-musl.patch
 
+      ++ optionals stdenv.isDarwin [
+        (fetchpatch {
+          # There are no upstream release tags in https://github.com/iains/gcc-11-branch.
+          # 2d280e7 is the commit from https://github.com/gcc-mirror/gcc/releases/tag/releases%2Fgcc-11.3.0
+          url = "https://github.com/iains/gcc-11-branch/compare/2d280e7eafc086e9df85f50ed1a6526d6a3a204d..gcc-11.3-darwin-r2.diff";
+          sha256 = "sha256-LFAXUEoYD7YeCG8V9mWanygyQOI7U5OhCRIKOVCCDAg=";
+        })
+      ]
+      # https://github.com/osx-cross/homebrew-avr/issues/280#issuecomment-1272381808
+      ++ optional (stdenv.isDarwin && targetPlatform.isAvr) ./avr-gcc-11.3-darwin.patch
+
       # Obtain latest patch with ../update-mcfgthread-patches.sh
-      ++ optional (!crossStageStatic && targetPlatform.isMinGW) ./Added-mcf-thread-model-support-from-mcfgthread.patch;
+      ++ optional (!crossStageStatic && targetPlatform.isMinGW && threadsCross.model == "mcf") ./Added-mcf-thread-model-support-from-mcfgthread.patch;
 
     /* Cross-gcc settings (build == host != target) */
     crossMingw = targetPlatform != hostPlatform && targetPlatform.libc == "msvcrt";
@@ -83,14 +92,14 @@ let majorVersion = "11";
 in
 
 stdenv.mkDerivation ({
-  pname = "${crossNameAddon}${name}${if stripped then "" else "-debug"}";
+  pname = "${crossNameAddon}${name}";
   inherit version;
 
   builder = ../builder.sh;
 
   src = fetchurl {
     url = "mirror://gcc/releases/gcc-${version}/gcc-${version}.tar.xz";
-    sha256 = "1pwxrjhsymv90xzh0x42cxfnmhjinf2lnrrf3hj5jq1rm2w6yjjc";
+    sha256 = "sha256-tHzygYaR9bHiHfK7OMeV+sLPvWQO3i0KXhyJ4zijrDk=";
   };
 
   inherit patches;
@@ -103,9 +112,15 @@ stdenv.mkDerivation ({
 
   hardeningDisable = [ "format" "pie" ];
 
+  postPatch = ''
+    configureScripts=$(find . -name configure)
+    for configureScript in $configureScripts; do
+      patchShebangs $configureScript
+    done
+  ''
   # This should kill all the stdinc frameworks that gcc and friends like to
   # insert into default search paths.
-  prePatch = lib.optionalString hostPlatform.isDarwin ''
+  + lib.optionalString hostPlatform.isDarwin ''
     substituteInPlace gcc/config/darwin-c.c \
       --replace 'if (stdinc)' 'if (0)'
 
@@ -114,14 +129,8 @@ stdenv.mkDerivation ({
 
     substituteInPlace libgfortran/configure \
       --replace "-install_name \\\$rpath/\\\$soname" "-install_name ''${!outputLib}/lib/\\\$soname"
-  '';
-
-  postPatch = ''
-    configureScripts=$(find . -name configure)
-    for configureScript in $configureScripts; do
-      patchShebangs $configureScript
-    done
-  '' + (
+  ''
+  + (
     if targetPlatform != hostPlatform || stdenv.cc.libc != null then
       # On NixOS, use the right path to the dynamic linker instead of
       # `/lib/ld*.so'.
@@ -147,6 +156,7 @@ stdenv.mkDerivation ({
     else "")
       + lib.optionalString targetPlatform.isAvr ''
             makeFlagsArray+=(
+               '-s' # workaround for hitting hydra log limit
                'LIMITS_H_TEST=false'
             )
           '';
@@ -156,7 +166,12 @@ stdenv.mkDerivation ({
 
   depsBuildBuild = [ buildPackages.stdenv.cc ];
   nativeBuildInputs = [ texinfo which gettext ]
-    ++ (optional (perl != null) perl);
+    ++ (optional (perl != null) perl)
+    ++ (optional langAda gnatboot)
+    # The builder relies on GNU sed (for instance, Darwin's `sed' fails with
+    # "-i may not be used with stdin"), and `stdenvNative' doesn't provide it.
+    ++ (optional buildPlatform.isDarwin gnused)
+    ;
 
   # For building runtime libs
   depsBuildTarget =
@@ -170,24 +185,22 @@ stdenv.mkDerivation ({
     ++ optional targetPlatform.isLinux patchelf;
 
   buildInputs = [
-    gmp mpfr libmpc libelf
+    gmp mpfr libmpc libxcrypt
     targetPackages.stdenv.cc.bintools # For linking code at run-time
   ] ++ (optional (isl != null) isl)
     ++ (optional (zlib != null) zlib)
-    # The builder relies on GNU sed (for instance, Darwin's `sed' fails with
-    # "-i may not be used with stdin"), and `stdenvNative' doesn't provide it.
-    ++ (optional hostPlatform.isDarwin gnused)
-    ++ (optional langAda gnatboot)
     ;
 
-  depsTargetTarget = optional (!crossStageStatic && threadsCross != null) threadsCross;
+  depsTargetTarget = optional (!crossStageStatic && threadsCross != {} && threadsCross.package != null) threadsCross.package;
 
   NIX_LDFLAGS = lib.optionalString  hostPlatform.isSunOS "-lm -ldl";
 
-  preConfigure = import ../common/pre-configure.nix {
+  preConfigure = (import ../common/pre-configure.nix {
     inherit lib;
-    inherit version hostPlatform gnatboot langAda langGo langJit;
-  };
+    inherit version targetPlatform hostPlatform buildPlatform gnatboot langAda langGo langJit crossStageStatic enableMultilib;
+  }) + ''
+    ln -sf ${libxcrypt}/include/crypt.h libsanitizer/sanitizer_common/crypt.h
+  '';
 
   dontDisableStatic = true;
 
@@ -198,10 +211,10 @@ stdenv.mkDerivation ({
       lib
       stdenv
       targetPackages
-      crossStageStatic libcCross
+      crossStageStatic libcCross threadsCross
       version
 
-      gmp mpfr libmpc libelf isl
+      binutils gmp mpfr libmpc isl
 
       enableLTO
       enableMultilib
@@ -209,6 +222,7 @@ stdenv.mkDerivation ({
       enableShared
 
       langC
+      langD
       langCC
       langFortran
       langAda
@@ -220,14 +234,17 @@ stdenv.mkDerivation ({
   };
 
   targetConfig = if targetPlatform != hostPlatform then targetPlatform.config else null;
+  targetPlatformConfig = targetPlatform.config;
 
   buildFlags = optional
     (targetPlatform == hostPlatform && hostPlatform == buildPlatform)
     (if profiledCompiler then "profiledbootstrap" else "bootstrap");
 
-  dontStrip = !stripped;
-
-  installTargets = optional stripped "install-strip";
+  inherit
+    (import ../common/strip-attributes.nix { inherit lib stdenv langJit; })
+    stripDebugList
+    stripDebugListTarget
+    preFixup;
 
   # https://gcc.gnu.org/install/specific.html#x86-64-x-solaris210
   ${if hostPlatform.system == "x86_64-solaris" then "CC" else null} = "gcc -m64";
@@ -249,27 +266,24 @@ stdenv.mkDerivation ({
 
   inherit
     (import ../common/extra-target-flags.nix {
-      inherit lib stdenv crossStageStatic libcCross threadsCross;
+      inherit lib stdenv crossStageStatic langD libcCross threadsCross;
     })
     EXTRA_FLAGS_FOR_TARGET
     EXTRA_LDFLAGS_FOR_TARGET
     ;
 
   passthru = {
-    inherit langC langCC langObjC langObjCpp langAda langFortran langGo version;
+    inherit langC langCC langObjC langObjCpp langAda langFortran langGo langD version;
     isGNU = true;
   };
 
   enableParallelBuilding = true;
-  inherit enableMultilib;
-
-  inherit (stdenv) is64bit;
+  inherit enableShared enableMultilib;
 
   meta = {
     homepage = "https://gcc.gnu.org/";
     license = lib.licenses.gpl3Plus;  # runtime support libraries are typically LGPLv3+
-    description = "GNU Compiler Collection, version ${version}"
-      + (if stripped then "" else " (with debugging info)");
+    description = "GNU Compiler Collection, version ${version}";
 
     longDescription = ''
       The GNU Compiler Collection includes compiler front ends for C, C++,
@@ -280,13 +294,9 @@ stdenv.mkDerivation ({
       compiler used in the GNU system including the GNU/Linux variant.
     '';
 
-    maintainers = with lib.maintainers; [ synthetica ];
+    maintainers = lib.teams.gcc.members;
 
-    platforms =
-      lib.platforms.linux ++
-      lib.platforms.freebsd ++
-      lib.platforms.illumos ++
-      lib.platforms.darwin;
+    platforms = lib.platforms.unix;
   };
 }
 

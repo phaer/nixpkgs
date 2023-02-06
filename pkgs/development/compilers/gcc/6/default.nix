@@ -5,21 +5,16 @@
 , langObjCpp ? stdenv.targetPlatform.isDarwin
 , langJava ? false
 , langGo ? false
+, reproducibleBuild ? true
 , profiledCompiler ? false
 , langJit ? false
 , staticCompiler ? false
-, # N.B. the defult is intentionally not from an `isStatic`. See
-  # https://gcc.gnu.org/install/configure.html - this is about target
-  # platform libraries not host platform ones unlike normal. But since
-  # we can't rebuild those without also rebuilding the compiler itself,
-  # we opt to always build everything unlike our usual policy.
-  enableShared ? true
-, enableLTO ? true
+, enableShared ? !stdenv.targetPlatform.isStatic
+, enableLTO ? !stdenv.hostPlatform.isStatic
 , texinfo ? null
 , flex
 , perl ? null # optional, for texi2pod (then pod2man); required for Java
-, gmp, mpfr, libmpc, gettext, which, patchelf
-, libelf                      # optional, for link-time optimizations (LTO)
+, gmp, mpfr, libmpc, gettext, which, patchelf, binutils
 , isl ? null # optional, for the Graphite optimization framework.
 , zlib ? null, boehmgc ? null
 , gnatboot ? null
@@ -35,9 +30,6 @@
 , libcCross ? null
 , threadsCross ? null # for MinGW
 , crossStageStatic ? false
-, # Strip kills static libs of other archs (hence no cross)
-  stripped ? stdenv.hostPlatform.system == stdenv.buildPlatform.system
-          && stdenv.targetPlatform.system == stdenv.hostPlatform.system
 , gnused ? null
 , cloog # unused; just for compat with gcc4, as we override the parameter on some places
 , buildPackages
@@ -47,11 +39,8 @@ assert langJava     -> zip != null && unzip != null
                        && zlib != null && boehmgc != null
                        && perl != null;  # for `--enable-java-home'
 
-# LTO needs libelf and zlib.
-assert libelf != null -> zlib != null;
-
 # Make sure we get GNU sed.
-assert stdenv.hostPlatform.isDarwin -> gnused != null;
+assert stdenv.buildPlatform.isDarwin -> gnused != null;
 
 # The go frontend is written in c++
 assert langGo -> langCC;
@@ -59,7 +48,11 @@ assert langGo -> langCC;
 assert langAda -> gnatboot != null;
 
 # threadsCross is just for MinGW
-assert threadsCross != null -> stdenv.targetPlatform.isWindows;
+assert threadsCross != {} -> stdenv.targetPlatform.isWindows;
+
+# profiledCompiler builds inject non-determinism in one of the compilation stages.
+# If turned on, we can't provide reproducible builds anymore
+assert reproducibleBuild -> profiledCompiler == false;
 
 with lib;
 with builtins;
@@ -71,18 +64,28 @@ let majorVersion = "6";
 
     patches = optionals (!stdenv.targetPlatform.isRedox) [
       ../use-source-date-epoch.patch ./0001-Fix-build-for-glibc-2.31.patch
+
+      # Fix https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80431
+      (fetchurl {
+        name = "fix-bug-80431.patch";
+        url = "https://gcc.gnu.org/git/?p=gcc.git;a=patch;h=de31f5445b12fd9ab9969dc536d821fe6f0edad0";
+        sha256 = "0sd52c898msqg7m316zp0ryyj7l326cjcn2y19dcxqp15r74qj0g";
+      })
     ] ++ optional (targetPlatform != hostPlatform) ../libstdc++-target.patch
       ++ optional noSysDirs ../no-sys-dirs.patch
       ++ optional langAda ../gnat-cflags.patch
+      ++ optional langAda ./gnat-glibc234.patch
       ++ optional langFortran ../gfortran-driving.patch
       ++ optional (targetPlatform.libc == "musl") ../libgomp-dont-force-initial-exec.patch
 
       # Obtain latest patch with ../update-mcfgthread-patches.sh
-      ++ optional (!crossStageStatic && targetPlatform.isMinGW) ./Added-mcf-thread-model-support-from-mcfgthread.patch
+      ++ optional (!crossStageStatic && targetPlatform.isMinGW && threadsCross.model == "mcf") ./Added-mcf-thread-model-support-from-mcfgthread.patch
       ++ optional (targetPlatform.libc == "musl" && targetPlatform.isx86_32) (fetchpatch {
         url = "https://git.alpinelinux.org/aports/plain/main/gcc/gcc-6.1-musl-libssp.patch?id=5e4b96e23871ee28ef593b439f8c07ca7c7eb5bb";
         sha256 = "1jf1ciz4gr49lwyh8knfhw6l5gvfkwzjy90m7qiwkcbsf4a3fqn2";
-      });
+      })
+
+      ++ [ ../libsanitizer-no-cyclades-9.patch ];
 
     javaEcj = fetchurl {
       # The `$(top_srcdir)/ecj.jar' file is automatically picked up at
@@ -118,7 +121,7 @@ in
 assert x11Support -> (filter (x: x == null) ([ gtk2 libart_lgpl ] ++ xlibs)) == [];
 
 stdenv.mkDerivation ({
-  pname = "${crossNameAddon}${name}${if stripped then "" else "-debug"}";
+  pname = "${crossNameAddon}${name}";
   inherit version;
 
   builder = ../builder.sh;
@@ -149,7 +152,7 @@ stdenv.mkDerivation ({
 
   hardeningDisable = [ "format" "pie" ];
 
-  prePatch =
+  postPatch =
     # This should kill all the stdinc frameworks that gcc and friends like to
     # insert into default search paths.
     lib.optionalString hostPlatform.isDarwin ''
@@ -161,9 +164,8 @@ stdenv.mkDerivation ({
 
       substituteInPlace libgfortran/configure \
         --replace "-install_name \\\$rpath/\\\$soname" "-install_name ''${!outputLib}/lib/\\\$soname"
-    '';
-
-  postPatch =
+    ''
+  + (
     if targetPlatform != hostPlatform || stdenv.cc.libc != null then
       # On NixOS, use the right path to the dynamic linker instead of
       # `/lib/ld*.so'.
@@ -186,7 +188,7 @@ stdenv.mkDerivation ({
             sed -i gcc/config/linux.h -e '1i#undef LOCAL_INCLUDE_DIR'
         ''
         )
-    else null;
+    else "");
 
   inherit noSysDirs staticCompiler langJava crossStageStatic
     libcCross crossMingw;
@@ -195,7 +197,12 @@ stdenv.mkDerivation ({
   nativeBuildInputs = [ texinfo which gettext ]
     ++ (optional (perl != null) perl)
     ++ (optional javaAwtGtk pkg-config)
-    ++ (optional (with stdenv.targetPlatform; isVc4 || isRedox) flex);
+    ++ (optional (with stdenv.targetPlatform; isVc4 || isRedox) flex)
+    ++ (optional langAda gnatboot)
+    # The builder relies on GNU sed (for instance, Darwin's `sed' fails with
+    # "-i may not be used with stdin"), and `stdenvNative' doesn't provide it.
+    ++ (optional buildPlatform.isDarwin gnused)
+    ;
 
   # For building runtime libs
   depsBuildTarget =
@@ -209,41 +216,36 @@ stdenv.mkDerivation ({
     ++ optional targetPlatform.isLinux patchelf;
 
   buildInputs = [
-    gmp mpfr libmpc libelf
+    gmp mpfr libmpc
     targetPackages.stdenv.cc.bintools # For linking code at run-time
   ] ++ (optional (isl != null) isl)
     ++ (optional (zlib != null) zlib)
     ++ (optionals langJava [ boehmgc zip unzip ])
     ++ (optionals javaAwtGtk ([ gtk2 libart_lgpl ] ++ xlibs))
-    # The builder relies on GNU sed (for instance, Darwin's `sed' fails with
-    # "-i may not be used with stdin"), and `stdenvNative' doesn't provide it.
-    ++ (optional hostPlatform.isDarwin gnused)
-    ++ (optional langAda gnatboot)
     ;
 
-  depsTargetTarget = optional (!crossStageStatic && threadsCross != null) threadsCross;
+  depsTargetTarget = optional (!crossStageStatic && threadsCross != {}) threadsCross.package;
 
   NIX_LDFLAGS = lib.optionalString  hostPlatform.isSunOS "-lm -ldl";
 
   preConfigure = import ../common/pre-configure.nix {
     inherit lib;
-    inherit version hostPlatform gnatboot langJava langAda langGo;
+    inherit version targetPlatform hostPlatform buildPlatform gnatboot langJava langAda langGo crossStageStatic enableMultilib;
   };
 
   dontDisableStatic = true;
 
-  # TODO(@Ericson2314): Always pass "--target" and always prefix.
-  configurePlatforms = [ "build" "host" ] ++ lib.optional (targetPlatform != hostPlatform) "target";
+  configurePlatforms = [ "build" "host" "target" ];
 
   configureFlags = import ../common/configure-flags.nix {
     inherit
       lib
       stdenv
       targetPackages
-      crossStageStatic libcCross
+      crossStageStatic libcCross threadsCross
       version
 
-      gmp mpfr libmpc libelf isl
+      binutils gmp mpfr libmpc isl
 
       enableLTO
       enableMultilib
@@ -263,16 +265,19 @@ stdenv.mkDerivation ({
   };
 
   targetConfig = if targetPlatform != hostPlatform then targetPlatform.config else null;
+  targetPlatformConfig = targetPlatform.config;
 
   buildFlags = optional
     (targetPlatform == hostPlatform && hostPlatform == buildPlatform)
     (if profiledCompiler then "profiledbootstrap" else "bootstrap");
 
-  dontStrip = !stripped;
+  inherit
+    (import ../common/strip-attributes.nix { inherit lib stdenv langJit; })
+    stripDebugList
+    stripDebugListTarget
+    preFixup;
 
   doCheck = false; # requires a lot of tools, causes a dependency cycle for stdenv
-
-  installTargets = optional stripped "install-strip";
 
   # https://gcc.gnu.org/install/specific.html#x86-64-x-solaris210
   ${if hostPlatform.system == "x86_64-solaris" then "CC" else null} = "gcc -m64";
@@ -319,15 +324,12 @@ stdenv.mkDerivation ({
   };
 
   enableParallelBuilding = true;
-  inherit enableMultilib;
-
-  inherit (stdenv) is64bit;
+  inherit enableShared enableMultilib;
 
   meta = {
     homepage = "https://gcc.gnu.org/";
     license = lib.licenses.gpl3Plus;  # runtime support libraries are typically LGPLv3+
-    description = "GNU Compiler Collection, version ${version}"
-      + (if stripped then "" else " (with debugging info)");
+    description = "GNU Compiler Collection, version ${version}";
 
     longDescription = ''
       The GNU Compiler Collection includes compiler front ends for C, C++,
@@ -338,13 +340,8 @@ stdenv.mkDerivation ({
       compiler used in the GNU system including the GNU/Linux variant.
     '';
 
-    maintainers = with lib.maintainers; [ peti ];
-
-    platforms =
-      lib.platforms.linux ++
-      lib.platforms.freebsd ++
-      lib.platforms.illumos ++
-      lib.platforms.darwin;
+    platforms = lib.platforms.unix;
+    badPlatforms = [ "aarch64-darwin" ];
   };
 }
 

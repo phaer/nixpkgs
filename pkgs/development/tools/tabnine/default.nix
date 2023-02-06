@@ -1,26 +1,20 @@
 { stdenv, lib, fetchurl, unzip }:
-
 let
-  version = "3.3.115";
-  src =
-    if stdenv.hostPlatform.system == "x86_64-darwin" then
-      fetchurl
-        {
-          url = "https://update.tabnine.com/bundles/${version}/x86_64-apple-darwin/TabNine.zip";
-          sha256 = "104h3b9cvmz2m27a94cfc00xm8wa2p1pvrfs92hrz59hcs8vdldf";
-        }
-    else if stdenv.hostPlatform.system == "x86_64-linux" then
-      fetchurl
-        {
-          url = "https://update.tabnine.com/bundles/${version}/x86_64-unknown-linux-musl/TabNine.zip";
-          sha256 = "0rs2vmdz8c9zs53pjbzy27ir0p5v752cpsnqfaqf0ilx7k6fpnnm";
-        }
-    else throw "Not supported on ${stdenv.hostPlatform.system}";
+  sources = builtins.fromJSON (builtins.readFile ./sources.json);
+  platform =
+    if (builtins.hasAttr stdenv.hostPlatform.system sources.platforms) then
+      builtins.getAttr (stdenv.hostPlatform.system) sources.platforms
+    else
+      throw "Not supported on ${stdenv.hostPlatform.system}";
 in
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "tabnine";
+  inherit (sources) version;
 
-  inherit version src;
+  src = fetchurl {
+    url = "https://update.tabnine.com/bundles/${sources.version}/${platform.name}/TabNine.zip";
+    inherit (platform) hash;
+  };
 
   dontBuild = true;
 
@@ -31,16 +25,24 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ unzip ];
 
   installPhase = ''
+    runHook preInstall
     install -Dm755 TabNine $out/bin/TabNine
     install -Dm755 TabNine-deep-cloud $out/bin/TabNine-deep-cloud
     install -Dm755 TabNine-deep-local $out/bin/TabNine-deep-local
     install -Dm755 WD-TabNine $out/bin/WD-TabNine
+    runHook postInstall
   '';
+
+  passthru = {
+    platform = platform.name;
+    updateScript = ./update.sh;
+  };
 
   meta = with lib; {
     homepage = "https://tabnine.com";
     description = "Smart Compose for code that uses deep learning to help you write code faster";
     license = licenses.unfree;
-    platforms = [ "x86_64-darwin" "x86_64-linux" ];
+    platforms = attrNames sources.platforms;
+    maintainers = with maintainers; [ lovesegfault ];
   };
 }

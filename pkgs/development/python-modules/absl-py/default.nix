@@ -8,11 +8,11 @@
 
 buildPythonPackage rec {
   pname = "absl-py";
-  version = "0.12.0";
+  version = "1.3.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "b44f68984a5ceb2607d135a615999b93924c771238a63920d17d3387b0d229d5";
+    sha256 = "sha256-Rjw4oI0uTO9sSYt2ulvUhY5MbvUdoaWh8nE5oCLiAkg=";
   };
 
   propagatedBuildInputs = [
@@ -28,6 +28,6 @@ buildPythonPackage rec {
     description = "Abseil Python Common Libraries";
     homepage = "https://github.com/abseil/abseil-py";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ danharaj ];
+    maintainers = with lib.maintainers; [ ];
   };
 }

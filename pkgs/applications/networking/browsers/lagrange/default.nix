@@ -4,42 +4,53 @@
 , nix-update-script
 , cmake
 , pkg-config
-, libunistring
+, fribidi
+, harfbuzz
+, libwebp
 , mpg123
-, openssl
-, pcre
 , SDL2
+, the-foundation
 , AppKit
+, zip
+, enableTUI ? false, ncurses, sealcurses
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "lagrange";
-  version = "1.3.4";
+  version = "1.14.2";
 
   src = fetchFromGitHub {
     owner = "skyjake";
     repo = "lagrange";
-    rev = "v${version}";
-    sha256 = "sha256-hPNqyTH2oMPytvYAF9sjEQ9ibaJYDODA33ZrDuWnloU=";
-    fetchSubmodules = true;
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-9onjQ7fRLlL5/1vMtNHjBBcB7Fyk1ERaHg5IwtwbJQg=";
   };
 
-  nativeBuildInputs = [ cmake pkg-config ];
+  nativeBuildInputs = [ cmake pkg-config zip ];
 
-  buildInputs = [ libunistring mpg123 openssl pcre SDL2 ]
+  buildInputs = [ the-foundation ]
+    ++ lib.optionals (!enableTUI) [ fribidi harfbuzz libwebp mpg123 SDL2 ]
+    ++ lib.optionals enableTUI [ ncurses sealcurses ]
     ++ lib.optional stdenv.isDarwin AppKit;
 
-  hardeningDisable = lib.optional (!stdenv.cc.isClang) "format";
+  cmakeFlags = lib.optionals enableTUI [
+    "-DENABLE_TUI=YES"
+    "-DENABLE_MPG123=NO"
+    "-DENABLE_WEBP=NO"
+    "-DENABLE_FRIBIDI=NO"
+    "-DENABLE_HARFBUZZ=NO"
+    "-DENABLE_POPUP_MENUS=NO"
+    "-DENABLE_IDLE_SLEEP=NO"
+    "-DCMAKE_INSTALL_DATADIR=${placeholder "out"}/share"
+  ];
 
-  installPhase = if stdenv.isDarwin then ''
+  installPhase = lib.optionalString (stdenv.isDarwin && !enableTUI) ''
     mkdir -p $out/Applications
     mv Lagrange.app $out/Applications
-  '' else null;
+  '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = pname;
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {
@@ -49,4 +60,4 @@ stdenv.mkDerivation rec {
     maintainers = with maintainers; [ sikmir ];
     platforms = platforms.unix;
   };
-}
+})

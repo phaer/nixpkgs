@@ -5,26 +5,28 @@
 
 stdenv.mkDerivation rec {
   pname = "cimg";
-  version = "2.9.7";
+  version = "3.2.0";
 
   src = fetchFromGitHub {
     owner = "dtschump";
     repo = "CImg";
     rev = "v.${version}";
-    sha256 = "sha256-cR2wvGtomT1cZh8wKMCfYDNuP3d1gKhHJavVnvuQ8Mc=";
+    hash = "sha256-laLi3ks5r0C61LDoCEgVqmqZ7/C18qQKxPm4zmQrw78=";
   };
+
+  outputs = [ "out" "doc" ];
 
   installPhase = ''
     runHook preInstall
+
     install -dm 755 $out/include/CImg/plugins $doc/share/doc/cimg/examples
     install -m 644 CImg.h $out/include/
-    cp -dr --no-preserve=ownership examples/* $doc/share/doc/cimg/examples/
     cp -dr --no-preserve=ownership plugins/* $out/include/CImg/plugins/
+    cp -dr --no-preserve=ownership examples/* $doc/share/doc/cimg/examples/
     cp README.txt $doc/share/doc/cimg/
+
     runHook postInstall
   '';
-
-  outputs = [ "out" "doc" ];
 
   meta = with lib; {
     homepage = "http://cimg.eu/";

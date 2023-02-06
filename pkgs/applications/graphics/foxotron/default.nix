@@ -13,7 +13,7 @@
 , libXi
 , libXext
 , libGLU
-, alsaLib
+, alsa-lib
 , fontconfig
 , AVFoundation
 , Carbon
@@ -25,20 +25,25 @@
 
 stdenv.mkDerivation rec {
   pname = "foxotron";
-  version = "2021-03-12";
+  version = "2022-11-02";
 
   src = fetchFromGitHub {
     owner = "Gargaj";
     repo = "Foxotron";
     rev = version;
     fetchSubmodules = true;
-    sha256 = "1finvbs3pbfyvm525blwgwl5jci2zjxb1923i0cm8rmf7wasaapb";
+    sha256 = "sha256-WjsVvFhwVCzclHxA+Gu2YtR2yK0Opqhncwlg9FEhOLk=";
   };
+
+  postPatch = ''
+    substituteInPlace CMakeLists.txt \
+      --replace "set(CMAKE_OSX_ARCHITECTURES x86_64)" ""
+  '';
 
   nativeBuildInputs = [ cmake pkg-config makeWrapper ];
 
   buildInputs = [ zlib ]
-    ++ lib.optionals stdenv.hostPlatform.isLinux [ libX11 libXrandr libXinerama libXcursor libXi libXext alsaLib fontconfig libGLU ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [ libX11 libXrandr libXinerama libXcursor libXi libXext alsa-lib fontconfig libGLU ]
     ++ lib.optionals stdenv.hostPlatform.isDarwin [ AVFoundation Carbon Cocoa CoreAudio Kernel OpenGL ];
 
   installPhase = ''
@@ -48,16 +53,14 @@ stdenv.mkDerivation rec {
     cp -R ${lib.optionalString stdenv.hostPlatform.isDarwin "Foxotron.app/Contents/MacOS/"}Foxotron \
       ../{config.json,Shaders,Skyboxes} $out/lib/foxotron/
     wrapProgram $out/lib/foxotron/Foxotron \
-      --run "cd $out/lib/foxotron"
+      --chdir "$out/lib/foxotron"
     ln -s $out/{lib/foxotron,bin}/Foxotron
 
     runHook postInstall
   '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = pname;
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {
@@ -67,7 +70,7 @@ stdenv.mkDerivation rec {
       Revision 2021 3D Graphics Competition.
     '';
     homepage = "https://github.com/Gargaj/Foxotron";
-    license = licenses.publicDomain;
+    license = licenses.unlicense;
     maintainers = with maintainers; [ OPNA2608 ];
     platforms = platforms.all;
   };

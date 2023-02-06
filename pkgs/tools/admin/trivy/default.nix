@@ -1,22 +1,40 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+}:
 
 buildGoModule rec {
   pname = "trivy";
-  version = "0.17.1";
+  version = "0.37.1";
 
   src = fetchFromGitHub {
     owner = "aquasecurity";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-5TOKYxH1Tnsd1t2yoUflFUSW0QGS9l5+0JtS2Fo6vL0=";
+    sha256 = "sha256-4kjsNaiXnmJk88ivVnpTemOOc/asKrcZLGpO8gtV0J8=";
   };
-
-  vendorSha256 = "sha256-zVe1bTTLOHxfdbb6VcztOCWMbCbzT6igNpvPytktMWs=";
+  # hash missmatch on across linux and darwin
+  proxyVendor = true;
+  vendorSha256 = "sha256-qI29Qb8im9Xii83ayG1jZtZsrsAT0JQOcuKOM7VYro0=";
 
   excludedPackages = "misc";
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags" "-s -w -X main.version=v${version}")
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.version=v${version}"
+  ];
+
+  # Tests require network access
+  doCheck = false;
+
+  doInstallCheck = true;
+
+  installCheckPhase = ''
+    runHook preInstallCheck
+    $out/bin/trivy --help
+    $out/bin/trivy --version | grep "v${version}"
+    runHook postInstallCheck
   '';
 
   meta = with lib; {

@@ -2,23 +2,23 @@
 
 buildGoModule rec {
   pname = "dockle";
-  version = "0.3.13";
+  version = "0.4.5";
 
   src = fetchFromGitHub {
     owner = "goodwithtech";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-U0nIGuQ4QjBaCck0Kg1RTS2IQwfivN3VI5vxh8lxAYE=";
+    sha256 = "sha256-QC0WAM+qitee0dyJorl5Hio3COy4JiIHmFgBIj7S2yM=";
   };
 
-  vendorSha256 = "sha256-uHHm4AgnjTdPgpu3OpXXIRzrGhkpOoRY8qynfl7DO6w=";
+  vendorSha256 = "sha256-9n/782uKu7qNV/WEpbEV3aHcPXipyOhGdAhT/F4O2xc=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ btrfs-progs lvm2 ];
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags" "-s -w -X main.version=${version}")
-  '';
+  ldflags = [
+    "-s" "-w" "-X main.version=${version}"
+  ];
 
   preCheck = ''
     # Remove tests that use networking

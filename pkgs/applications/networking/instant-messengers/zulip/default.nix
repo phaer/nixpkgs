@@ -5,24 +5,23 @@
 
 let
   pname = "zulip";
-  version = "5.6.0";
-  name = "${pname}-${version}";
+  version = "5.9.4";
 
   src = fetchurl {
     url = "https://github.com/zulip/zulip-desktop/releases/download/v${version}/Zulip-${version}-x86_64.AppImage";
-    sha256 = "19sdmkxxzaidb89m8k56p94hq2yaxwn9islzrzwb86f50hlrq46w";
+    hash = "sha256-gbusyhMgoaQmeWm6dB6pc3kSykD4T97VQcJgcF5KbzM=";
     name="${pname}-${version}.AppImage";
   };
 
   appimageContents = appimageTools.extractType2 {
-    inherit name src;
+    inherit pname version src;
   };
 
 in appimageTools.wrapType2 {
-  inherit name src;
+  inherit pname version src;
 
   extraInstallCommands = ''
-    mv $out/bin/${name} $out/bin/${pname}
+    mv "$out/bin/${pname}-${version}" "$out/bin/${pname}"
     install -m 444 -D ${appimageContents}/zulip.desktop $out/share/applications/zulip.desktop
     install -m 444 -D ${appimageContents}/usr/share/icons/hicolor/512x512/apps/zulip.png \
       $out/share/icons/hicolor/512x512/apps/zulip.png

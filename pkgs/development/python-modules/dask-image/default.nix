@@ -1,48 +1,54 @@
 { lib
+, stdenv
 , buildPythonPackage
-, fetchPypi
 , dask
-, numpy, toolz # dask[array]
-, scipy
+, fetchPypi
+, numpy
 , pims
-, pytest
-, pytest-flake8
+, pytestCheckHook
+, pythonOlder
 , scikitimage
+, scipy
 }:
 
 buildPythonPackage rec {
-  version = "0.5.0";
   pname = "dask-image";
+  version = "2022.9.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0bf7ea8dcd9d795505b498bd632394720c048f50761e23c574d9a6bacfb27cbb";
+    hash = "sha256-8SPf0Wp9FcdmYqasFHeFCe1e7ZtJT0Mi5ZRemxWSNUc=";
   };
 
-  nativeBuildInputs = [ pytest-flake8 ];
-  propagatedBuildInputs = [ dask numpy toolz scipy pims ];
-  checkInputs = [
-    pytest
+  propagatedBuildInputs = [
+    dask
+    numpy
+    scipy
+    pims
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
     scikitimage
   ];
 
-  # ignore errors from newer versions of flake8
-  prePatch = ''
+  postPatch = ''
     substituteInPlace setup.cfg \
-      --replace "docs/conf.py,versioneer.py" \
-        "docs/conf.py,versioneer.py,dask_image/ndfilters/_utils.py"
+      --replace "--flake8" ""
   '';
 
-  # scikit.external is not exported
-  checkPhase = ''
-    pytest --ignore=tests/test_dask_image/
-  '';
-  pythonImportsCheck = [ "dask_image" ];
+  pythonImportsCheck = [
+    "dask_image"
+  ];
 
   meta = with lib; {
-    homepage = "https://github.com/dask/dask-image";
+    broken = (stdenv.isLinux && stdenv.isAarch64);
     description = "Distributed image processing";
+    homepage = "https://github.com/dask/dask-image";
     license = licenses.bsdOriginal;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = with maintainers; [ costrouc ];
   };
 }

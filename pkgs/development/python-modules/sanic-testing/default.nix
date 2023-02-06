@@ -1,39 +1,56 @@
 { lib
 , buildPythonPackage
+, callPackage
 , fetchFromGitHub
-, pytestCheckHook
-, httpcore
 , httpx
-, pytest-asyncio
+, pythonOlder
 , sanic
 , websockets
 }:
 
 buildPythonPackage rec {
   pname = "sanic-testing";
-  version = "0.3.1";
+  version = "22.12.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "sanic-org";
     repo = "sanic-testing";
-    rev = "v${version}";
-    hash = "sha256-hBAq+/BKs0a01M89Nb8HaClqxB+W5PTfjVzef/m9SWs=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-pFTF2SQ9giRzPhG24FLqLPJRXaFdQ7Xi5EeltS7J3DI=";
   };
 
-  propagatedBuildInputs = [ httpx sanic websockets httpcore ];
+  outputs = [
+    "out"
+    "testsout"
+  ];
 
-  # `sanic` is explicitly set to null when building `sanic` itself
-  # to prevent infinite recursion.  In that case we skip running
-  # the package at all.
-  doCheck = sanic != null;
-  dontUsePythonImportsCheck = sanic == null;
+  propagatedBuildInputs = [
+    httpx
+    sanic
+    websockets
+  ];
 
-  checkInputs = [ pytestCheckHook pytest-asyncio ];
-  pythonImportsCheck = [ "sanic_testing" ];
+  postInstall = ''
+    mkdir $testsout
+    cp -R tests $testsout/tests
+  '';
+
+  # Check in passthru.tests.pytest to escape infinite recursion with sanic
+  doCheck = false;
+
+  doInstallCheck = false;
+
+  passthru.tests = {
+    pytest = callPackage ./tests.nix { };
+  };
 
   meta = with lib; {
     description = "Core testing clients for the Sanic web framework";
     homepage = "https://github.com/sanic-org/sanic-testing";
+    changelog = "https://github.com/sanic-org/sanic-testing/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ AluisioASG ];
   };

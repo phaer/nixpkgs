@@ -19,7 +19,7 @@ lib.makeScope newScope (self: with self; {
 
   crossThreadsStdenv = overrideCC crossLibcStdenv
     (if stdenv.hostPlatform.useLLVM or false
-     then buildPackages.llvmPackages_8.lldClangNoLibcxx
+     then buildPackages.llvmPackages_8.clangNoLibcxx
      else buildPackages.gccCrossStageStatic.override (old: {
        bintools = old.bintools.override {
          libc = libcCross;
@@ -36,6 +36,8 @@ lib.makeScope newScope (self: with self; {
   mcfgthreads = callPackage ./mcfgthreads {
     stdenv = crossThreadsStdenv;
   };
+
+  npiperelay = callPackage ./npiperelay { };
 
   pthreads = callPackage ./pthread-w32 { };
 

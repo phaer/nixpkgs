@@ -1,22 +1,21 @@
 { lib
 , stdenv
-, python
 , buildPythonPackage
 , fetchFromGitHub
 , substituteAll
 , file
-, glibcLocales
+, pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "python-magic";
-  version = "0.4.22";
+  version = "0.4.27";
 
   src = fetchFromGitHub {
     owner = "ahupp";
     repo = "python-magic";
     rev = version;
-    sha256 = "0zbdjr5shijs0jayz7gycpx0kn6v2bh83dpanyajk2vmy47jvbd6";
+    sha256 = "sha256-fZ+5xJ3P0EYK+6rQ8VzXv2zckKfEH5VUdISIR6ybIfQ=";
   };
 
   patches = [
@@ -26,15 +25,18 @@ buildPythonPackage rec {
     })
   ];
 
-  checkInputs = [ glibcLocales ];
-
-  checkPhase = ''
-    LC_ALL="en_US.UTF-8" ${python.interpreter} test/test.py
+  preCheck = ''
+    export LC_ALL=en_US.UTF-8
   '';
 
-  meta = {
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  meta = with lib; {
     description = "A python interface to the libmagic file type identification library";
     homepage = "https://github.com/ahupp/python-magic";
-    license = lib.licenses.mit;
+    license = licenses.mit;
+    maintainers = with maintainers; [ SuperSandro2000 ];
   };
 }

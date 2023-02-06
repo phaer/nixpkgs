@@ -1,11 +1,24 @@
-{ lib, stdenv, fetchurl, libjpeg, libGLU, libGL, freeglut, zlib, cmake, libX11, libxml2, libpng,
-  libXxf86vm }:
+{ lib
+, stdenv
+, fetchurl
+, libjpeg
+, libGLU
+, libGL
+, freeglut
+, zlib
+, cmake
+, libX11
+, libxml2
+, libpng
+, libXxf86vm
+}:
 
-stdenv.mkDerivation {
-  name = "freepv-0.3.0";
+stdenv.mkDerivation rec {
+  pname = "freepv";
+  version = "0.3.0";
 
   src = fetchurl {
-    url = "mirror://sourceforge/freepv/freepv-0.3.0.tar.gz";
+    url = "mirror://sourceforge/freepv/freepv-${version}.tar.gz";
     sha256 = "1w19abqjn64w47m35alg7bcdl1p97nf11zn64cp4p0dydihmhv56";
   };
 
@@ -29,7 +42,7 @@ stdenv.mkDerivation {
 
   meta = {
     description = "Open source panorama viewer using GL";
-    homepage = "http://freepv.sourceforge.net/";
+    homepage = "https://freepv.sourceforge.net/";
     license = [ lib.licenses.lgpl21 ];
   };
 }

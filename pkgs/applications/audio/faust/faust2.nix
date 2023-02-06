@@ -20,13 +20,13 @@ with lib.strings;
 
 let
 
-  version = "unstable-2020-08-27";
+  version = "2.54.9";
 
   src = fetchFromGitHub {
     owner = "grame-cncm";
     repo = "faust";
-    rev = "c10f316fa90f338e248787ebf55e3795c3a0d70e";
-    sha256 = "068pm04ddafbsj2r8akdpqyzb0m8mp9ql0rgi83hcqs4ndr8v7sb";
+    rev = version;
+    sha256 = "sha256-7eSZUsZ0h0vWJIpZWXaS+SHV6N2i9nv6Gr6a9cuu4Fg=";
     fetchSubmodules = true;
   };
 
@@ -34,7 +34,7 @@ let
     homepage = "https://faust.grame.fr/";
     downloadPage = "https://github.com/grame-cncm/faust/";
     license = licenses.gpl2;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
     maintainers = with maintainers; [ magnetophon pmahoney ];
   };
 
@@ -58,9 +58,10 @@ let
       cd build
     '';
 
-    cmakeFlags = ''
-      -C ../backends/all.cmake -C  ../targets/all.cmake ..
-    '';
+    cmakeFlags = [
+      "-C../backends/all.cmake"
+      "-C../targets/all.cmake"
+    ];
 
     postInstall = ''
       # syntax error when eval'd directly
@@ -178,6 +179,12 @@ let
 
         # export parts of the build environment
         for script in "$out"/bin/*; do
+          # e.g. NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu
+          nix_cc_wrapper_target_host="$(printenv | grep ^NIX_CC_WRAPPER_TARGET_HOST | sed 's/=.*//')"
+
+          # e.g. NIX_BINTOOLS_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu
+          nix_bintools_wrapper_target_host="$(printenv | grep ^NIX_BINTOOLS_WRAPPER_TARGET_HOST | sed 's/=.*//')"
+
           wrapProgram "$script" \
             --set FAUSTLDDIR "${faust}/lib" \
             --set FAUSTLIB "${faust}/share/faust" \
@@ -187,7 +194,9 @@ let
             --prefix PKG_CONFIG_PATH : "$PKG_CONFIG_PATH" \
             --set NIX_CFLAGS_COMPILE "$NIX_CFLAGS_COMPILE" \
             --set NIX_LDFLAGS "$NIX_LDFLAGS -lpthread" \
-            --prefix LIBRARY_PATH $libPath
+            --set "$nix_cc_wrapper_target_host" "''${!nix_cc_wrapper_target_host}" \
+            --set "$nix_bintools_wrapper_target_host" "''${!nix_bintools_wrapper_target_host}" \
+            --prefix LIBRARY_PATH "$libPath"
         done
       '';
     });

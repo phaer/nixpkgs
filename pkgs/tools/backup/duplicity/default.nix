@@ -1,6 +1,7 @@
 { lib, stdenv
-, fetchurl
-, pythonPackages
+, fetchFromGitLab
+, fetchpatch
+, python3
 , librsync
 , ncftp
 , gnupg
@@ -12,16 +13,19 @@
 , gettext
 }:
 let
+  pythonPackages = python3.pkgs;
   inherit (lib.versions) majorMinor splitVersion;
   majorMinorPatch = v: builtins.concatStringsSep "." (lib.take 3 (splitVersion v));
 in
 pythonPackages.buildPythonApplication rec {
   pname = "duplicity";
-  version = "0.8.17";
+  version = "0.8.23";
 
-  src = fetchurl {
-    url = "https://code.launchpad.net/duplicity/${majorMinor version}-series/${majorMinorPatch version}/+download/duplicity-${version}.tar.gz";
-    sha256 = "114rwkf9b3h4fcagrx013sb7krc4hafbwl9gawjph2wd9pkv2wx2";
+  src = fetchFromGitLab {
+    owner = "duplicity";
+    repo = "duplicity";
+    rev = "rel.${version}";
+    sha256 = "0my015zc8751smjgbsysmca7hvdm96cjw5zilqn3zq971nmmrksb";
   };
 
   patches = [
@@ -38,6 +42,15 @@ pythonPackages.buildPythonApplication rec {
 
   SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
+  preConfigure = ''
+    # fix version displayed by duplicity --version
+    # see SourceCopy in setup.py
+    ls
+    for i in bin/*.1 duplicity/__init__.py; do
+      substituteInPlace "$i" --replace '$version' "${version}"
+    done
+  '';
+
   nativeBuildInputs = [
     makeWrapper
     gettext
@@ -50,7 +63,6 @@ pythonPackages.buildPythonApplication rec {
 
   pythonPath = with pythonPackages; [
     b2sdk
-    boto
     boto3
     cffi
     cryptography
@@ -58,18 +70,15 @@ pythonPackages.buildPythonApplication rec {
     idna
     pygobject3
     fasteners
-    ipaddress
     lockfile
     paramiko
     pyasn1
     pycrypto
-    pydrive
+    pydrive2
     future
-  ] ++ lib.optionals (!isPy3k) [
-    enum
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     gnupg # Add 'gpg' to PATH.
     gnutar # Add 'tar' to PATH.
     librsync # Add 'rdiff' to PATH.
@@ -81,7 +90,7 @@ pythonPackages.buildPythonApplication rec {
     mock
     pexpect
     pytest
-    pytestrunner
+    pytest-runner
   ]);
 
   postInstall = ''
@@ -102,6 +111,9 @@ pythonPackages.buildPythonApplication rec {
 
     # Don't run developer-only checks (pep8, etc.).
     export RUN_CODE_TESTS=0
+
+    # check version string
+    duplicity --version | grep ${version}
   '' + lib.optionalString stdenv.isDarwin ''
     # Work around the following error when running tests:
     # > Max open files of 256 is too low, should be >= 1024.
@@ -116,9 +128,8 @@ pythonPackages.buildPythonApplication rec {
 
   meta = with lib; {
     description = "Encrypted bandwidth-efficient backup using the rsync algorithm";
-    homepage = "https://www.nongnu.org/duplicity";
+    homepage = "https://duplicity.gitlab.io/duplicity-web/";
     license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ peti ];
     platforms = platforms.unix;
   };
 }

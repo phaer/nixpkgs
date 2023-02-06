@@ -1,5 +1,5 @@
-{ lib, buildPythonPackage, fetchPypi, pytest, pytestcov, mock
-, pytest_xdist, covCore, glibcLocales }:
+{ lib, buildPythonPackage, fetchPypi, pytest, pytest-cov, mock
+, pytest-xdist, covCore, glibcLocales }:
 
 buildPythonPackage rec {
   pname = "dyn";
@@ -12,11 +12,11 @@ buildPythonPackage rec {
 
   buildInputs = [ glibcLocales ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest
-    pytestcov
+    pytest-cov
     mock
-    pytest_xdist
+    pytest-xdist
     covCore
   ];
   # Disable checks because they are not stateless and require internet access.

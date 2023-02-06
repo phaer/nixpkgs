@@ -1,7 +1,7 @@
 { stdenv, lib, python3, fetchFromGitHub, installShellFiles }:
 
 let
-  version = "2.20.0";
+  version = "2.44.1";
   srcName = "azure-cli-${version}-src";
 
   src = fetchFromGitHub {
@@ -9,13 +9,12 @@ let
     owner = "Azure";
     repo = "azure-cli";
     rev = "azure-cli-${version}";
-    sha256 = "sha256-unG17oiqZZJNGg8QCg7xY0GzuMu2gaAIIgGF8TlMBQQ=";
+    hash = "sha256-QcY08YxwGywFCXy3PslEzc5qZd62y4XAcuIC9Udp6Cc=";
   };
 
-  # put packages that needs to be overriden in the py package scope
+  # put packages that needs to be overridden in the py package scope
   py = import ./python-packages.nix {
-    inherit stdenv lib src version;
-    python = python3;
+    inherit stdenv lib src version python3;
   };
 in
 py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
@@ -26,10 +25,9 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
 
   prePatch = ''
     substituteInPlace setup.py \
-      --replace "javaproperties==0.5.1" "javaproperties" \
-      --replace "pytz==2019.1" "pytz" \
-      --replace "antlr4-python3-runtime~=4.7.2" "antlr4-python3-runtime~=4.7" \
-      --replace "mock~=4.0" "mock"
+      --replace "chardet~=3.0.4" "chardet" \
+      --replace "javaproperties~=0.5.1" "javaproperties" \
+      --replace "scp~=0.13.2" "scp"
 
     # remove namespace hacks
     # remove urllib3 because it was added as 'urllib3[secure]', which doesn't get handled well
@@ -47,11 +45,14 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
     azure-cli-core
     azure-cli-telemetry
     azure-cosmos
+    azure-data-tables
     azure-datalake-store
     azure-functions-devops-build
     azure-graphrbac
+    azure-identity
     azure-keyvault
     azure-keyvault-administration
+    azure-keyvault-keys
     azure-loganalytics
     azure-mgmt-advisor
     azure-mgmt-apimanagement
@@ -79,6 +80,7 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
     azure-mgmt-dns
     azure-mgmt-eventgrid
     azure-mgmt-eventhub
+    azure-mgmt-extendedlocation
     azure-mgmt-hdinsight
     azure-mgmt-imagebuilder
     azure-mgmt-iotcentral
@@ -110,6 +112,8 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
     azure-mgmt-security
     azure-mgmt-servicebus
     azure-mgmt-servicefabric
+    azure-mgmt-servicefabricmanagedclusters
+    azure-mgmt-servicelinker
     azure-mgmt-signalr
     azure-mgmt-sql
     azure-mgmt-sqlvirtualmachine
@@ -121,16 +125,21 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
     azure-storage-blob
     azure-synapse-accesscontrol
     azure-synapse-artifacts
+    azure-synapse-managedprivateendpoints
     azure-synapse-spark
+    chardet
     colorama
     cryptography
+    distro
     Fabric
     jsmin
     knack
     mock
     paramiko
     pydocumentdb
+    PyGithub
     pygments
+    pynacl
     pyopenssl
     pytz
     pyyaml
@@ -142,12 +151,11 @@ py.pkgs.toPythonApplication (py.pkgs.buildAzureCliPackage {
     sshtunnel
     urllib3
     vsts-cd-manager
-    websocket_client
+    websocket-client
     xmltodict
     javaproperties
     jsondiff
     # urllib3[secure]
-    ipaddress
     # shell completion
     argcomplete
   ];

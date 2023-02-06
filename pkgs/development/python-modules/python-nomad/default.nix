@@ -2,17 +2,19 @@
 
 buildPythonPackage rec {
   pname = "python-nomad";
-  version = "1.2.1";
+  version = "1.5.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0ivkfdrmb4wpyawvwrgm3jvx6hn49vqjpwbkmkmamigghqqwacx3";
+    sha256 = "sha256-VpngJvm9eK60lPeFIbjnTwzWWoJ9tRBDYP5SghDMbAg=";
   };
 
   propagatedBuildInputs = [ requests ];
 
   # Tests require nomad agent
   doCheck = false;
+
+  pythonImportsCheck = [ "nomad" ];
 
   meta = with lib; {
     description = "Python client library for Hashicorp Nomad";

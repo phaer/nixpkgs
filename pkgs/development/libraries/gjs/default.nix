@@ -1,72 +1,45 @@
 { fetchurl
-, fetchpatch
-, lib, stdenv
+, lib
+, stdenv
 , meson
+, mesonEmulatorHook
 , ninja
 , pkg-config
-, gnome3
+, gnome
 , gtk3
 , atk
 , gobject-introspection
-, spidermonkey_78
+, spidermonkey_102
 , pango
 , cairo
 , readline
+, libsysprof-capture
 , glib
 , libxml2
 , dbus
 , gdk-pixbuf
+, harfbuzz
 , makeWrapper
 , which
-, xvfb_run
+, xvfb-run
 , nixosTests
 }:
 
 let
   testDeps = [
     gobject-introspection # for Gio and cairo typelibs
-    gtk3 atk pango.out gdk-pixbuf
+    gtk3 atk pango.out gdk-pixbuf harfbuzz
   ];
 in stdenv.mkDerivation rec {
   pname = "gjs";
-  version = "1.66.2";
-
-  src = fetchurl {
-    url = "mirror://gnome/sources/gjs/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "vX9fixcSd8wLue4XVLAkC2Lwana4sYyWjPRxs0qzTlk=";
-  };
+  version = "1.74.1";
 
   outputs = [ "out" "dev" "installedTests" ];
 
-  nativeBuildInputs = [
-    meson
-    ninja
-    pkg-config
-    makeWrapper
-    which # for locale detection
-    libxml2 # for xml-stripblanks
-  ];
-
-  buildInputs = [
-    gobject-introspection
-    cairo
-    readline
-    spidermonkey_78
-    dbus # for dbus-run-session
-  ];
-
-  checkInputs = [
-    xvfb_run
-  ] ++ testDeps;
-
-  propagatedBuildInputs = [
-    glib
-  ];
-
-  mesonFlags = [
-    "-Dprofiler=disabled"
-    "-Dinstalled_test_prefix=${placeholder "installedTests"}"
-  ];
+  src = fetchurl {
+    url = "mirror://gnome/sources/gjs/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
+    sha256 = "sha256-8h+c0zN6ZypEx+ZL+ajYrXfBuIuVKythhMevmx8+9Fk=";
+  };
 
   patches = [
     # Hard-code various paths
@@ -76,11 +49,48 @@ in stdenv.mkDerivation rec {
     ./installed-tests-path.patch
   ];
 
-  doCheck = true;
+  nativeBuildInputs = [
+    meson
+    ninja
+    pkg-config
+    makeWrapper
+    which # for locale detection
+    libxml2 # for xml-stripblanks
+    dbus # for dbus-run-session
+    gobject-introspection
+  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+    mesonEmulatorHook
+  ];
+
+  buildInputs = [
+    cairo
+    readline
+    libsysprof-capture
+    spidermonkey_102
+  ];
+
+  nativeCheckInputs = [
+    xvfb-run
+  ] ++ testDeps;
+
+  propagatedBuildInputs = [
+    glib
+  ];
+
+  mesonFlags = [
+    "-Dinstalled_test_prefix=${placeholder "installedTests"}"
+  ] ++ lib.optionals (!stdenv.isLinux || stdenv.hostPlatform.isMusl) [
+    "-Dprofiler=disabled"
+  ];
+
+  doCheck = !stdenv.isDarwin;
 
   postPatch = ''
     patchShebangs build/choose-tests-locale.sh
     substituteInPlace installed-tests/debugger-test.sh --subst-var-by gjsConsole $out/bin/gjs-console
+  '' + lib.optionalString stdenv.hostPlatform.isMusl ''
+    substituteInPlace installed-tests/js/meson.build \
+      --replace "'Encoding'," "#'Encoding',"
   '';
 
   preCheck = ''
@@ -91,6 +101,7 @@ in stdenv.mkDerivation rec {
     mkdir -p $out/lib $installedTests/libexec/installed-tests/gjs
     ln -s $PWD/libgjs.so.0 $out/lib/libgjs.so.0
     ln -s $PWD/installed-tests/js/libgimarshallingtests.so $installedTests/libexec/installed-tests/gjs/libgimarshallingtests.so
+    ln -s $PWD/installed-tests/js/libgjstesttools/libgjstesttools.so $installedTests/libexec/installed-tests/gjs/libgjstesttools.so
     ln -s $PWD/installed-tests/js/libregress.so $installedTests/libexec/installed-tests/gjs/libregress.so
     ln -s $PWD/installed-tests/js/libwarnlib.so $installedTests/libexec/installed-tests/gjs/libwarnlib.so
   '';
@@ -122,8 +133,9 @@ in stdenv.mkDerivation rec {
       installed-tests = nixosTests.installed-tests.gjs;
     };
 
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = "gjs";
+      versionPolicy = "odd-unstable";
     };
   };
 
@@ -132,6 +144,6 @@ in stdenv.mkDerivation rec {
     homepage = "https://gitlab.gnome.org/GNOME/gjs/blob/master/doc/Home.md";
     license = licenses.lgpl2Plus;
     maintainers = teams.gnome.members;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

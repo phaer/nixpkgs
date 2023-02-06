@@ -1,16 +1,18 @@
 { lib, stdenv
 , fetchurl
+, fetchpatch
 , avahi
 , bluez
 , boost
 , curl
 , eigen
+, faust
 , fftw
 , gettext
 , glib
 , glib-networking
 , glibmm
-, gnome3
+, gnome
 , gsettings-desktop-schemas
 , gtk3
 , gtkmm3
@@ -23,7 +25,7 @@
 , lrdf
 , lv2
 , pkg-config
-, python2
+, python3
 , sassc
 , serd
 , sord
@@ -41,11 +43,11 @@ in
 
 stdenv.mkDerivation rec {
   pname = "guitarix";
-  version = "0.41.0";
+  version = "0.44.1";
 
   src = fetchurl {
     url = "mirror://sourceforge/guitarix/guitarix2-${version}.tar.xz";
-    sha256 = "0qsfbyrrpb3bbdyq68k28mjql7kglxh8nqcw9jvja28x6x9ik5a0";
+    sha256 = "d+g9dU9RrDjFQj847rVd5bPiYSjmC1EbAtLe/PNubBg=";
   };
 
   nativeBuildInputs = [
@@ -53,7 +55,7 @@ stdenv.mkDerivation rec {
     hicolor-icon-theme
     intltool
     pkg-config
-    python2
+    python3
     wafHook
     wrapGAppsHook
   ];
@@ -64,11 +66,12 @@ stdenv.mkDerivation rec {
     boost
     curl
     eigen
+    faust
     fftw
     glib
     glib-networking.out
     glibmm
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     gsettings-desktop-schemas
     gtk3
     gtkmm3
@@ -86,17 +89,15 @@ stdenv.mkDerivation rec {
     zita-resampler
   ];
 
-  # this doesnt build, probably because we have the wrong faust version:
-  #       "--faust"
-  # aproved versions are 2.20.2 and 2.15.11
   wafConfigureFlags = [
-    "--no-faust"
     "--no-font-cache-update"
     "--shared-lib"
     "--no-desktop-update"
     "--enable-nls"
     "--install-roboto-font"
   ] ++ optional optimizationSupport "--optimization";
+
+  NIX_CFLAGS_COMPILE = [ "-fpermissive" ];
 
   meta = with lib; {
     description = "A virtual guitar amplifier for Linux running with JACK";

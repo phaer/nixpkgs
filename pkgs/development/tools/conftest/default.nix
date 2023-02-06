@@ -1,29 +1,54 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+, installShellFiles
+}:
 
 buildGoModule rec {
   pname = "conftest";
-  version = "0.24.0";
+  version = "0.38.0";
 
   src = fetchFromGitHub {
     owner = "open-policy-agent";
     repo = "conftest";
-    rev = "v${version}";
-    sha256 = "sha256-iFxRZq/8TW7Df+aAc5IN+FAXU4kvbDiHWiFOlWMmCY0=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-kbWRjOXfDTVI07KuMQHcyxjenc7fW4oWRgyThzO0Pac=";
   };
+  vendorHash = "sha256-8ZGZzb7Ikfk9DZQ6zyB+4JJuqyo4nlBDhGWUb8MtSys=";
 
-  vendorSha256 = "sha256-LvaSs1y1CEP+cJc0vqTh/8MezmtuFAbfMgqloAjLZl8=";
-
-  doCheck = false;
-
-  buildFlagsArray = [
-    "-ldflags="
+  ldflags = [
     "-s"
     "-w"
     "-X github.com/open-policy-agent/conftest/internal/commands.version=${version}"
   ];
 
+  nativeBuildInputs = [
+    installShellFiles
+  ];
+
+  preCheck = ''
+    export HOME="$(mktemp -d)"
+  '';
+
+  postInstall = ''
+    installShellCompletion --cmd conftest \
+      --bash <($out/bin/conftest completion bash) \
+      --fish <($out/bin/conftest completion fish) \
+      --zsh <($out/bin/conftest completion zsh)
+  '';
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    export HOME="$(mktemp -d)"
+    $out/bin/conftest --version | grep ${version} > /dev/null
+  '';
+
   meta = with lib; {
     description = "Write tests against structured configuration data";
+    downloadPage = "https://github.com/open-policy-agent/conftest";
+    homepage = "https://www.conftest.dev";
+    changelog = "https://github.com/open-policy-agent/conftest/releases/tag/v${version}";
+    license = licenses.asl20;
     longDescription = ''
       Conftest helps you write tests against structured configuration data.
       Using Conftest you can write tests for your Kubernetes configuration,
@@ -34,8 +59,6 @@ buildGoModule rec {
       assertions. You can read more about Rego in 'How do I write policies' in
       the Open Policy Agent documentation.
     '';
-    inherit (src.meta) homepage;
-    license = licenses.asl20;
-    maintainers = with maintainers; [ yurrriq ];
+    maintainers = with maintainers; [ jk yurrriq ];
   };
 }

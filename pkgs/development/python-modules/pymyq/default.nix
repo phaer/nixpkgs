@@ -9,14 +9,14 @@
 
 buildPythonPackage rec {
   pname = "pymyq";
-  version = "3.0.4";
+  version = "3.1.6";
   disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "arraylabs";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-jeoFlLBjD81Bt6E75rk4U1Ach53KGy23QGx+A6X2rpg=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-zhGCoZ7mkHlfDjEbQihtM23u+N6nfYsQhKmrloevzp8=";
   };
 
   propagatedBuildInputs = [
@@ -27,11 +27,15 @@ buildPythonPackage rec {
 
   # Project has no tests
   doCheck = false;
-  pythonImportsCheck = [ "pymyq" ];
+
+  pythonImportsCheck = [
+    "pymyq"
+  ];
 
   meta = with lib; {
     description = "Python wrapper for MyQ API";
     homepage = "https://github.com/arraylabs/pymyq";
+    changelog = "https://github.com/arraylabs/pymyq/releases/tag/v${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

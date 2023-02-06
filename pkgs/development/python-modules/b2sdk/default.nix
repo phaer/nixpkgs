@@ -1,16 +1,50 @@
-{ lib, buildPythonPackage, fetchPypi, setuptools-scm, isPy27, pytestCheckHook
-, requests, arrow, logfury, tqdm }:
+{ lib
+, arrow
+, buildPythonPackage
+, fetchPypi
+, importlib-metadata
+, logfury
+, pyfakefs
+, pytestCheckHook
+, pytest-lazy-fixture
+, pytest-mock
+, pythonOlder
+, requests
+, setuptools-scm
+, tqdm
+}:
 
 buildPythonPackage rec {
   pname = "b2sdk";
-  version = "1.6.0";
+  version = "1.18.0";
+  format = "setuptools";
 
-  disabled = isPy27;
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-6fjreuMUC056ljddfAidfBbJkvEDndB/dIkx1bF7efs=";
+    hash = "sha256-knLyjRjUmLZtM9dJoPBeSdm7GpE0+UJhwLi/obVvPuw=";
   };
+
+  nativeBuildInputs = [
+    setuptools-scm
+  ];
+
+  propagatedBuildInputs = [
+    arrow
+    logfury
+    requests
+    tqdm
+  ] ++ lib.optionals (pythonOlder "3.8") [
+    importlib-metadata
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-lazy-fixture
+    pytest-mock
+    pyfakefs
+  ];
 
   postPatch = ''
     substituteInPlace setup.py \
@@ -19,17 +53,26 @@ buildPythonPackage rec {
       --replace 'arrow>=0.8.0,<1.0.0' 'arrow'
   '';
 
-  pythonImportsCheck = [ "b2sdk" ];
+  disabledTestPaths = [
+    # requires aws s3 auth
+    "test/integration/test_download.py"
+  ];
 
-  nativeBuildInputs = [ setuptools-scm ];
-  propagatedBuildInputs = [ requests arrow logfury tqdm ];
+  disabledTests = [
+    # Test requires an API key
+    "test_raw_api"
+    "test_files_headers"
+    "test_large_file"
+  ];
 
-  # requires unpackaged dependencies like liccheck
-  doCheck = false;
+  pythonImportsCheck = [
+    "b2sdk"
+  ];
 
   meta = with lib; {
-    description = "Client library and utilities for access to B2 Cloud Storage (backblaze).";
+    description = "Client library and utilities for access to B2 Cloud Storage (backblaze)";
     homepage = "https://github.com/Backblaze/b2-sdk-python";
     license = licenses.mit;
+    maintainers = with maintainers; [ ];
   };
 }

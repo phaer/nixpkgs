@@ -1,18 +1,37 @@
-{ lib, stdenv, fetchFromGitHub, meson, ninja, gettext, python3,
-  pkg-config, libxml2, json-glib , sqlite, itstool, yelp-tools,
-  vala, gtk3, gnome3, desktop-file-utils, wrapGAppsHook, gobject-introspection,
-  libsoup, webkitgtk
+{ lib
+, stdenv
+, fetchFromGitHub
+, meson
+, ninja
+, gettext
+, python3
+, pkg-config
+, libxml2
+, json-glib
+, sqlite
+, itstool
+, yelp-tools
+, vala
+, gsettings-desktop-schemas
+, gtk3
+, gnome
+, desktop-file-utils
+, wrapGAppsHook
+, gobject-introspection
+, libsoup
+, glib-networking
+, webkitgtk
 }:
 
 stdenv.mkDerivation rec {
   pname = "font-manager";
-  version = "0.8.5-1";
+  version = "0.8.8";
 
   src = fetchFromGitHub {
     owner = "FontManager";
     repo = "master";
     rev = version;
-    sha256 = "1p0hfnf06892hn25a6zv8fnhbh4ln11nn2fv1vjqs63rr59fprbk";
+    sha256 = "sha256-M13Q9d2cKhc0tudkvw0zgqPAFTlmXwK+LltXeuDPWxo=";
   };
 
   nativeBuildInputs = [
@@ -34,10 +53,16 @@ stdenv.mkDerivation rec {
     libxml2
     json-glib
     sqlite
+    gsettings-desktop-schemas # for font settings
     gtk3
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     libsoup
+    glib-networking # for SSL so that Google Fonts can load
     webkitgtk
+  ];
+
+  mesonFlags = [
+    "-Dreproducible=true" # Do not hardcode build directory…
   ];
 
   postPatch = ''

@@ -1,11 +1,11 @@
-{ lib, stdenv, fetchFromGitHub, boost, cmake, cpp-hocon, curl, leatherman, libwhereami, libyamlcpp, openssl, ruby, util-linux }:
+{ lib, stdenv, fetchFromGitHub, boost, cmake, cpp-hocon, curl, leatherman, libwhereami, yaml-cpp, openssl, ruby, util-linux }:
 
 stdenv.mkDerivation rec {
   pname = "facter";
-  version = "3.14.16";
+  version = "3.14.17";
 
   src = fetchFromGitHub {
-    sha256 = "sha256-VZIeyLJBlh5/r0EHinSiPiQyCNUBFBYjDZ6nTVnZBbE=";
+    sha256 = "sha256-RvsUt1DyN8Xr+Xtz84mbKlDwxLewgK6qklYVdQHu6q0=";
     rev = version;
     repo = pname;
     owner = "puppetlabs";
@@ -22,7 +22,7 @@ stdenv.mkDerivation rec {
   NIX_CFLAGS_COMPILE = "-Wno-error";
 
   nativeBuildInputs = [ cmake ];
-  buildInputs = [ boost cpp-hocon curl leatherman libwhereami libyamlcpp openssl ruby util-linux ];
+  buildInputs = [ boost cpp-hocon curl leatherman libwhereami yaml-cpp openssl ruby util-linux ];
 
   meta = with lib; {
     homepage = "https://github.com/puppetlabs/facter";

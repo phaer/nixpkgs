@@ -1,41 +1,52 @@
-{ lib, stdenv, fetchFromGitHub, fetchpatch, makeWrapper
-, which, nodejs, mkYarnPackage, python2, nixosTests }:
+{ lib
+, stdenv
+, fetchzip
+, makeWrapper
+, which
+, nodejs
+, mkYarnPackage
+, fetchYarnDeps
+, python3
+, nixosTests
+}:
 
 mkYarnPackage rec {
-  name = "hedgedoc";
-  version = "1.7.2";
+  pname = "hedgedoc";
+  version = "1.9.6";
 
-  src = fetchFromGitHub {
-    owner  = "hedgedoc";
-    repo   = "hedgedoc";
-    rev    = version;
-    sha256 = "1w3si1k27c8d9yka2v91883dlz57n0wasan4agi6gw17h9dzb1l6";
+  # we use the upstream compiled js files because yarn2nix cannot handle different versions of dependencies
+  # in development and production and the web assets muts be compiled with js-yaml 3 while development
+  # uses js-yaml 4 which breaks the text editor
+  src = fetchzip {
+    url = "https://github.com/hedgedoc/hedgedoc/releases/download/${version}/hedgedoc-${version}.tar.gz";
+    hash = "sha256-NoA4mv9LyvShr4fdfBSHgDoyxY59ubRC8YC6hvOimZc=";
   };
 
   nativeBuildInputs = [ which makeWrapper ];
-  extraBuildInputs = [ python2 ];
+  extraBuildInputs = [ python3 ];
 
-  yarnNix = ./yarn.nix;
-  yarnLock = ./yarn.lock;
   packageJSON = ./package.json;
+  yarnFlags = [ "--production" ];
 
-  postConfigure = ''
-    rm deps/HedgeDoc/node_modules
-    cp -R "$node_modules" deps/HedgeDoc
-    chmod -R u+w deps/HedgeDoc
+  offlineCache = fetchYarnDeps {
+    yarnLock = src + "/yarn.lock";
+    sha256 = "1xxq02mgys3bp7ivgsr9hyafd866ygw2bp3rbld2500afvayz89v";
+  };
+
+  configurePhase = ''
+    cp -r "$node_modules" node_modules
+    chmod -R u+w node_modules
   '';
 
   buildPhase = ''
     runHook preBuild
-
-    cd deps/HedgeDoc
 
     pushd node_modules/sqlite3
     export CPPFLAGS="-I${nodejs}/include/node"
     npm run install --build-from-source --nodedir=${nodejs}/include/node
     popd
 
-    npm run build
+    patchShebangs bin/*
 
     runHook postBuild
   '';
@@ -59,13 +70,15 @@ mkYarnPackage rec {
     runHook postDist
   '';
 
-  passthru.tests = { inherit (nixosTests) hedgedoc; };
+  passthru = {
+    tests = { inherit (nixosTests) hedgedoc; };
+  };
 
   meta = with lib; {
     description = "Realtime collaborative markdown notes on all platforms";
     license = licenses.agpl3;
     homepage = "https://hedgedoc.org";
-    maintainers = with maintainers; [ willibutz ma27 globin ];
+    maintainers = with maintainers; [ willibutz SuperSandro2000 ];
     platforms = platforms.linux;
   };
 }

@@ -1,21 +1,38 @@
-{ lib, buildGoModule, fetchFromGitHub, makeWrapper, rpm, xz }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+, makeWrapper
+, rpm
+, xz
+}:
 
 buildGoModule rec {
   pname = "clair";
-  version = "4.0.5";
+  version = "4.6.0";
 
   src = fetchFromGitHub {
     owner = "quay";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-tpk5Avx2bRQlhOnHpmpDG14X9nk3x68TST+VtIW8rL8=";
+    hash = "sha256-Dl1wwK4OSv/nvhT7bH6qOdX4/qL3xFdmz5qiYaEm59Y=";
   };
 
-  vendorSha256 = "sha256-O9SEVyBFnmyrQCmccXLyeOqlTwWHzICTLVKGO7rerjI=";
+  vendorHash = "sha256-NqEpJHBZfzUQJ+H8CQBDdb37nlwA+JuXhZzfCAyO0Co=";
 
-  doCheck = false;
+  nativeBuildInputs = [
+    makeWrapper
+  ];
 
-  nativeBuildInputs = [ makeWrapper ];
+  subPackages = [
+    "cmd/clair"
+    "cmd/clairctl"
+  ];
+
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.Version=${version}"
+  ];
 
   postInstall = ''
     wrapProgram $out/bin/clair \

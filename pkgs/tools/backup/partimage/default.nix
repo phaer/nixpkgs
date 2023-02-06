@@ -7,21 +7,24 @@
 , openssl
 , pkg-config
 , slang
+, libxcrypt
 , autoreconfHook
 }:
-stdenv.mkDerivation {
-  name = "partimage-0.6.9";
+stdenv.mkDerivation rec {
+  pname = "partimage";
+  version = "0.6.9";
+
   enableParallelBuilding = true;
 
   src = fetchurl {
-    url = "mirror://sourceforge/partimage/partimage-0.6.9.tar.bz2";
+    url = "mirror://sourceforge/partimage/partimage-${version}.tar.bz2";
     sha256 = "0db6xiphk6xnlpbxraiy31c5xzj0ql6k4rfkmqzh665yyj0nqfkm";
   };
 
   configureFlags = [ "--with-ssl-headers=${openssl.dev}/include/openssl" ];
 
   nativeBuildInputs = [ pkg-config autoreconfHook ];
-  buildInputs = [ bzip2 zlib newt newt openssl slang ];
+  buildInputs = [ bzip2 zlib newt newt openssl slang libxcrypt ];
 
   patches = [
     ./gentoos-zlib.patch

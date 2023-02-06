@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -i python3 -p bundix bundler nix-update nix nix-universal-prefetch python3 python3Packages.requests python3Packages.click python3Packages.click-log yarn2nix
+#! nix-shell -I nixpkgs=../../../.. -i python3 -p bundix bundler nix-update nix nix-universal-prefetch python3 python3Packages.requests python3Packages.click python3Packages.click-log python3Packages.packaging prefetch-yarn-deps
 
 import click
 import click_log
@@ -9,7 +9,8 @@ import logging
 import subprocess
 import json
 import pathlib
-from distutils.version import LooseVersion
+import tempfile
+from packaging.version import Version
 from typing import Iterable
 
 import requests
@@ -36,11 +37,17 @@ class GitLabRepo:
         versions = list(filter(self.version_regex.match, tags))
 
         # sort, but ignore v and -ee for sorting comparisons
-        versions.sort(key=lambda x: LooseVersion(x.replace("v", "").replace("-ee", "")), reverse=True)
+        versions.sort(key=lambda x: Version(x.replace("v", "").replace("-ee", "")), reverse=True)
         return versions
 
     def get_git_hash(self, rev: str):
         return subprocess.check_output(['nix-universal-prefetch', 'fetchFromGitLab', '--owner', self.owner, '--repo', self.repo, '--rev', rev]).decode('utf-8').strip()
+
+    def get_yarn_hash(self, rev: str):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(tmp_dir + '/yarn.lock', 'w') as f:
+                f.write(self.get_file('yarn.lock', rev))
+            return subprocess.check_output(['prefetch-yarn-deps', tmp_dir + '/yarn.lock']).decode('utf-8').strip()
 
     @staticmethod
     def rev2version(tag: str) -> str:
@@ -74,6 +81,7 @@ class GitLabRepo:
 
         return dict(version=self.rev2version(rev),
                     repo_hash=self.get_git_hash(rev),
+                    yarn_hash=self.get_yarn_hash(rev),
                     owner=self.owner,
                     repo=self.repo,
                     rev=rev,
@@ -130,33 +138,25 @@ def update_rubyenv():
     # load rev from data.json
     data = _get_data_json()
     rev = data['rev']
+    version = data['version']
 
     for fn in ['Gemfile.lock', 'Gemfile']:
         with open(rubyenv_dir / fn, 'w') as f:
             f.write(repo.get_file(fn, rev))
 
+    # Fetch vendored dependencies temporarily in order to build the gemset.nix
+    subprocess.check_output(['mkdir', '-p', 'vendor/gems'], cwd=rubyenv_dir)
+    subprocess.check_output(['sh', '-c', f'curl -L https://gitlab.com/gitlab-org/gitlab/-/archive/v{version}-ee/gitlab-v{version}-ee.tar.bz2?path=vendor/gems | tar -xj --strip-components=3'], cwd=f'{rubyenv_dir}/vendor/gems')
+
+    # Undo our gemset.nix patches so that bundix runs through
+    subprocess.check_output(['sed', '-i', '-e', '1d', '-e', 's:\\${src}/::g' , 'gemset.nix'], cwd=rubyenv_dir)
+
     subprocess.check_output(['bundle', 'lock'], cwd=rubyenv_dir)
     subprocess.check_output(['bundix'], cwd=rubyenv_dir)
 
+    subprocess.check_output(['sed', '-i', '-e', '1i\\src:', '-e', 's:path = \\(vendor/[^;]*\\);:path = "${src}/\\1";:g', 'gemset.nix'], cwd=rubyenv_dir)
+    subprocess.check_output(['rm', '-rf', 'vendor'], cwd=rubyenv_dir)
 
-@cli.command('update-yarnpkgs')
-def update_yarnpkgs():
-    """Update yarnPkgs"""
-
-    repo = GitLabRepo()
-    yarnpkgs_dir = pathlib.Path(__file__).parent
-
-    # load rev from data.json
-    data = _get_data_json()
-    rev = data['rev']
-
-    with open(yarnpkgs_dir / 'yarn.lock', 'w') as f:
-        f.write(repo.get_file('yarn.lock', rev))
-
-    with open(yarnpkgs_dir / 'yarnPkgs.nix', 'w') as f:
-        subprocess.run(['yarn2nix'], cwd=yarnpkgs_dir, check=True, stdout=f)
-
-    os.unlink(yarnpkgs_dir / 'yarn.lock')
 
 
 @cli.command('update-gitaly')
@@ -200,7 +200,6 @@ def update_all(ctx, rev: str):
     """Update all gitlab components to the latest stable release"""
     ctx.invoke(update_data, rev=rev)
     ctx.invoke(update_rubyenv)
-    ctx.invoke(update_yarnpkgs)
     ctx.invoke(update_gitaly)
     ctx.invoke(update_gitlab_shell)
     ctx.invoke(update_gitlab_workhorse)

@@ -12,14 +12,16 @@
 
 buildPythonPackage rec {
   pname = "pydaikin";
-  version = "2.4.1";
+  version = "2.9.0";
+  format = "setuptools";
+
   disabled = pythonOlder "3.6";
 
   src = fetchFromBitbucket {
     owner = "mustang51";
     repo = pname;
     rev = "v${version}";
-    sha256 = "1624adp4lqd1n9flnf0wqrcibml2nd19ga3fmxzjg4x5z6767bs3";
+    hash = "sha256-cJkrBt4HRH2SX4YWo+gK4rd7uyZRzLUvFXJ6L5nxzeM=";
   };
 
   propagatedBuildInputs = [
@@ -28,13 +30,15 @@ buildPythonPackage rec {
     urllib3
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     freezegun
     pytest-aiohttp
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "pydaikin" ];
+  pythonImportsCheck = [
+    "pydaikin"
+  ];
 
   meta = with lib; {
     description = "Python Daikin HVAC appliances interface";

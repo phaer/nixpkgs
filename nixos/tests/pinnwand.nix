@@ -1,27 +1,7 @@
 import ./make-test-python.nix ({ pkgs, ...}:
 let
-  pythonEnv = pkgs.python3.withPackages (py: with py; [ appdirs toml ]);
-
   port = 8000;
   baseUrl = "http://server:${toString port}";
-
-  configureSteck = pkgs.writeScript "configure.py" ''
-    #!${pythonEnv.interpreter}
-    import appdirs
-    import toml
-    import os
-
-    CONFIG = {
-      "base": "${baseUrl}/",
-      "confirm": False,
-      "magic": True,
-      "ignore": True
-    }
-
-    os.makedirs(appdirs.user_config_dir('steck'))
-    with open(os.path.join(appdirs.user_config_dir('steck'), 'steck.toml'), "w") as fd:
-        toml.dump(CONFIG, fd)
-    '';
 in
 {
   name = "pinnwand";
@@ -44,7 +24,32 @@ in
 
     client = { pkgs, ... }:
     {
-      environment.systemPackages = [ pkgs.steck ];
+      environment.systemPackages = [
+        pkgs.steck
+
+        (pkgs.writers.writePython3Bin "setup-steck.py" {
+          libraries = with pkgs.python3.pkgs; [ appdirs toml ];
+          flakeIgnore = [
+            "E501"
+          ];
+        }
+        ''
+          import appdirs
+          import toml
+          import os
+
+          CONFIG = {
+              "base": "${baseUrl}/",
+              "confirm": False,
+              "magic": True,
+              "ignore": True
+          }
+
+          os.makedirs(appdirs.user_config_dir('steck'))
+          with open(os.path.join(appdirs.user_config_dir('steck'), 'steck.toml'), "w") as fd:
+              toml.dump(CONFIG, fd)
+        '')
+      ];
     };
   };
 
@@ -55,13 +60,13 @@ in
     client.wait_for_unit("network.target")
 
     # create steck.toml config file
-    client.succeed("${configureSteck}")
+    client.succeed("setup-steck.py")
 
     # wait until the server running pinnwand is reachable
     client.wait_until_succeeds("ping -c1 server")
 
     # make sure pinnwand is listening
-    server.wait_until_succeeds("ss -lnp | grep ${toString port}")
+    server.wait_for_open_port(${toString port})
 
     # send the contents of /etc/machine-id
     response = client.succeed("steck paste /etc/machine-id")
@@ -82,5 +87,7 @@ in
     # remove paste and check that it's not available any more
     client.succeed(f"curl {removal_link}")
     client.fail(f"curl --fail {raw_url}")
+
+    server.log(server.execute("systemd-analyze security pinnwand | grep '✗'")[1])
   '';
 })

@@ -3,14 +3,21 @@
 , fetchurl
 , bison
 , cdrtools
-, docbook5
+, docbook_xml_dtd_412
+, docbook-xsl-nons
 , dvdauthor
 , dvdplusrwtools
+, ffmpeg
 , flex
 , fontconfig
 , gettext
-, makeWrapper
+, glib
+, gobject-introspection
+, libexif
+, libjpeg
 , pkg-config
+, wrapGAppsHook
+, wxGTK32
 , wxSVG
 , xine-ui
 , xmlto
@@ -26,46 +33,63 @@ let
   inherit (lib) optionals makeBinPath;
 in stdenv.mkDerivation rec {
   pname = "dvdstyler";
-  version = "3.1.2";
+  version = "3.2.1";
 
   src = fetchurl {
     url = "mirror://sourceforge/project/dvdstyler/dvdstyler/${version}/DVDStyler-${version}.tar.bz2";
-    sha256 = "03lsblqficcadlzkbyk8agh5rqcfz6y6dqvy9y866wqng3163zq4";
+    sha256 = "sha256-C7M0hzn0yTCXRUuBTss6WPa6zo8DD0Fhmp/ur7R0dVg=";
   };
 
-  nativeBuildInputs = [
-    pkg-config
+  patches = [
+    # https://sourceforge.net/p/dvdstyler/DVDStyler/ci/679fa8dc6ac7657775eda9d7b0ed9da9d069aeec/
+    ./wxgtk32.patch
   ];
-  buildInputs = [
+
+  nativeBuildInputs = [
     bison
-    cdrtools
-    docbook5
-    dvdauthor
-    dvdplusrwtools
+    docbook_xml_dtd_412
+    docbook-xsl-nons
     flex
-    fontconfig
     gettext
-    makeWrapper
-    wxSVG
-    xine-ui
+    gobject-introspection
+    pkg-config
+    wrapGAppsHook
     xmlto
     zip
+  ];
+  buildInputs = [
+    cdrtools
+    dvdauthor
+    dvdplusrwtools
+    ffmpeg
+    fontconfig
+    glib
+    libexif
+    libjpeg
+    wxSVG
+    wxGTK32
+    xine-ui
  ]
   ++ optionals dvdisasterSupport [ dvdisaster ]
   ++ optionals udevSupport [ udev ]
   ++ optionals dbusSupport [ dbus ]
   ++ optionals thumbnailSupport [ libgnomeui ];
 
+  enableParallelBuilding = true;
 
-  postInstall = let
-    binPath = makeBinPath [
+  preFixup = let
+    binPath = makeBinPath ([
       cdrtools
       dvdauthor
       dvdplusrwtools
-    ]; in
+    ] ++ optionals dvdisasterSupport [ dvdisaster ]);
+    in
     ''
-       wrapProgram $out/bin/dvdstyler --prefix PATH ":" "${binPath}"
-    '';
+      gappsWrapperArgs+=(
+        --prefix PATH : "${binPath}"
+      )
+   '';
+
 
   meta = with lib; {
     homepage = "https://www.dvdstyler.org/";

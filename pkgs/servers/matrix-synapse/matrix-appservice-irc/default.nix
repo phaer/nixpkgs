@@ -1,28 +1,42 @@
-{ pkgs, nodePackages, makeWrapper, nixosTests, nodejs, stdenv, lib, ... }:
+{ lib
+, buildNpmPackage
+, fetchFromGitHub
+, python3
+, matrix-sdk-crypto-nodejs
+, nixosTests
+, nix-update-script
+}:
 
-let
+buildNpmPackage rec {
+  pname = "matrix-appservice-irc";
+  version = "0.36.0";
 
-  packageName = with lib; concatStrings (map (entry: (concatStrings (mapAttrsToList (key: value: "${key}-${value}") entry))) (importJSON ./package.json));
-
-  ourNodePackages = import ./node-composition.nix {
-    inherit pkgs nodejs;
-    inherit (stdenv.hostPlatform) system;
+  src = fetchFromGitHub {
+    owner = "matrix-org";
+    repo = "matrix-appservice-irc";
+    rev = "refs/tags/${version}";
+    hash = "sha256-8/jLONqf+0JRAK/SLj3qlG6Dm0VRl4h6YWeZnz4pVXc=";
   };
-in
-ourNodePackages."${packageName}".override {
-  nativeBuildInputs = [ makeWrapper nodePackages.node-gyp-build ];
+
+  npmDepsHash = "sha256-fGft7au5js9DRoXYccBPdJyaZ3zfsuCwUwWPOxwAodo=";
+
+  nativeBuildInputs = [
+    python3
+  ];
 
   postInstall = ''
-    makeWrapper '${nodejs}/bin/node' "$out/bin/matrix-appservice-irc" \
-      --add-flags "$out/lib/node_modules/matrix-appservice-irc/app.js"
+    rm -rv $out/lib/node_modules/matrix-appservice-irc/node_modules/@matrix-org/matrix-sdk-crypto-nodejs
+    ln -sv ${matrix-sdk-crypto-nodejs}/lib/node_modules/@matrix-org/matrix-sdk-crypto-nodejs $out/lib/node_modules/matrix-appservice-irc/node_modules/@matrix-org/
   '';
 
   passthru.tests.matrix-appservice-irc = nixosTests.matrix-appservice-irc;
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
     description = "Node.js IRC bridge for Matrix";
-    maintainers = with maintainers; [ piegames ];
+    maintainers = with maintainers; [ rhysmdnz ];
     homepage = "https://github.com/matrix-org/matrix-appservice-irc";
     license = licenses.asl20;
+    platforms = platforms.linux;
   };
 }

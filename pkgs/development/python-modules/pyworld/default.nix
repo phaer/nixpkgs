@@ -7,11 +7,11 @@
 
 buildPythonPackage rec {
   pname = "pyworld";
-  version = "0.2.12";
+  version = "0.3.2";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "896c910696975855578d855f490f94d7a57119e0a75f7f15e11fdf58ba891627";
+    sha256 = "sha256-Zo0JhCw8+nSx9u2r2wBYpkwE+c8XuTiD5tqBHhIErU0=";
   };
 
   nativeBuildInputs = [
@@ -26,7 +26,7 @@ buildPythonPackage rec {
 
   meta = with lib; {
     description = "PyWorld is a Python wrapper for WORLD vocoder";
-    homepage = https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder;
+    homepage = "https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder";
     license = licenses.mit;
     maintainers = [ maintainers.mic92 ];
   };

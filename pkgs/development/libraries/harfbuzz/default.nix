@@ -1,35 +1,46 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, glib, freetype, cairo, libintl
-, meson, ninja
+{ lib
+, stdenv
+, fetchurl
+, fetchpatch
+, pkg-config
+, glib
+, freetype
+, fontconfig
+, libintl
+, meson
+, ninja
 , gobject-introspection
-, icu, graphite2, harfbuzz # The icu variant uses and propagates the non-icu one.
-, ApplicationServices, CoreText
+, icu
+, graphite2
+, harfbuzz # The icu variant uses and propagates the non-icu one.
+, ApplicationServices
+, CoreText
 , withCoreText ? false
 , withIcu ? false # recommended by upstream as default, but most don't needed and it's big
 , withGraphite2 ? true # it is small and major distros do include it
 , python3
-, gtk-doc, docbook-xsl-nons, docbook_xml_dtd_43
+, gtk-doc
+, docbook-xsl-nons
+, docbook_xml_dtd_43
+# for passthru.tests
+, gimp
+, gtk3
+, gtk4
+, mapnik
+, qt5
 }:
 
-let
-  version = "2.8.0";
-  inherit (lib) optional optionals optionalString;
-  mesonFeatureFlag = opt: b:
-    "-D${opt}=${if b then "enabled" else "disabled"}";
-in
+stdenv.mkDerivation rec {
+  pname = "harfbuzz${lib.optionalString withIcu "-icu"}";
+  version = "6.0.0";
 
-stdenv.mkDerivation {
-  name = "harfbuzz${optionalString withIcu "-icu"}-${version}";
-
-  src = fetchFromGitHub {
-    owner  = "harfbuzz";
-    repo   = "harfbuzz";
-    rev    = version;
-    sha256 = "sha256-JnvOFGK2HWIpzuwgZtyt0IfKfnoXD1LMeVb3RzMmyY4=";
+  src = fetchurl {
+    url = "https://github.com/harfbuzz/harfbuzz/releases/download/${version}/harfbuzz-${version}.tar.xz";
+    sha256 = "HRAQoXUdB21SkeQzwThQKnlNZ5p0mNEmjuIeLUoUDrQ=";
   };
 
   postPatch = ''
-    patchShebangs src/*.py
-    patchShebangs test
+    patchShebangs src/*.py test
   '' + lib.optionalString stdenv.isDarwin ''
     # ApplicationServices.framework headers have cast-align warnings.
     substituteInPlace src/hb.hh \
@@ -40,9 +51,20 @@ stdenv.mkDerivation {
   outputBin = "dev";
 
   mesonFlags = [
-    (mesonFeatureFlag "graphite" withGraphite2)
-    (mesonFeatureFlag "icu" withIcu)
-    (mesonFeatureFlag "coretext" withCoreText)
+    # upstream recommends cairo, but it is only used for development purposes
+    # and is not part of the library.
+    # Cairo causes transitive (build) dependencies on various X11 or other
+    # GUI-related libraries, so it shouldn't be re-added lightly.
+    (lib.mesonEnable "cairo" false)
+    # chafa is only used in a development utility, not in the library
+    (lib.mesonEnable "chafa" false)
+    (lib.mesonEnable "coretext" withCoreText)
+    (lib.mesonEnable "graphite" withGraphite2)
+    (lib.mesonEnable "icu" withIcu)
+  ];
+
+  depsBuildBuild = [
+    pkg-config
   ];
 
   nativeBuildInputs = [
@@ -57,25 +79,29 @@ stdenv.mkDerivation {
     docbook_xml_dtd_43
   ];
 
-  buildInputs = [ glib freetype cairo ] # recommended by upstream
+  buildInputs = [ glib freetype ]
     ++ lib.optionals withCoreText [ ApplicationServices CoreText ];
 
-  propagatedBuildInputs = []
-    ++ optional withGraphite2 graphite2
-    ++ optionals withIcu [ icu harfbuzz ];
+  propagatedBuildInputs = lib.optional withGraphite2 graphite2
+    ++ lib.optionals withIcu [ icu harfbuzz ];
 
   doCheck = true;
 
   # Slightly hacky; some pkgs expect them in a single directory.
-  postFixup = optionalString withIcu ''
+  postFixup = lib.optionalString withIcu ''
     rm "$out"/lib/libharfbuzz.* "$dev/lib/pkgconfig/harfbuzz.pc"
     ln -s {'${harfbuzz.out}',"$out"}/lib/libharfbuzz.la
     ln -s {'${harfbuzz.dev}',"$dev"}/lib/pkgconfig/harfbuzz.pc
-    ${optionalString stdenv.isDarwin ''
+    ${lib.optionalString stdenv.isDarwin ''
       ln -s {'${harfbuzz.out}',"$out"}/lib/libharfbuzz.dylib
       ln -s {'${harfbuzz.out}',"$out"}/lib/libharfbuzz.0.dylib
     ''}
   '';
+
+  passthru.tests = {
+    inherit gimp gtk3 gtk4 mapnik;
+    inherit (qt5) qtbase;
+  };
 
   meta = with lib; {
     description = "An OpenType text shaping engine";

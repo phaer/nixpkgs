@@ -2,22 +2,18 @@
 
 stdenv.mkDerivation rec {
   pname = "ibus-table-others";
-  version = "1.3.11";
+  version = "1.3.13";
 
   src = fetchurl {
     url = "https://github.com/moebiuscurve/ibus-table-others/releases/download/${version}/${pname}-${version}.tar.gz";
-    sha256 = "0763wnlklcs3d8fk21nkp7dgn4qzqgxh1s24q3kl8gzgng2a88jj";
+    sha256 = "sha256-XN11iOShWyzRzmo/Ke+1Qh//o4ZhsmJWimgA1by2VZo=";
   };
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ ibus ibus-table python3 ];
 
   preBuild = ''
-    export HOME=$(mktemp -d)/ibus-table-others
-  '';
-
-  postFixup = ''
-    rm -rf $HOME
+    export HOME=$TMPDIR
   '';
 
   meta = with lib; {

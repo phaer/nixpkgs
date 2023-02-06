@@ -2,17 +2,17 @@
 
 stdenv.mkDerivation rec {
   pname = "varscan";
-  version = "2.4.4";
+  version = "2.4.5";
 
   src = fetchurl {
     url = "https://github.com/dkoboldt/varscan/raw/master/VarScan.v${version}.jar";
-    sha256 = "sha256-+yO3KrZ2+1qJvQIJHCtsmv8hC5a+4E2d7mrvTYtygU0=";
+    sha256 = "sha256-q4jkkKTqXHiaAPRThqo82i43+B4NaHUUuMyefW6tgg0=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
   buildInputs = [ jre ];
 
-  phases = [ "installPhase" ];
+  dontUnpack = true;
 
   installPhase = ''
     mkdir -p $out/libexec/varscan
@@ -30,6 +30,7 @@ stdenv.mkDerivation rec {
     # University School of Medicine.
     license = licenses.unfree;
     homepage = "https://github.com/dkoboldt/varscan";
+    sourceProvenance = with sourceTypes; [ binaryBytecode ];
     maintainers = with maintainers; [ jbedo ];
     platforms = platforms.all;
   };

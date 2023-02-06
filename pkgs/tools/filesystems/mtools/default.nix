@@ -1,18 +1,20 @@
-{ lib, stdenv, fetchurl }:
+{ lib, stdenv, fetchurl, libiconv }:
 
 stdenv.mkDerivation rec {
   pname = "mtools";
-  version = "4.0.27";
+  version = "4.0.42";
 
   src = fetchurl {
     url = "mirror://gnu/mtools/${pname}-${version}.tar.bz2";
-    sha256 = "1crqi10adwfahj8xyw60lx70hkpcc5g00b5r8277cm2f4kcwi24w";
+    sha256 = "sha256-ZL/f3k2Cr2si88HHLD4jHLthj0wjCcxG9U0W1VAszxU=";
   };
 
   patches = lib.optional stdenv.isDarwin ./UNUSED-darwin.patch;
 
   # fails to find X on darwin
   configureFlags = lib.optional stdenv.isDarwin "--without-x";
+
+  buildInputs = lib.optional stdenv.isDarwin libiconv;
 
   doCheck = true;
 

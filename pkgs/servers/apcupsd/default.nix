@@ -1,15 +1,16 @@
 { lib, stdenv, fetchurl, pkg-config, systemd, util-linux, coreutils, wall, hostname, man
 , enableCgiScripts ? true, gd
+, nixosTests
 }:
 
 assert enableCgiScripts -> gd != null;
 
 stdenv.mkDerivation rec {
   pname = "apcupsd";
-  name = "${pname}-3.14.14";
+  version = "3.14.14";
 
   src = fetchurl {
-    url = "mirror://sourceforge/${pname}/${name}.tar.gz";
+    url = "mirror://sourceforge/${pname}/${pname}-${version}.tar.gz";
     sha256 = "0rwqiyzlg9p0szf3x6q1ppvrw6f6dbpn2rc5z623fk3bkdalhxyv";
   };
 
@@ -51,6 +52,8 @@ stdenv.mkDerivation rec {
                "$file"
     done
   '';
+
+  passthru.tests.smoke = nixosTests.apcupsd;
 
   meta = with lib; {
     description = "Daemon for controlling APC UPSes";

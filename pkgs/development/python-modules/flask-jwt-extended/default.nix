@@ -1,20 +1,47 @@
-{ lib, buildPythonPackage, fetchPypi, dateutil, flask, pyjwt, werkzeug, pytest }:
+{ lib
+, buildPythonPackage
+, fetchPypi
+, cryptography
+, flask
+, pyjwt
+, pytestCheckHook
+, python-dateutil
+, pythonOlder
+, werkzeug
+}:
 
 buildPythonPackage rec {
-  pname = "Flask-JWT-Extended";
-  version = "4.1.0";
+  pname = "flask-jwt-extended";
+  version = "4.4.4";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "77ca23f23e80480ea42b9c1d9b0fca214e08db7192583e782c2421416b4a4655";
+    pname = "Flask-JWT-Extended";
+    inherit version;
+    hash = "sha256-YrUh11SUwpCmRq6KzHcSNyHkNkeQ8eZK8AONgjlh+/A=";
   };
 
-  propagatedBuildInputs = [ dateutil flask pyjwt werkzeug ];
-  checkInputs = [ pytest ];
+  propagatedBuildInputs = [
+    flask
+    pyjwt
+    python-dateutil
+    werkzeug
+  ];
 
-  checkPhase = ''
-    pytest tests/
-  '';
+  passthru.optional-dependencies.asymmetric_crypto = [
+    cryptography
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ]
+  ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+
+  pythonImportsCheck = [
+    "flask_jwt_extended"
+  ];
 
   meta = with lib; {
     description = "JWT extension for Flask";

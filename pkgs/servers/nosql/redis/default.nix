@@ -1,25 +1,18 @@
 { lib, stdenv, fetchurl, lua, pkg-config, nixosTests
-, withSystemd ? stdenv.isLinux && !stdenv.hostPlatform.isMusl, systemd
-, tlsSupport ? true, openssl
+, tcl, which, ps, getconf
+, withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd, systemd
+# dependency ordering is broken at the moment when building with openssl
+, tlsSupport ? !stdenv.hostPlatform.isStatic, openssl
 }:
 
 stdenv.mkDerivation rec {
   pname = "redis";
-  version = "6.2.1";
+  version = "7.0.8";
 
   src = fetchurl {
     url = "https://download.redis.io/releases/${pname}-${version}.tar.gz";
-    sha256 = "sha256-zSIlBQEsziCyVoL8qTHsk70hrpLLSr/nQs97dqqQdSA=";
+    hash = "sha256-BqM55JEwZ4Pc9VuX8VpdvL3AHMvebcIwJ8R1yrc16RQ=";
   };
-
-  # Cross-compiling fixes
-  configurePhase = ''
-    ${lib.optionalString (stdenv.buildPlatform != stdenv.hostPlatform) ''
-      # This fixes hiredis, which has the AR awkwardly coded.
-      # Probably a good candidate for a patch upstream.
-      makeFlagsArray+=('STLIB_MAKE_CMD=${stdenv.cc.targetPrefix}ar rcs $(STLIBNAME)')
-    ''}
-  '';
 
   nativeBuildInputs = [ pkg-config ];
 
@@ -30,16 +23,43 @@ stdenv.mkDerivation rec {
   # Note: this enables libc malloc as a temporary fix for cross-compiling.
   # Due to hardcoded configure flags in jemalloc, we can't cross-compile vendored jemalloc properly, and so we're forced to use libc allocator.
   # It's weird that the build isn't failing because of failure to compile dependencies, it's from failure to link them!
-  makeFlags = [ "PREFIX=$(out)" ]
+  makeFlags = [ "PREFIX=${placeholder "out"}" ]
     ++ lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [ "AR=${stdenv.cc.targetPrefix}ar" "RANLIB=${stdenv.cc.targetPrefix}ranlib" "MALLOC=libc" ]
-    ++ lib.optional withSystemd [ "USE_SYSTEMD=yes" ]
+    ++ lib.optionals withSystemd [ "USE_SYSTEMD=yes" ]
     ++ lib.optionals tlsSupport [ "BUILD_TLS=yes" ];
 
   enableParallelBuilding = true;
 
+  hardeningEnable = [ "pie" ];
+
   NIX_CFLAGS_COMPILE = lib.optionals stdenv.cc.isClang [ "-std=c11" ];
 
-  doCheck = false; # needs tcl
+  # darwin currently lacks a pure `pgrep` which is extensively used here
+  doCheck = !stdenv.isDarwin;
+  nativeCheckInputs = [ which tcl ps ] ++ lib.optionals stdenv.hostPlatform.isStatic [ getconf ];
+  checkPhase = ''
+    runHook preCheck
+
+    # disable test "Connect multiple replicas at the same time": even
+    # upstream find this test too timing-sensitive
+    substituteInPlace tests/integration/replication.tcl \
+      --replace 'foreach mdl {no yes}' 'foreach mdl {}'
+
+    substituteInPlace tests/support/server.tcl \
+      --replace 'exec /usr/bin/env' 'exec env'
+
+    sed -i '/^proc wait_load_handlers_disconnected/{n ; s/wait_for_condition 50 100/wait_for_condition 50 500/; }' \
+      tests/support/util.tcl
+
+    ./runtest \
+      --no-latency \
+      --timeout 2000 \
+      --clients $NIX_BUILD_CORES \
+      --tags -leaks \
+      --skipunit integration/failover # flaky and slow
+
+    runHook postCheck
+  '';
 
   passthru.tests.redis = nixosTests.redis;
 
@@ -50,5 +70,6 @@ stdenv.mkDerivation rec {
     platforms = platforms.all;
     changelog = "https://github.com/redis/redis/raw/${version}/00-RELEASENOTES";
     maintainers = with maintainers; [ berdario globin marsam ];
+    mainProgram = "redis-cli";
   };
 }

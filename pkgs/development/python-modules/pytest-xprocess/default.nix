@@ -1,29 +1,40 @@
-{ lib, buildPythonPackage, fetchPypi
+{ lib
+, buildPythonPackage
+, fetchPypi
 , psutil
+, py
 , pytest
-, setuptools_scm
+, setuptools-scm
 }:
 
 buildPythonPackage rec {
   pname = "pytest-xprocess";
-  version = "0.17.1";
+  version = "0.21.0";
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "59c739edee7f3f2258e7c77989241698e356c552f5efb28bb46b478616888bf6";
+    sha256 = "sha256-+UcL/PiE9ymetrgqQ9KYwxi45T7DFO5iTJh+DofBtEk=";
   };
 
-  nativeBuildInputs = [ setuptools_scm ];
-
-  buildInputs = [ pytest ];
-
-  propagatedBuildInputs = [ psutil ];
-
-  # Remove test QoL package from install_requires
   postPatch = ''
+    # Remove test QoL package from install_requires
     substituteInPlace setup.py \
       --replace "'pytest-cache', " ""
   '';
+
+  nativeBuildInputs = [
+    setuptools-scm
+  ];
+
+  buildInputs = [
+    pytest
+  ];
+
+  propagatedBuildInputs = [
+    psutil
+    py
+  ];
 
   # There's no tests in repo
   doCheck = false;

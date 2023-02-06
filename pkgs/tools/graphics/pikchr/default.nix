@@ -1,21 +1,25 @@
 { lib
 , stdenv
-, fetchurl
+, fetchfossil
 }:
 
 stdenv.mkDerivation {
   pname = "pikchr";
-  version = "unstable-2021-04-07";
+  # To update, use the last check-in in https://pikchr.org/home/timeline?r=trunk
+  version = "unstable-2022-12-07";
 
-  src = fetchurl {
-    url = "https://pikchr.org/home/tarball/90b6d5b4a3834ff0/pikchr.tar.gz";
-    sha256 = "1cqpnljy12gl82rcbb7mwhgv9szcliwkbwwh67hzdv020h1scxym";
+  src = fetchfossil {
+    url = "https://pikchr.org/home";
+    rev = "21ca6b843d65c404";
+    sha256 = "sha256-fp06GqpLa/szRCS54KJ+SkT602oWvK3KyDFFjTmpNfI=";
   };
 
   # can't open generated html files
   postPatch = ''
     substituteInPlace Makefile --replace open "test -f"
   '';
+
+  makeFlags = [ "CC=${stdenv.cc.targetPrefix}cc" ];
 
   installPhase = ''
     install -Dm755 pikchr $out/bin/pikchr

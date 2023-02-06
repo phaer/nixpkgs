@@ -3,24 +3,26 @@ let
   generic =
       # dependencies
       { stdenv, lib, fetchurl, makeWrapper
-      , glibc, zlib, readline, openssl, icu, systemd, libossp_uuid
-      , pkg-config, libxml2, tzdata
+      , glibc, zlib, readline, openssl, icu, lz4, zstd, systemd, libossp_uuid
+      , pkg-config, libxml2, tzdata, libkrb5
 
       # This is important to obtain a version of `libpq` that does not depend on systemd.
-      , enableSystemd ? (lib.versionAtLeast version "9.6" && !stdenv.isDarwin)
+      , enableSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd && !stdenv.hostPlatform.isStatic
+      , gssSupport ? with stdenv.hostPlatform; !isWindows && !isStatic
 
-      # for postgreql.pkgs
+      # for postgresql.pkgs
       , this, self, newScope, buildEnv
 
       # source specification
-      , version, sha256, psqlSchema,
+      , version, hash, psqlSchema,
 
       # for tests
       nixosTests, thisAttr
     }:
   let
     atLeast = lib.versionAtLeast version;
-    icuEnabled = atLeast "10";
+    lz4Enabled = atLeast "14";
+    zstdEnabled = atLeast "15";
 
   in stdenv.mkDerivation rec {
     pname = "postgresql";
@@ -28,19 +30,31 @@ let
 
     src = fetchurl {
       url = "mirror://postgresql/source/v${version}/${pname}-${version}.tar.bz2";
-      inherit sha256;
+      inherit hash;
     };
+
+    hardeningEnable = lib.optionals (!stdenv.cc.isClang) [ "pie" ];
 
     outputs = [ "out" "lib" "doc" "man" ];
     setOutputFlags = false; # $out retains configureFlags :-/
 
-    buildInputs =
-      [ zlib readline openssl libxml2 ]
-      ++ lib.optionals icuEnabled [ icu ]
+    buildInputs = [
+      zlib
+      readline
+      openssl
+      libxml2
+      icu
+    ]
+      ++ lib.optionals lz4Enabled [ lz4 ]
+      ++ lib.optionals zstdEnabled [ zstd ]
       ++ lib.optionals enableSystemd [ systemd ]
+      ++ lib.optionals gssSupport [ libkrb5 ]
       ++ lib.optionals (!stdenv.isDarwin) [ libossp_uuid ];
 
-    nativeBuildInputs = [ makeWrapper ] ++ lib.optionals icuEnabled [ pkg-config ];
+    nativeBuildInputs = [
+      makeWrapper
+      pkg-config
+    ];
 
     enableParallelBuilding = !stdenv.isDarwin;
 
@@ -56,33 +70,36 @@ let
     configureFlags = [
       "--with-openssl"
       "--with-libxml"
+      "--with-icu"
       "--sysconfdir=/etc"
       "--libdir=$(lib)/lib"
       "--with-system-tzdata=${tzdata}/share/zoneinfo"
       "--enable-debug"
       (lib.optionalString enableSystemd "--with-systemd")
       (if stdenv.isDarwin then "--with-uuid=e2fs" else "--with-ossp-uuid")
-    ] ++ lib.optionals icuEnabled [ "--with-icu" ];
+    ] ++ lib.optionals lz4Enabled [ "--with-lz4" ]
+      ++ lib.optionals zstdEnabled [ "--with-zstd" ]
+      ++ lib.optionals gssSupport [ "--with-gssapi" ]
+      ++ lib.optionals stdenv.hostPlatform.isRiscV [ "--disable-spinlocks" ];
 
-    patches =
-      [ (if atLeast "9.4" then ./patches/disable-resolve_symlinks-94.patch else ./patches/disable-resolve_symlinks.patch)
-        (if atLeast "9.6" then ./patches/less-is-more-96.patch             else ./patches/less-is-more.patch)
-        (if atLeast "9.6" then ./patches/hardcode-pgxs-path-96.patch       else ./patches/hardcode-pgxs-path.patch)
-        ./patches/specify_pkglibdir_at_runtime.patch
-        ./patches/findstring.patch
-      ]
-      ++ lib.optional stdenv.isLinux (if atLeast "13" then ./patches/socketdir-in-run-13.patch else ./patches/socketdir-in-run.patch);
+    patches = [
+      ./patches/disable-resolve_symlinks.patch
+      ./patches/less-is-more.patch
+      ./patches/hardcode-pgxs-path.patch
+      ./patches/specify_pkglibdir_at_runtime.patch
+      ./patches/findstring.patch
+    ] ++ lib.optionals stdenv.isLinux [
+      (if atLeast "13" then ./patches/socketdir-in-run-13.patch else ./patches/socketdir-in-run.patch)
+    ];
 
     installTargets = [ "install-world" ];
 
     LC_ALL = "C";
 
-    postConfigure =
-      let path = if atLeast "9.6" then "src/common/config_info.c" else "src/bin/pg_config/pg_config.c"; in
-        ''
-          # Hardcode the path to pgxs so pg_config returns the path in $out
-          substituteInPlace "${path}" --replace HARDCODED_PGXS_PATH $out/lib
-        '';
+    postPatch = ''
+      # Hardcode the path to pgxs so pg_config returns the path in $out
+      substituteInPlace "src/common/config_info.c" --replace HARDCODED_PGXS_PATH "$out/lib"
+    '';
 
     postInstall =
       ''
@@ -153,10 +170,8 @@ let
       homepage    = "https://www.postgresql.org";
       description = "A powerful, open source object-relational database system";
       license     = licenses.postgresql;
-      maintainers = with maintainers; [ thoughtpolice danbst globin marsam ];
+      maintainers = with maintainers; [ thoughtpolice danbst globin marsam ivan ];
       platforms   = platforms.unix;
-      knownVulnerabilities = optional (!atLeast "9.4")
-        "PostgreSQL versions older than 9.4 are not maintained anymore!";
     };
   };
 
@@ -167,7 +182,7 @@ let
         postgresql.lib
         postgresql.man   # in case user installs this into environment
     ];
-    buildInputs = [ makeWrapper ];
+    nativeBuildInputs = [ makeWrapper ];
 
 
     # We include /bin to ensure the $out/bin directory is created, which is
@@ -177,7 +192,7 @@ let
 
     # Note: the duplication of executables is about 4MB size.
     # So a nicer solution was patching postgresql to allow setting the
-    # libdir explicitely.
+    # libdir explicitly.
     postBuild = ''
       mkdir -p $out/bin
       rm $out/bin/{pg_config,postgres,pg_ctl}
@@ -191,49 +206,48 @@ let
 
 in self: {
 
-  postgresql_9_6 = self.callPackage generic {
-    version = "9.6.21";
-    psqlSchema = "9.6";
-    sha256 = "0d0ngpadf1i7c0i2psaxcbmiwx8334ibcsn283n9fp4853pyl3wk";
-    this = self.postgresql_9_6;
-    thisAttr = "postgresql_9_6";
-    inherit self;
-  };
-
-  postgresql_10 = self.callPackage generic {
-    version = "10.16";
-    psqlSchema = "10.0"; # should be 10, but changing it is invasive
-    sha256 = "1cvv8qw0gkkczqhiwx6ns7w88dwkvdz4cvb2d4ff14363f5p2p53";
-    this = self.postgresql_10;
-    thisAttr = "postgresql_10";
-    inherit self;
-    icu = self.icu67;
-  };
-
   postgresql_11 = self.callPackage generic {
-    version = "11.11";
+    version = "11.18";
     psqlSchema = "11.1"; # should be 11, but changing it is invasive
-    sha256 = "0v0qk298nxmpzpgsxcsxma328hdkyzd7fwjs0zsn6zavl5zpnq20";
+    hash = "sha256-0k8g78UukYrPvMoh6c6ijg4mO4RqDECPz6w7PEoPdQQ=";
     this = self.postgresql_11;
     thisAttr = "postgresql_11";
     inherit self;
   };
 
   postgresql_12 = self.callPackage generic {
-    version = "12.6";
+    version = "12.13";
     psqlSchema = "12";
-    sha256 = "028asz92mi3706zabfs8w9z03mzyx62d1l71qy9zdwfabj6xjzfz";
+    hash = "sha256-tsYjBGr0VI8RqEtAeTTWddEe0HDHk9FbBGg79fMi4C0=";
     this = self.postgresql_12;
     thisAttr = "postgresql_12";
     inherit self;
   };
 
   postgresql_13 = self.callPackage generic {
-    version = "13.2";
+    version = "13.9";
     psqlSchema = "13";
-    sha256 = "1z5d847jnajcfr3wa6jn52a8xjhamvwzmz18xlm5nvxqip8grmsz";
+    hash = "sha256-7xlmwKXkn77TNwrSgkkoy2sRZGF67q4WBtooP38zpBU=";
     this = self.postgresql_13;
     thisAttr = "postgresql_13";
+    inherit self;
+  };
+
+  postgresql_14 = self.callPackage generic {
+    version = "14.6";
+    psqlSchema = "14";
+    hash = "sha256-UIhA/BgJ05q3InTV8Tfau5/X+0+TPaQWiu67IAae3yI=";
+    this = self.postgresql_14;
+    thisAttr = "postgresql_14";
+    inherit self;
+  };
+
+  postgresql_15 = self.callPackage generic {
+    version = "15.1";
+    psqlSchema = "15";
+    hash = "sha256-ZP3yPXNK+tDf5Ad9rKlqxR3NaX5ori09TKbEXLFOIa4=";
+    this = self.postgresql_15;
+    thisAttr = "postgresql_15";
     inherit self;
   };
 }

@@ -8,7 +8,7 @@ buildPythonPackage rec {
     sha256 = "10qsqdjpbc85fykc1vgcs8xwbgn4l2l52c8d83xf1q59pwyn79bw";
   };
 
-  checkInputs = [ pytest ];
+  nativeCheckInputs = [ pytest ];
 
   # Wrong encoding
   postPatch = ''
@@ -25,6 +25,6 @@ buildPythonPackage rec {
 checking library.";
     homepage    = "https://bitbucket.org/mchaput/whoosh";
     license     = licenses.bsd2;
-    maintainers = with maintainers; [ nand0p ];
+    maintainers = with maintainers; [ ];
   };
 }

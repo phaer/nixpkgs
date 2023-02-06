@@ -9,7 +9,7 @@ let
 
   baseAttrs = {
     src = fetchurl {
-      url = "https://github.com/unicode-org/icu/releases/download/release-${lib.replaceChars [ "." ] [ "-" ] version}/icu4c-${lib.replaceChars [ "." ] [ "_" ] version}-src.tgz";
+      url = "https://github.com/unicode-org/icu/releases/download/release-${lib.replaceStrings [ "." ] [ "-" ] version}/icu4c-${lib.replaceStrings [ "." ] [ "_" ] version}-src.tgz";
       inherit sha256;
     };
 
@@ -43,7 +43,7 @@ let
 
     meta = with lib; {
       description = "Unicode and globalization support library";
-      homepage = "http://site.icu-project.org/";
+      homepage = "https://icu.unicode.org/";
       maintainers = with maintainers; [ raskin ];
       platforms = platforms.all;
     };

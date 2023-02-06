@@ -1,6 +1,6 @@
 { lib, stdenv, fetchurl, makeWrapper, makeDesktopItem, genericUpdater, writeShellScript
-, atk, cairo, gdk-pixbuf, glib, gnome2, gtk2, libGLU, libGL, pango, xorg
-, lsb-release, freetype, fontconfig, polkit, polkit_gnome
+, atk, cairo, gdk-pixbuf, glib, gnome2, gtk2, libGLU, libGL, pango, xorg, minizip
+, lsb-release, freetype, fontconfig, polkit, polkit_gnome, pciutils
 , pulseaudio }:
 
 let
@@ -12,27 +12,25 @@ let
     icon = "anydesk";
     desktopName = "AnyDesk";
     genericName = description;
-    categories = "Network;";
-    startupNotify = "false";
+    categories = [ "Network" ];
+    startupNotify = false;
   };
 
 in stdenv.mkDerivation rec {
   pname = "anydesk";
-  version = "6.1.0";
+  version = "6.2.0";
 
   src = fetchurl {
     urls = [
       "https://download.anydesk.com/linux/${pname}-${version}-amd64.tar.gz"
       "https://download.anydesk.com/linux/generic-linux/${pname}-${version}-amd64.tar.gz"
     ];
-    sha256 = "1qbq6r0yanjappsi8yglw8r54bwf32bjb2i63awmr6pk5kmhhy3r";
+    sha256 = "k85nQH2FWyEXDgB+Pd4yStfNCjkiIGE2vA/YTXLaK4o=";
   };
 
   passthru = {
     updateScript = genericUpdater {
-      inherit pname version;
       versionLister = writeShellScript "anydesk-versionLister" ''
-        echo "# Versions for $1:" >> "$2"
         curl -s https://anydesk.com/en/downloads/linux \
           | grep "https://[a-z0-9._/-]*-amd64.tar.gz" -o \
           | uniq \
@@ -43,8 +41,8 @@ in stdenv.mkDerivation rec {
 
   buildInputs = [
     atk cairo gdk-pixbuf glib gtk2 stdenv.cc.cc pango
-    gnome2.gtkglext libGLU libGL freetype fontconfig
-    polkit polkit_gnome pulseaudio
+    gnome2.gtkglext libGLU libGL minizip freetype
+    fontconfig polkit polkit_gnome pulseaudio
   ] ++ (with xorg; [
     libxcb libxkbfile libX11 libXdamage libXext libXfixes libXi libXmu
     libXrandr libXtst libXt libICE libSM libXrender
@@ -76,7 +74,7 @@ in stdenv.mkDerivation rec {
       $out/bin/anydesk
 
     wrapProgram $out/bin/anydesk \
-      --prefix PATH : ${lib.makeBinPath [ lsb-release ]}
+      --prefix PATH : ${lib.makeBinPath [ lsb-release pciutils ]}
 
     substituteInPlace $out/share/applications/*.desktop \
       --subst-var out
@@ -85,6 +83,7 @@ in stdenv.mkDerivation rec {
   meta = with lib; {
     inherit description;
     homepage = "https://www.anydesk.com";
+    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     platforms = [ "x86_64-linux" ];
     maintainers = with maintainers; [ shyim ];

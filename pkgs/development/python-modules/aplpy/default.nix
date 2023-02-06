@@ -1,64 +1,70 @@
 { lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, numpy
 , astropy
 , astropy-helpers
+, buildPythonPackage
+, cython
+, fetchpatch
+, fetchPypi
 , matplotlib
-, reproject
+, numpy
+, pillow
 , pyavm
 , pyregion
-, pillow
+, pytest-astropy
+, pytestCheckHook
+, pythonOlder
+, reproject
 , scikitimage
 , shapely
-, pytest
-, pytest-astropy
 }:
 
 buildPythonPackage rec {
   pname = "aplpy";
-  version = "2.0.3";
+  version = "2.1.0";
   format = "pyproject";
 
+  disabled = pythonOlder "3.6";
+
   src = fetchPypi {
-    pname = "APLpy";
+    pname = "aplpy";
     inherit version;
-    sha256 = "239f3d83635ca4251536aeb577df7c60df77fc4d658097b92094719739aec3f3";
+    hash = "sha256-KCdmBwQWt7IfHsjq7pWlbSISEpfQZDyt+SQSTDaUCV4=";
   };
 
-  patches = [ (fetchpatch {
-      # Can be removed in next release after 2.0.3
-      url = "https://github.com/aplpy/aplpy/pull/448.patch";
-      sha256 = "1pnzh7ykjc8hwahzbzyryrzv5a8fddgd1bmzbhagkrn6lmvhhpvq";
-      excludes = [ "tox.ini" "azure-pipelines.yml" ".circleci/config.yml" "MANIFEST.in" ".gitignore"
-       "setup.cfg" "appveyor.yml" "readthedocs.yml" "CHANGES.rst" ".gitmodules" ".travis.yml" "astropy_helpers" ];
-    })
+  nativeBuildInputs = [
+    astropy-helpers
   ];
 
   propagatedBuildInputs = [
-    numpy
     astropy
+    cython
     matplotlib
-    reproject
+    numpy
+    pillow
     pyavm
     pyregion
-    pillow
+    reproject
     scikitimage
     shapely
   ];
 
-  nativeBuildInputs = [ astropy-helpers ];
-  checkInputs = [ pytest pytest-astropy ];
+  nativeCheckInputs = [
+    pytest-astropy
+    pytestCheckHook
+  ];
 
-  checkPhase = ''
-    OPENMP_EXPECTED=0 pytest aplpy
+  preCheck = ''
+    OPENMP_EXPECTED=0
   '';
+
+  pythonImportsCheck = [
+    "aplpy"
+  ];
 
   meta = with lib; {
     description = "The Astronomical Plotting Library in Python";
     homepage = "http://aplpy.github.io";
     license = licenses.mit;
-    maintainers = [ maintainers.smaret ];
+    maintainers = with maintainers; [ smaret ];
   };
 }

@@ -1,21 +1,20 @@
-{ lib, fetchurl, buildDunePackage, ppxlib, ppx_repr }:
+{ lib, fetchurl, buildDunePackage, ppxlib, ppx_repr, logs }:
 
 buildDunePackage rec {
   pname = "ppx_irmin";
-  version = "2.5.3";
+  version = "3.4.1";
 
   src = fetchurl {
     url = "https://github.com/mirage/irmin/releases/download/${version}/irmin-${version}.tbz";
-    sha256 = "2c8ef24cc57379c3a138f121fea350ee7b6077abc22a4fdc6a47d0c81585f3f6";
+    sha256 = "sha256-kig2EWww7GgGijhpSgm7pSHPR+3Q5K5E4Ha5tJY9oYA=";
   };
 
-  minimumOCamlVersion = "4.08";
-
-  useDune2 = true;
+  minimalOCamlVersion = "4.10";
 
   propagatedBuildInputs = [
     ppx_repr
     ppxlib
+    logs
   ];
 
   meta = {

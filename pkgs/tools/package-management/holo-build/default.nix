@@ -24,13 +24,13 @@ buildGoModule rec {
 
   subPackages = [ "src/holo-build" ];
 
-  buildFlagsArray = [ "-ldflags=-s -w -X github.com/holocm/holo-build/src/holo-build/common.version=${version}" ];
+  ldflags = [ "-s" "-w" "-X github.com/holocm/holo-build/src/holo-build/common.version=${version}" ];
 
   postBuild = ''
     make build/man/holo-build.8 VERSION=${version}
   '';
 
-  checkInputs = [ file ];
+  nativeCheckInputs = [ file ];
 
   checkPhase = ''
     ln -s ../../go/bin/holo-build build/holo-build
@@ -52,7 +52,7 @@ buildGoModule rec {
 
   meta = with lib; {
     description = "Cross-distribution system package compiler";
-    homepage = "http://holocm.org/";
+    homepage = "https://holocm.org/";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ SuperSandro2000 ];
   };

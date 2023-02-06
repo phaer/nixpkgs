@@ -1,26 +1,45 @@
-{ stdenv, cmake, expat, fetchFromGitHub, jq, lib, libXdmcp, libXrandr, libffi
-, libxcb, pkg-config, python3, symlinkJoin, vulkan-headers, vulkan-loader
-, vulkan-validation-layers, wayland, writeText, xcbutilkeysyms, xcbutilwm
-, xlibsWrapper }:
+{ lib
+, stdenv
+, fetchFromGitHub
+, cmake
+, python3
+, jq
+, expat
+, libX11
+, libXdmcp
+, libXrandr
+, libffi
+, libxcb
+, wayland
+, which
+, xcbutilkeysyms
+, xcbutilwm
+, vulkan-headers
+, vulkan-loader
+, symlinkJoin
+, vulkan-validation-layers
+, writeText
+}:
 
 stdenv.mkDerivation rec {
   pname = "vulkan-tools-lunarg";
   # The version must match that in vulkan-headers
-  version = "1.2.162.0";
+  version = "1.3.236.0";
 
   src = (assert version == vulkan-headers.version;
     fetchFromGitHub {
       owner = "LunarG";
       repo = "VulkanTools";
       rev = "sdk-${version}";
-      sha256 = "13v4202bfd7d7nwi8w12ja9k1vi10p9xxypzkpi063hmsgzxm5k5";
+      hash = "sha256-0dGD3InmEd9hO8+uVGMqBHXXfyX8tswyuOaZCftudz0=";
       fetchSubmodules = true;
     });
 
-  nativeBuildInputs = [ cmake pkg-config python3 jq ];
+  nativeBuildInputs = [ cmake python3 jq which ];
 
   buildInputs = [
     expat
+    libX11
     libXdmcp
     libXrandr
     libffi
@@ -28,7 +47,6 @@ stdenv.mkDerivation rec {
     wayland
     xcbutilkeysyms
     xcbutilwm
-    xlibsWrapper
   ];
 
   cmakeFlags = [
@@ -40,6 +58,8 @@ stdenv.mkDerivation rec {
         paths = [ vulkan-validation-layers.headers vulkan-validation-layers ];
       }
     }"
+    # Hide dev warnings that are useless for packaging
+    "-Wno-dev"
   ];
 
   preConfigure = ''
@@ -62,8 +82,9 @@ stdenv.mkDerivation rec {
     done
   '';
 
+  patches = [ ./gtest.patch ];
+
   # Same as vulkan-validation-layers
-  libraryPath = lib.strings.makeLibraryPath [ vulkan-loader ];
   dontPatchELF = true;
 
   # Help vulkan-loader find the validation layers

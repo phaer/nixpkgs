@@ -1,16 +1,16 @@
 { fetchurl, lib, stdenv, gtk, pkg-config, libofx, intltool, wrapGAppsHook
-, libsoup, gnome3 }:
+, libsoup, gnome }:
 
 stdenv.mkDerivation rec {
-  name = "homebank-5.5.1";
+  pname = "homebank";
+  version = "5.5.6";
   src = fetchurl {
-    url = "http://homebank.free.fr/public/${name}.tar.gz";
-    sha256 = "sha256-m7OeqtPExo0ry+IeL2xKUnTjo/OFr7Ky/3OuX9mY2gg=";
+    url = "http://homebank.free.fr/public/homebank-${version}.tar.gz";
+    sha256 = "sha256-Rg6OjHLkwVIDnXqzqPXA8DxqSdrh2T6V/gLBND8vx9o=";
   };
 
-  nativeBuildInputs = [ pkg-config wrapGAppsHook ];
-  buildInputs = [ gtk libofx intltool libsoup
-    gnome3.adwaita-icon-theme ];
+  nativeBuildInputs = [ pkg-config wrapGAppsHook intltool ];
+  buildInputs = [ gtk libofx libsoup gnome.adwaita-icon-theme ];
 
   meta = with lib; {
     description = "Free, easy, personal accounting for everyone";

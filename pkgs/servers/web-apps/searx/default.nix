@@ -1,17 +1,17 @@
-{ lib, nixosTests, python3, python3Packages, fetchFromGitHub }:
+{ lib, nixosTests, python3, python3Packages, fetchFromGitHub, fetchpatch }:
 
 with python3Packages;
 
 toPythonModule (buildPythonApplication rec {
   pname = "searx";
-  version = "1.0.0";
+  version = "1.1.0";
 
   # pypi doesn't receive updates
   src = fetchFromGitHub {
     owner = "searx";
     repo = "searx";
     rev = "v${version}";
-    sha256 = "0ghkx8g8jnh8yd46p4mlbjn2zm12nx27v7qflr4c8xhlgi0px0mh";
+    sha256 = "sha256-+Wsg1k/h41luk5aVfSn11/lGv8hZYVvpHLbbYHfsExw=";
   };
 
   postPatch = ''
@@ -23,11 +23,11 @@ toPythonModule (buildPythonApplication rec {
   '';
 
   propagatedBuildInputs = [
-    Babel
+    babel
     certifi
-    dateutil
+    python-dateutil
     flask
-    flaskbabel
+    flask-babel
     gevent
     grequests
     jinja2
@@ -42,6 +42,7 @@ toPythonModule (buildPythonApplication rec {
     pyyaml
     requests
     speaklater
+    setproctitle
     werkzeug
   ];
 
@@ -62,6 +63,6 @@ toPythonModule (buildPythonApplication rec {
     homepage = "https://github.com/searx/searx";
     description = "A privacy-respecting, hackable metasearch engine";
     license = licenses.agpl3Plus;
-    maintainers = with maintainers; [ matejc fpletz globin danielfullmer ];
+    maintainers = with maintainers; [ matejc globin danielfullmer ];
   };
 })

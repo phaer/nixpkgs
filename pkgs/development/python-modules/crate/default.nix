@@ -6,17 +6,18 @@
 , isPy3k
 , sqlalchemy
 , pytestCheckHook
+, pytz
 , stdenv
 }:
 
 buildPythonPackage rec {
   pname = "crate";
-  version = "0.26.0";
+  version = "0.29.0";
   disabled = !isPy3k;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "6f650c2efe250b89bf35f8fe3211eb37ebc8d76f7a9c09bd73db3076708fa2fc";
+    sha256 = "sha256-SywW/b4DnVeSzzRiHbDaKTjcuwDnkwrK6vFfaQVIZhQ=";
   };
 
   propagatedBuildInputs = [
@@ -25,11 +26,20 @@ buildPythonPackage rec {
     geojson
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
+    pytz
   ];
 
-  disabledTestPaths = lib.optionals stdenv.isDarwin [ "src/crate/client/test_http.py" ];
+  disabledTests = [
+    # network access
+    "test_layer_from_uri"
+  ];
+
+  disabledTestPaths = [
+    # imports setuptools.ssl_support, which doesn't exist anymore
+    "src/crate/client/test_http.py"
+  ];
 
   meta = with lib; {
     homepage = "https://github.com/crate/crate-python";

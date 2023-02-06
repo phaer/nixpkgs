@@ -1,12 +1,11 @@
 { lib, stdenv, fetchFromGitHub
 , vala, cmake, ninja, wrapGAppsHook, pkg-config, gettext
-, gobject-introspection, gnome3, glib, gdk-pixbuf, gtk3, glib-networking
+, gobject-introspection, gnome, glib, gdk-pixbuf, gtk3, glib-networking
 , xorg, libXdmcp, libxkbcommon
 , libnotify, libsoup, libgee
 , librsvg, libsignal-protocol-c
-, fetchpatch
 , libgcrypt
-, epoxy
+, libepoxy
 , at-spi2-core
 , sqlite
 , dbus
@@ -14,27 +13,20 @@
 , pcre
 , qrencode
 , icu
+, gspell
+, srtp, libnice, gnutls, gstreamer, gst-plugins-base, gst-plugins-good, webrtc-audio-processing
  }:
 
 stdenv.mkDerivation rec {
   pname = "dino";
-  version = "0.2.0";
+  version = "0.3.1";
 
   src = fetchFromGitHub {
     owner = "dino";
     repo = "dino";
     rev = "v${version}";
-    sha256 = "0wy1hb3kz3k4gqqwx308n37cqag2d017jwfz0b5s30nkx2pbwspw";
+    sha256 = "sha256-wjSgs1mUMV7j/8ZeXqWs8aOeWvJHwKziUfbtOC1HS3s=";
   };
-
-  patches = [
-    # Fixes https://github.com/dino/dino/issues/1010 (double' is not a supported generic type argument)
-    (fetchpatch {
-      name = "dino-vala-boxing.patch";
-      url = "https://github.com/dino/dino/commit/9acb54df9254609f2fe4de83c9047d408412de28.patch";
-      sha256 = "1jz4r7d8b1ljwgq846wihp864b6gjdkgh6fnmxh13b2i10x52xsm";
-    })
-  ];
 
   nativeBuildInputs = [
     vala
@@ -51,7 +43,7 @@ stdenv.mkDerivation rec {
     glib-networking
     glib
     libgee
-    gnome3.adwaita-icon-theme
+    gnome.adwaita-icon-theme
     sqlite
     gdk-pixbuf
     gtk3
@@ -60,18 +52,39 @@ stdenv.mkDerivation rec {
     libgcrypt
     libsoup
     pcre
-    epoxy
+    libepoxy
     at-spi2-core
     dbus
     icu
     libsignal-protocol-c
     librsvg
+    gspell
+    srtp
+    libnice
+    gnutls
+    gstreamer
+    gst-plugins-base
+    gst-plugins-good
+    webrtc-audio-processing
   ] ++ lib.optionals (!stdenv.isDarwin) [
     xorg.libxcb
     xorg.libpthreadstubs
     libXdmcp
     libxkbcommon
   ];
+
+  cmakeFlags = ["-DBUILD_TESTS=yes"];
+
+  # Undefined symbols for architecture arm64: "_gpg_strerror"
+  NIX_LDFLAGS = lib.optionalString stdenv.isDarwin "-lgpg-error";
+
+  doCheck = true;
+  checkPhase = ''
+    runHook preCheck
+    ./xmpp-vala-test
+    ./signal-protocol-vala-test
+    runHook postCheck
+  '';
 
   # Dino looks for plugins with a .so filename extension, even on macOS where
   # .dylib is appropriate, and despite the fact that it builds said plugins with
@@ -91,8 +104,8 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "Modern Jabber/XMPP Client using GTK/Vala";
     homepage = "https://github.com/dino/dino";
-    license = licenses.gpl3;
+    license = licenses.gpl3Plus;
     platforms = platforms.linux ++ platforms.darwin;
-    maintainers = with maintainers; [ mic92 qyliss ];
+    maintainers = with maintainers; [ qyliss tomfitzhenry ];
   };
 }

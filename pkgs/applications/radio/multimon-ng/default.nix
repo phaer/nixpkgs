@@ -2,16 +2,16 @@
 
 stdenv.mkDerivation rec {
   pname = "multimon-ng";
-  version = "1.1.9";
+  version = "1.2.0";
 
   src = fetchFromGitHub {
     owner = "EliasOenal";
     repo = "multimon-ng";
     rev = version;
-    sha256 = "01716cfhxfzsab9zjply9giaa4nn4b7rm3p3vizrwi7n253yiwm2";
+    sha256 = "sha256-Qk9zg3aSrEfC16wQqL/EMG6MPobX8dnJ1OLH8EMap0I=";
   };
 
-  buildInputs = [ libpulseaudio libX11 ];
+  buildInputs = lib.optionals stdenv.isLinux [ libpulseaudio libX11 ];
 
   nativeBuildInputs = [ cmake ];
 
@@ -29,7 +29,7 @@ stdenv.mkDerivation rec {
     '';
     homepage = "https://github.com/EliasOenal/multimon-ng";
     license = licenses.gpl2Only;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
     maintainers = with maintainers; [ markuskowa ];
   };
 }

@@ -1,71 +1,102 @@
-{ lib, stdenv, python3, openssl
-, enableSystemd ? stdenv.isLinux, nixosTests
-, enableRedis ? false
+{ lib, stdenv, fetchFromGitHub, python3, openssl, rustPlatform
+, enableSystemd ? lib.meta.availableOn stdenv.hostPlatform python3.pkgs.systemd
+, nixosTests
+, enableRedis ? true
 , callPackage
 }:
-
-with python3.pkgs;
 
 let
   plugins = python3.pkgs.callPackage ./plugins { };
   tools = callPackage ./tools { };
 in
+with python3.pkgs;
 buildPythonApplication rec {
   pname = "matrix-synapse";
-  version = "1.32.2";
+  version = "1.76.0";
+  format = "pyproject";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-Biwj/zORBsU8XvpMMlSjR3Nqx0q1LqaSX/vX+UDeXI8=";
+  src = fetchFromGitHub {
+    owner = "matrix-org";
+    repo = "synapse";
+    rev = "v${version}";
+    hash = "sha256-kPc6T8yLe1TDxPKLnK/TcU+RUxAVIq8qsr5JQXCXyjM=";
   };
 
-  patches = [
-    # adds an entry point for the service
-    ./homeserver-script.patch
-  ];
+  cargoDeps = rustPlatform.fetchCargoTarball {
+    inherit src;
+    name = "${pname}-${version}";
+    hash = "sha256-tXtnVYH9uWu0nHHx53PgML92NWl3qcAcnFKhiijvQBc=";
+  };
+
+  postPatch = ''
+    # Remove setuptools_rust from runtime dependencies
+    # https://github.com/matrix-org/synapse/blob/v1.69.0/pyproject.toml#L177-L185
+    sed -i '/^setuptools_rust =/d' pyproject.toml
+  '';
+
+  nativeBuildInputs = [
+    poetry-core
+    rustPlatform.cargoSetupHook
+    setuptools-rust
+  ] ++ (with rustPlatform.rust; [
+    cargo
+    rustc
+  ]);
+
+  buildInputs = [ openssl ];
 
   propagatedBuildInputs = [
-    setuptools
+    authlib
     bcrypt
     bleach
     canonicaljson
     daemonize
     frozendict
+    ijson
     jinja2
     jsonschema
     lxml
+    matrix-common
     msgpack
     netaddr
     phonenumbers
     pillow
-    prometheus_client
+    prometheus-client
     psutil
     psycopg2
     pyasn1
+    pydantic
+    pyicu
+    pyjwt
     pymacaroons
     pynacl
     pyopenssl
     pysaml2
     pyyaml
     requests
+    setuptools
     signedjson
     sortedcontainers
     treq
     twisted
-    unpaddedbase64
     typing-extensions
-    authlib
-    pyjwt
+    unpaddedbase64
   ] ++ lib.optional enableSystemd systemd
-    ++ lib.optional enableRedis hiredis;
+    ++ lib.optionals enableRedis [ hiredis txredisapi ];
 
-  checkInputs = [ mock parameterized openssl ];
+  nativeCheckInputs = [ mock parameterized openssl ];
 
   doCheck = !stdenv.isDarwin;
 
   checkPhase = ''
-    ${lib.optionalString (!enableRedis) "rm -r tests/replication # these tests need the optional dependency 'hiredis'"}
-    PYTHONPATH=".:$PYTHONPATH" ${python3.interpreter} -m twisted.trial tests
+    runHook preCheck
+
+    # remove src module, so tests use the installed module instead
+    rm -rf ./synapse
+
+    PYTHONPATH=".:$PYTHONPATH" ${python3.interpreter} -m twisted.trial -j $NIX_BUILD_CORES tests
+
+    runHook postCheck
   '';
 
   passthru.tests = { inherit (nixosTests) matrix-synapse; };

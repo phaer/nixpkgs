@@ -1,5 +1,5 @@
 { lib, stdenv, fetchurl, pkg-config, intltool, libxfce4util, xfce4-panel,
-  libxfce4ui, gtk3, exo, xfce }:
+  libxfce4ui, gtk3, exo, gitUpdater }:
 
 let
   category = "panel-plugins";
@@ -11,7 +11,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "mirror://xfce/src/${category}/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.bz2";
-    sha256 = "0q3pysdp85b3c7g3b59y3c69g4nw6bvbf518lnri4lxrnsvpizpf";
+    sha256 = "sha256-7v54t7a5UxKzpSgUt/Yy3JKXDBs+lTXeYWMVdJv2d2A=";
   };
 
   nativeBuildInputs = [
@@ -27,10 +27,9 @@ stdenv.mkDerivation rec {
     exo
   ];
 
-  passthru.updateScript = xfce.updateScript {
-    inherit pname version;
-    attrPath = "xfce.${pname}";
-    versionLister = xfce.archiveLister category pname;
+  passthru.updateScript = gitUpdater {
+    url = "https://gitlab.xfce.org/panel-plugins/${pname}";
+    rev-prefix = "${pname}-";
   };
 
   meta = with lib; {
@@ -38,6 +37,6 @@ stdenv.mkDerivation rec {
     description = "MPD plugin for Xfce panel";
     platforms = platforms.linux;
     license = licenses.bsd2;
-    maintainers = [ ];
+    maintainers = with maintainers; [ ] ++ teams.xfce.members;
   };
 }

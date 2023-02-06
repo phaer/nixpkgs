@@ -8,14 +8,25 @@ let
   mkocamlpath = p: "${p}/lib/ocaml/${ocamlPackages.ocaml.version}/site-lib";
   runtimeDeps = with ocamlPackages; [
     apron.dev
+    bigarray-compat
     biniou
     camlzip
     easy-format
-    menhir
+    menhirLib
     mlgmpidl
     num
     ocamlgraph
+    ppx_deriving
+    ppx_import
+    stdlib-shims
     why3
+    re
+    result
+    seq
+    sexplib
+    sexplib0
+    parsexp
+    base
     yojson
     zarith
   ];
@@ -24,21 +35,25 @@ in
 
 stdenv.mkDerivation rec {
   pname = "frama-c";
-  version = "22.0";
-  slang   = "Titanium";
+  version = "25.0";
+  slang   = "Manganese";
 
   src = fetchurl {
-    url    = "http://frama-c.com/download/frama-c-${version}-${slang}.tar.gz";
-    sha256 = "1mq1fijka95ydrla486yr4w6wdl9l7vmp512s1q00b0p6lmfwmkh";
+    url    = "https://frama-c.com/download/frama-c-${version}-${slang}.tar.gz";
+    sha256 = "sha256-Ii3O/NJyBTVAv1ts/zae/Ee4HCjzYOthZmnD8wqLwp8=";
   };
 
   preConfigure = lib.optionalString stdenv.cc.isClang "configureFlagsArray=(\"--with-cpp=clang -E -C\")";
+  postConfigure = "patchShebangs src/plugins/value/gen-api.sh";
 
-  nativeBuildInputs = [ autoconf wrapGAppsHook ];
+  strictDeps = true;
+
+  nativeBuildInputs = [ autoconf wrapGAppsHook ] ++ (with ocamlPackages; [ ocaml findlib ]);
 
   buildInputs = with ocamlPackages; [
-    ncurses ocaml findlib ltl2ba ocamlgraph yojson menhir camlzip
-    lablgtk coq graphviz zarith apron why3 mlgmpidl doxygen
+    ncurses ltl2ba ocamlgraph yojson menhirLib camlzip
+    lablgtk3 lablgtk3-sourceview3 coq graphviz zarith apron why3 mlgmpidl doxygen
+    ppx_deriving ppx_import
     gdk-pixbuf
   ];
 

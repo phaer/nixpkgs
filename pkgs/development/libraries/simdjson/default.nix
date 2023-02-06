@@ -2,20 +2,26 @@
 
 stdenv.mkDerivation rec {
   pname = "simdjson";
-  version = "0.9.2";
+  version = "3.1.0";
 
   src = fetchFromGitHub {
     owner = "simdjson";
     repo = "simdjson";
     rev = "v${version}";
-    sha256 = "sha256-L/a/vTthh7XkiwuvlGk9q+uLEBf8vaPoV1x1fG44zeg=";
+    sha256 = "sha256-gIRfmCCkDokUhBKsQnWx8jQtfoYBgY65IS+tdmgeaYE=";
   };
 
   nativeBuildInputs = [ cmake ];
 
   cmakeFlags = [
-    "-DSIMDJSON_JUST_LIBRARY=ON"
-  ] ++ lib.optional stdenv.hostPlatform.isStatic "-DSIMDJSON_BUILD_STATIC=ON";
+    "-DSIMDJSON_DEVELOPER_MODE=OFF"
+  ] ++ lib.optionals stdenv.hostPlatform.isStatic [
+    "-DBUILD_SHARED_LIBS=OFF"
+  ] ++ lib.optionals (with stdenv.hostPlatform; isPower && isBigEndian) [
+    # Assume required CPU features are available, since otherwise we
+    # just get a failed build.
+    "-DCMAKE_CXX_FLAGS=-mpower8-vector"
+  ];
 
   meta = with lib; {
     homepage = "https://simdjson.org/";

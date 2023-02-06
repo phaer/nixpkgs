@@ -1,25 +1,34 @@
-{ stdenv, lib, fetchFromSourcehut, pkg-config, openssl, mime-types, scdoc }:
+{ stdenv, lib, fetchFromSourcehut, pkg-config, openssl, mailcap, scdoc }:
 
 stdenv.mkDerivation rec {
   pname = "gmnisrv";
-  version = "unstable-2021-03-26";
+  version = "1.0";
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
     repo = "gmnisrv";
-    rev = "f23ec10a6d66c574bbf718c4b10f2cf91ea8daef";
-    sha256 = "1d9rjx0s092yfzjxd2yvzixhqgg883nlnmsysgp21w75n2as354n";
+    rev = version;
+    sha256 = "sha256-V9HXXYQIo3zeqZjJEn+dhemNg6AU+ee3FRmBmXgLuYQ=";
   };
 
-  MIMEDB = "${mime-types}/etc/mime.types";
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ openssl mime-types scdoc ];
+  NIX_CFLAGS_COMPILE = [
+    "-Wno-error=deprecated-declarations"
+  ];
+
+  postPatch = ''
+    substituteInPlace config.sh \
+      --replace "pkg-config" "${stdenv.cc.targetPrefix}pkg-config"
+  '';
+
+  MIMEDB = "${mailcap}/etc/mime.types";
+  nativeBuildInputs = [ pkg-config scdoc ];
+  buildInputs = [ openssl mailcap ];
 
   meta = with lib; {
     description = "A simple Gemini protocol server";
     homepage = "https://git.sr.ht/~sircmpwn/gmnisrv";
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ bsima jb55 ];
-    platforms = platforms.all;
+    platforms = platforms.linux;
   };
 }

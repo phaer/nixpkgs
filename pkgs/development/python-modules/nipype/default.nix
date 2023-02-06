@@ -4,7 +4,7 @@
 , isPy27
 # python dependencies
 , click
-, dateutil
+, python-dateutil
 , etelemetry
 , filelock
 , funcsigs
@@ -19,14 +19,14 @@
 , pybids
 , pydot
 , pytest
-, pytest_xdist
+, pytest-xdist
 , pytest-forked
 , rdflib
 , scipy
 , simplejson
 , traits
 , xvfbwrapper
-, pytestcov
+, pytest-cov
 , codecov
 , sphinx
 # other dependencies
@@ -49,12 +49,12 @@ in
 
 buildPythonPackage rec {
   pname = "nipype";
-  version = "1.6.0";
+  version = "1.8.5";
   disabled = isPy27;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "bc56ce63f74c9a9a23c6edeaf77631377e8ad2bea928c898cc89527a47f101cf";
+    sha256 = "sha256-44QnQ/tmBGTdKd5z3Pye9m0nO+ELzGQFn/Ic1e8ellU=";
   };
 
   postPatch = ''
@@ -68,7 +68,7 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     click
-    dateutil
+    python-dateutil
     etelemetry
     filelock
     funcsigs
@@ -86,15 +86,15 @@ buildPythonPackage rec {
     xvfbwrapper
   ] ++ [ (if useNeurdflib then neurdflib else rdflib) ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pybids
     codecov
     glibcLocales
     mock
     pytest
     pytest-forked
-    pytest_xdist
-    pytestcov
+    pytest-xdist
+    pytest-cov
     which
   ];
 

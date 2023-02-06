@@ -2,12 +2,17 @@
 , lib
 , buildPythonPackage
 , fetchFromGitHub
+, fetchpatch
 , pythonOlder
+, setuptools
+, setuptools-scm
 , idna
 , sniffio
 , typing-extensions
 , curio
 , hypothesis
+, mock
+, pytest-mock
 , pytestCheckHook
 , trio
 , trustme
@@ -16,7 +21,7 @@
 
 buildPythonPackage rec {
   pname = "anyio";
-  version = "2.2.0";
+  version = "3.6.2";
   format = "pyproject";
   disabled = pythonOlder "3.7";
 
@@ -24,8 +29,17 @@ buildPythonPackage rec {
     owner = "agronholm";
     repo = pname;
     rev = version;
-    sha256 = "0ram1niv2lg9qj53zssph104a4kxl8f94ilfn6mibn034m3ikcc8";
+    hash = "sha256-bootaulvx9zmobQGDirsMz5uxuLeCD9ggAvYkPaKnWo=";
   };
+
+  preBuild = ''
+    export SETUPTOOLS_SCM_PRETEND_VERSION=${version}
+  '';
+
+  nativeBuildInputs = [
+    setuptools
+    setuptools-scm
+  ];
 
   propagatedBuildInputs = [
     idna
@@ -34,26 +48,46 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  checkInputs = [
+  # trustme uses pyopenssl
+  doCheck = !(stdenv.isDarwin && stdenv.isAarch64);
+
+  nativeCheckInputs = [
     curio
     hypothesis
+    pytest-mock
     pytestCheckHook
     trio
     trustme
     uvloop
+  ] ++ lib.optionals (pythonOlder "3.8") [
+    mock
   ];
 
   pytestFlagsArray = [
+    "-W" "ignore::trio.TrioDeprecationWarning"
+  ];
+
+  disabledTests = [
+    # block devices access
+    "test_is_block_device"
+    # INTERNALERROR> AttributeError: 'NonBaseMultiError' object has no attribute '_exceptions'. Did you mean: 'exceptions'?
+    "test_exception_group_children"
+    "test_exception_group_host"
+    "test_exception_group_filtering"
+  ];
+
+  disabledTestPaths = [
     # lots of DNS lookups
-    "--ignore=tests/test_sockets.py"
+    "tests/test_sockets.py"
   ] ++ lib.optionals stdenv.isDarwin [
     # darwin sandboxing limitations
-    "--ignore=tests/streams/test_tls.py"
+    "tests/streams/test_tls.py"
   ];
 
   pythonImportsCheck = [ "anyio" ];
 
   meta = with lib; {
+    changelog = "https://github.com/agronholm/anyio/blob/${src.rev}/docs/versionhistory.rst";
     description = "High level compatibility layer for multiple asynchronous event loop implementations on Python";
     homepage = "https://github.com/agronholm/anyio";
     license = licenses.mit;

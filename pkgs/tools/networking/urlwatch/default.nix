@@ -1,26 +1,33 @@
-{ lib, fetchFromGitHub, python3Packages }:
+{ lib
+, fetchFromGitHub
+, python3Packages
+}:
 
 python3Packages.buildPythonApplication rec {
   pname = "urlwatch";
-  version = "2.21";
+  version = "2.25";
 
   src = fetchFromGitHub {
-    owner  = "thp";
-    repo   = "urlwatch";
-    rev    = version;
-    sha256 = "1s6bigkwymxdp9bkgvwg3lbf465i6k8kmak2w7czf4mhwavcfq63";
+    owner = "thp";
+    repo = "urlwatch";
+    rev = version;
+    hash = "sha256-+ayHMY0gEAVhOgDDh+RfRrUpV0tSX8mMmfPzyg+YSv4=";
   };
 
   propagatedBuildInputs = with python3Packages; [
     appdirs
     cssselect
+    jq
     keyring
     lxml
+    markdown2
+    matrix-client
     minidb
+    pushbullet-py
     pycodestyle
+    pyppeteer
     pyyaml
     requests
-    pyppeteer
   ];
 
   # no tests

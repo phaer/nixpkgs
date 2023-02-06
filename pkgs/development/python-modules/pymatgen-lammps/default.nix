@@ -2,7 +2,7 @@
 , fetchurl
 , buildPythonPackage
 , pymatgen
-, pytestrunner
+, pytest-runner
 , pytestCheckHook
 , isPy3k
 }:
@@ -17,8 +17,8 @@ buildPythonPackage rec {
      sha256 = "0shldl8is3195jmji7dr3zsh1bzxlahaqrmpr28niks7nnfj80fx";
   };
 
-  buildInputs = [ pytestrunner ];
-  checkInputs = [ pytestCheckHook ];
+  buildInputs = [ pytest-runner ];
+  nativeCheckInputs = [ pytestCheckHook ];
   propagatedBuildInputs = [ pymatgen ];
 
   pythonImportsCheck = [ "pmg_lammps" ];

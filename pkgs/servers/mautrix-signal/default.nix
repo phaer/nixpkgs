@@ -1,17 +1,31 @@
-{ lib, python3Packages, fetchFromGitHub }:
+{ lib, python3, fetchFromGitHub }:
 
-python3Packages.buildPythonPackage rec {
+python3.pkgs.buildPythonPackage rec {
   pname = "mautrix-signal";
-  version = "0.1.1";
+  version = "0.4.2";
 
   src = fetchFromGitHub {
-    owner = "tulir";
-    repo = "mautrix-signal";
-    rev = "v${version}";
-    sha256 = "11snsl7i407855h39g1fgk26hinnq0inr8sjrgd319li0d3jwzxl";
+    owner = "mautrix";
+    repo = "signal";
+    rev = "refs/tags/v${version}";
+    sha256 = "sha256-UbetU1n9zD/mVFaJc9FECDq/Zell1TI/aYPsGXGB8Js=";
   };
 
-  propagatedBuildInputs = with python3Packages; [
+  postPatch = ''
+    # the version mangling in mautrix_signal/get_version.py interacts badly with pythonRelaxDepsHook
+    substituteInPlace setup.py \
+      --replace 'version=version' 'version="${version}"'
+  '';
+
+  nativeBuildInputs = with python3.pkgs; [
+    pythonRelaxDepsHook
+  ];
+
+  pythonRelaxDeps = [
+    "mautrix"
+  ];
+
+  propagatedBuildInputs = with python3.pkgs; [
     CommonMark
     aiohttp
     asyncpg
@@ -19,12 +33,12 @@ python3Packages.buildPythonPackage rec {
     mautrix
     phonenumbers
     pillow
-    prometheus_client
+    prometheus-client
     pycryptodome
     python-olm
-    python_magic
+    python-magic
     qrcode
-    ruamel_yaml
+    ruamel-yaml
     unpaddedbase64
     yarl
   ];
@@ -37,16 +51,16 @@ python3Packages.buildPythonPackage rec {
     # Make a little wrapper for running mautrix-signal with its dependencies
     echo "$mautrixSignalScript" > $out/bin/mautrix-signal
     echo "#!/bin/sh
-      exec python -m mautrix_signal \"$@\"
+      exec python -m mautrix_signal \"\$@\"
     " > $out/bin/mautrix-signal
     chmod +x $out/bin/mautrix-signal
     wrapProgram $out/bin/mautrix-signal \
-      --set PATH ${python3Packages.python}/bin \
-      --set PYTHONPATH "$PYTHONPATH"
+      --prefix PATH : "${python3}/bin" \
+      --prefix PYTHONPATH : "$PYTHONPATH"
   '';
 
   meta = with lib; {
-    homepage = "https://github.com/tulir/mautrix-signal";
+    homepage = "https://github.com/mautrix/signal";
     description = "A Matrix-Signal puppeting bridge";
     license = licenses.agpl3Plus;
     platforms = platforms.linux;

@@ -1,7 +1,5 @@
 { lib, stdenv, fetchgit, pkg-config, writeText, libX11, conf ? null, patches ? [] }:
 
-with lib;
-
 stdenv.mkDerivation rec {
   pname = "slstatus";
   version = "unstable-2019-02-16";
@@ -12,17 +10,19 @@ stdenv.mkDerivation rec {
     sha256 = "0kayyhpmppybhwndxgabw48wsk9v8x9xdb05xrly9szkw3jbvgw4";
   };
 
-  configFile = optionalString (conf!=null) (writeText "config.def.h" conf);
-  preBuild = optionalString (conf!=null) "cp ${configFile} config.def.h";
+  configFile = lib.optionalString (conf!=null) (writeText "config.def.h" conf);
+  preBuild = lib.optionalString (conf!=null) "cp ${configFile} config.def.h";
 
   inherit patches;
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ libX11 ];
 
+  makeFlags = [ "CC:=$(CC)" ];
+
   installFlags = [ "PREFIX=$(out)" ];
 
-  meta = {
+  meta = with lib; {
     homepage = "https://tools.suckless.org/slstatus/";
     description = "status monitor for window managers that use WM_NAME like dwm";
     license = licenses.isc;

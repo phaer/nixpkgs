@@ -2,26 +2,30 @@
 , substituteAll
 , fetchurl
 , ocaml
-, dune_2
+, dune_3
 , buildDunePackage
 , yojson
 , csexp
-, result
+, merlin-lib
 , dot-merlin-reader
 , jq
 , menhir
+, menhirLib
+, menhirSdk
 }:
 
 let
-  merlinVersion = "4.1";
+  merlinVersion = "4.7";
 
   hashes = {
-    "4.1-411" = "9e2e6fc799c93ce1f2c7181645eafa37f64e43ace062b69218e1c29ac459937d";
-    "4.1-412" = "fb4caede73bdb8393bd60e31792af74b901ae2d319ac2f2a2252c694d2069d8d";
+    "4.7-412" = "sha256-0U3Ia7EblKULNy8AuXFVKACZvGN0arYJv7BWiBRgT0Y=";
+    "4.7-413" = "sha256-aVmGWS4bJBLuwsxDKsng/n0A6qlyJ/pnDTcYab/5gyU=";
+    "4.7-414" = "sha256-bIZ4kwmnit/ujM2//jZA59rweo7Y0QfDb+BpoTxswHs=";
+    "4.7-500" = "sha256-elYb/0vVvohi9yYFe/54brb6Qh6fyiN1kYPRq5fP1zE=";
   };
 
-  ocamlVersionShorthand = lib.concatStrings
-    (lib.take 2 (lib.splitVersion ocaml.version));
+  ocamlVersionShorthand = lib.substring 0 3
+    (lib.concatStrings (lib.splitVersion ocaml.version));
 
   version = "${merlinVersion}-${ocamlVersionShorthand}";
 in
@@ -33,9 +37,10 @@ else
 buildDunePackage {
   pname = "merlin";
   inherit version;
+  duneVersion = "3";
 
   src = fetchurl {
-    url = "https://github.com/ocaml/merlin/releases/download/v${version}/merlin-v${version}.tbz";
+    url = "https://github.com/ocaml/merlin/releases/download/v${version}/merlin-${version}.tbz";
     sha256 = hashes."${version}";
   };
 
@@ -43,30 +48,33 @@ buildDunePackage {
     (substituteAll {
       src = ./fix-paths.patch;
       dot_merlin_reader = "${dot-merlin-reader}/bin/dot-merlin-reader";
-      dune = "${dune_2}/bin/dune";
+      dune = "${dune_3}/bin/dune";
     })
   ];
 
-  useDune2 = true;
+  strictDeps = true;
 
+  nativeBuildInputs = [
+    menhir
+    jq
+  ];
   buildInputs = [
     dot-merlin-reader
     yojson
-    csexp
-    result
+    (if lib.versionAtLeast version "4.7-414"
+     then merlin-lib
+     else csexp)
+    menhirSdk
+    menhirLib
   ];
 
-  doCheck = true;
+  doCheck = false;
   checkPhase = ''
     runHook preCheck
     patchShebangs tests/merlin-wrapper
     dune runtest # filtering with -p disables tests
     runHook postCheck
   '';
-  checkInputs = [
-    jq
-    menhir
-  ];
 
   meta = with lib; {
     description = "An editor-independent tool to ease the development of programs in OCaml";

@@ -1,16 +1,16 @@
 { lib
 , fetchPypi
+, fetchpatch
 , python
 , buildPythonPackage
 , gfortran
 , hypothesis
 , pytest
+, typing-extensions
 , blas
 , lapack
 , writeTextFile
-, isPyPy
 , cython
-, setuptoolsBuildHook
 , pythonOlder
 }:
 
@@ -40,14 +40,14 @@ let
   };
 in buildPythonPackage rec {
   pname = "numpy";
-  version = "1.20.2";
-  format = "pyproject.toml";
+  version = "1.23.5";
+  format = "setuptools";
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    extension = "zip";
-    sha256 = "1vkc1739lwqx0n9dwxzmy18axlz22za034xa8jh0lmfpbazj52c7";
+    extension = "tar.gz";
+    hash = "sha256-Gxdm1vOXwYFT1AAV3fx53bcVyrrcBNLSKNTlqLxN7Ro=";
   };
 
   patches = lib.optionals python.hasDistutilsCxxPatch [
@@ -57,7 +57,7 @@ in buildPythonPackage rec {
     ./numpy-distutils-C++.patch
   ];
 
-  nativeBuildInputs = [ gfortran cython setuptoolsBuildHook ];
+  nativeBuildInputs = [ gfortran cython ];
   buildInputs = [ blas lapack ];
 
   # we default openblas to build with 64 threads
@@ -75,16 +75,16 @@ in buildPythonPackage rec {
 
   enableParallelBuilding = true;
 
-  doCheck = !isPyPy; # numpy 1.16+ hits a bug in pypy's ctypes, using either numpy or pypy HEAD fixes this (https://github.com/numpy/numpy/issues/13807)
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytest
-    hypothesis
+    # "hypothesis" indirectly depends on numpy to build its documentation.
+    (hypothesis.override { enableDocumentation = false; })
+    typing-extensions
   ];
 
   checkPhase = ''
     runHook preCheck
-    pushd dist
+    pushd "$out"
     ${python.interpreter} -c 'import numpy; numpy.test("fast", verbose=10)'
     popd
     runHook postCheck

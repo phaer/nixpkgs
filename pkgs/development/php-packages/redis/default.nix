@@ -1,18 +1,27 @@
-{ buildPecl, lib, php }:
+{ buildPecl, lib, php, fetchFromGitHub }:
 
-buildPecl {
+let
+  version = "5.3.7";
+in buildPecl {
+  inherit version;
   pname = "redis";
 
-  version = "5.3.3";
-  sha256 = "sha256-N3iRYeFkzVIjmjDJojjaYf7FyDlc2sOFtu2PDFD9kvA=";
+  src = fetchFromGitHub {
+    repo = "phpredis";
+    owner = "phpredis";
+    rev = version;
+    sha256 = "sha256-Cc9Mtx28j3kpyV8Yq+JSYQt5XQnELaVjuUbkkbG45kw=";
+  };
 
   internalDeps = with php.extensions; [
     session
-  ] ++ lib.optionals (lib.versionOlder php.version "8.0") [
-    json
-  ] ++ lib.optionals (lib.versionOlder php.version "7.4") [
-    hash
   ];
 
-  meta.maintainers = lib.teams.php.members;
+  meta = with lib; {
+    changelog = "https://github.com/phpredis/phpredis/releases/tag/${version}";
+    description = "PHP extension for interfacing with Redis";
+    license = licenses.php301;
+    homepage = "https://github.com/phpredis/phpredis/";
+    maintainers = teams.php.members;
+  };
 }

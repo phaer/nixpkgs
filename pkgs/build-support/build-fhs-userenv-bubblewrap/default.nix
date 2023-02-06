@@ -8,12 +8,14 @@ args @ {
 , extraInstallCommands ? ""
 , meta ? {}
 , passthru ? {}
+, extraBwrapArgs ? []
 , unshareUser ? true
 , unshareIpc ? true
 , unsharePid ? true
 , unshareNet ? false
 , unshareUts ? true
 , unshareCgroup ? true
+, dieWithParent ? true
 , ...
 }:
 
@@ -22,7 +24,7 @@ let
   buildFHSEnv = callPackage ./env.nix { };
 
   env = buildFHSEnv (removeAttrs args [
-    "runScript" "extraInstallCommands" "meta" "passthru"
+    "runScript" "extraInstallCommands" "meta" "passthru" "extraBwrapArgs" "dieWithParent"
     "unshareUser" "unshareCgroup" "unshareUts" "unshareNet" "unsharePid" "unshareIpc"
   ]);
 
@@ -30,6 +32,14 @@ let
     files = [
       # NixOS Compatibility
       "static"
+      "nix" # mainly for nixUnstable users, but also for access to nix/netrc
+      # Shells
+      "shells"
+      "bashrc"
+      "zshenv"
+      "zshrc"
+      "zinputrc"
+      "zprofile"
       # Users, Groups, NSS
       "passwd"
       "group"
@@ -54,13 +64,15 @@ let
       # Fonts
       "fonts"
       # ALSA
+      "alsa"
       "asound.conf"
       # SSL
       "ssl/certs"
+      "ca-certificates"
       "pki"
     ];
   in concatStringsSep "\n  "
-  (map (file: "--ro-bind-try /etc/${file} /etc/${file}") files);
+  (map (file: "--ro-bind-try $(${coreutils}/bin/readlink -m /etc/${file}) /etc/${file}") files);
 
   # Create this on the fly instead of linking from /nix
   # The container might have to modify it and re-run ldconfig if there are
@@ -77,6 +89,8 @@ let
     /lib32
     /usr/lib/i386-linux-gnu
     /usr/lib32
+    /run/opengl-driver/lib
+    /run/opengl-driver-32/lib
     EOF
     ldconfig &> /dev/null
   '';
@@ -136,7 +150,7 @@ let
       ${lib.optionalString unshareNet "--unshare-net"}
       ${lib.optionalString unshareUts "--unshare-uts"}
       ${lib.optionalString unshareCgroup "--unshare-cgroup"}
-      --die-with-parent
+      ${lib.optionalString dieWithParent "--die-with-parent"}
       --ro-bind /nix /nix
       # Our glibc will look for the cache in its own path in `/nix/store`.
       # As such, we need a cache to exist there, because pressure-vessel
@@ -159,6 +173,7 @@ let
       "''${ro_mounts[@]}"
       "''${symlinks[@]}"
       "''${auto_mounts[@]}"
+      ${concatStringsSep "\n  " extraBwrapArgs}
       ${init runScript}/bin/${name}-init ${initArgs}
     )
     exec "''${cmd[@]}"

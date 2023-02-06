@@ -1,20 +1,17 @@
-{ lib, stdenv, fetchurl, coreutils, ncurses }:
+{ lib, stdenv, fetchurl, coreutils }:
 
 stdenv.mkDerivation rec {
   pname = "entr";
-  version = "4.8";
+  version = "5.2";
 
   src = fetchurl {
     url = "https://eradman.com/entrproject/code/${pname}-${version}.tar.gz";
-    sha256 = "1bi5fhr93n72pkap4mqsjd1pwnqjf6czg359c5xwczavfk6mamgh";
+    hash = "sha256-I34wnUawdSEMDky3ib/Qycd37d9sswNBw/49vMZYw4A=";
   };
 
   postPatch = ''
-    substituteInPlace Makefile.bsd --replace /bin/echo echo
     substituteInPlace entr.c --replace /bin/cat ${coreutils}/bin/cat
-    substituteInPlace entr.c --replace /usr/bin/clear ${ncurses.out}/bin/clear
     substituteInPlace entr.1 --replace /bin/cat cat
-    substituteInPlace entr.1 --replace /usr/bin/clear clear
   '';
   dontAddPrefix = true;
   doCheck = true;

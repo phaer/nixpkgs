@@ -1,55 +1,81 @@
-{ stdenv
-, lib
+{ lib
+, stdenv
 , fetchFromGitHub
 , buildPythonPackage
 , rustPlatform
-, pythonImportsCheckHook
 , pkg-config
 , openssl
 , publicsuffix-list
-, isPy27
+, pythonOlder
+, libiconv
 , CoreFoundation
 , Security
+, pytestCheckHook
+, toml
 }:
 
 buildPythonPackage rec {
   pname = "adblock";
-  version = "0.4.0";
-  disabled = isPy27;
+  version = "0.6.0";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.7";
 
   # Pypi only has binary releases
   src = fetchFromGitHub {
     owner = "ArniDagur";
     repo = "python-adblock";
-    rev = version;
-    sha256 = "10d6ks2fyzbizq3kb69q478idj0h86k6ygjb6wl3zq3mf65ma4zg";
+    rev = "refs/tags/${version}";
+    hash = "sha256-5g5xdUzH/RTVwu4Vfb5Cb1t0ruG0EXgiXjrogD/+JCU=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
     inherit src;
     name = "${pname}-${version}";
-    hash = "sha256-gEFmj3/KvhvvsOK2nX2L1RUD4Wfp3nYzEzVnQZIsIDY=";
+    hash = "sha256-1xmYmF5P7a5O9MilxDy+CVhmWMGRetdM2fGvTPy7JmM=";
   };
 
-  format = "pyproject";
+  nativeBuildInputs = [
+    pkg-config
+  ] ++ (with rustPlatform; [
+    cargoSetupHook
+    maturinBuildHook
+  ]);
 
-  nativeBuildInputs = [ pkg-config pythonImportsCheckHook ]
-    ++ (with rustPlatform; [ cargoSetupHook maturinBuildHook ]);
-
-  buildInputs = [ openssl ]
-    ++ lib.optionals stdenv.isDarwin [ CoreFoundation Security ];
+  buildInputs = [
+    openssl
+  ] ++ lib.optionals stdenv.isDarwin [
+    libiconv
+    CoreFoundation
+    Security
+  ];
 
   PSL_PATH = "${publicsuffix-list}/share/publicsuffix/public_suffix_list.dat";
 
-  # There are no rust tests
-  doCheck = false;
+  nativeCheckInputs = [
+    pytestCheckHook
+    toml
+  ];
 
-  pythonImportsCheck = [ "adblock" ];
+  preCheck = ''
+    # import from $out instead
+    rm -r adblock
+  '';
+
+  disabledTestPaths = [
+    # relies on directory removed above
+    "tests/test_typestubs.py"
+  ];
+
+  pythonImportsCheck = [
+    "adblock"
+    "adblock.adblock"
+  ];
 
   meta = with lib; {
-    description = "Python wrapper for Brave's adblocking library, which is written in Rust";
+    description = "Python wrapper for Brave's adblocking library";
     homepage = "https://github.com/ArniDagur/python-adblock/";
-    maintainers = with maintainers; [ petabyteboy ];
-    license = with licenses; [ asl20 mit ];
+    maintainers = with maintainers; [ dotlambda ];
+    license = with licenses; [ asl20 /* or */ mit ];
   };
 }

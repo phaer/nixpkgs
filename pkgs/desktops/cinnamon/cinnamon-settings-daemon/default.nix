@@ -1,5 +1,6 @@
 { fetchFromGitHub
 , cinnamon-desktop
+, cinnamon-translations
 , colord
 , glib
 , gsettings-desktop-schemas
@@ -11,8 +12,8 @@
 , libxklavier
 , wrapGAppsHook
 , pkg-config
-, pulseaudio
-, lib, stdenv
+, lib
+, stdenv
 , systemd
 , upower
 , dconf
@@ -20,7 +21,6 @@
 , polkit
 , librsvg
 , libwacom
-, xf86_input_wacom
 , xorg
 , fontconfig
 , tzdata
@@ -28,36 +28,23 @@
 , libgudev
 , meson
 , ninja
-, dbus
-, dbus-glib
 }:
 
 stdenv.mkDerivation rec {
   pname = "cinnamon-settings-daemon";
-  version = "4.8.5";
-
-  /* csd-power-manager.c:50:10: fatal error: csd-power-proxy.h: No such file or directory
-   #include "csd-power-proxy.h"
-            ^~~~~~~~~~~~~~~~~~~
-  compilation terminated. */
-
-  # but this occurs only sometimes, so disabling parallel building
-  # also see https://github.com/linuxmint/cinnamon-settings-daemon/issues/248
-  enableParallelBuilding = false;
+  version = "5.6.1";
 
   src = fetchFromGitHub {
     owner = "linuxmint";
     repo = pname;
     rev = version;
-    hash = "sha256-PAWVTjGFs8yKXgNQ2ucDnEDS+n7bp2n3lhGl9gHXfdQ=";
+    hash = "sha256-QR77O3rFfY0+6cKoS75xoFRplNo4nvTMtR2rNKZERYE=";
   };
 
   patches = [
     ./csd-backlight-helper-fix.patch
     ./use-sane-install-dir.patch
   ];
-
-  mesonFlags = [ "-Dc_args=-I${glib.dev}/include/gio-unix-2.0" ];
 
   buildInputs = [
     cinnamon-desktop
@@ -70,7 +57,6 @@ stdenv.mkDerivation rec {
     libgnomekbd
     libnotify
     libxklavier
-    pulseaudio
     systemd
     upower
     dconf
@@ -78,17 +64,13 @@ stdenv.mkDerivation rec {
     polkit
     librsvg
     libwacom
-    xf86_input_wacom
     xorg.libXext
     xorg.libX11
     xorg.libXi
-    xorg.libXtst
     xorg.libXfixes
     fontconfig
     nss
     libgudev
-    dbus
-    dbus-glib
   ];
 
   nativeBuildInputs = [
@@ -104,6 +86,11 @@ stdenv.mkDerivation rec {
     sed "s|/usr/share/zoneinfo|${tzdata}/share/zoneinfo|g" -i plugins/datetime/system-timezone.h
   '';
 
+  # use locales from cinnamon-translations (not using --localedir because datadir is used)
+  postInstall = ''
+    ln -s ${cinnamon-translations}/share/locale $out/share/locale
+  '';
+
   # So the polkit policy can reference /run/current-system/sw/bin/cinnamon-settings-daemon/csd-backlight-helper
   postFixup = ''
     mkdir -p $out/bin/cinnamon-settings-daemon
@@ -115,6 +102,6 @@ stdenv.mkDerivation rec {
     description = "The settings daemon for the Cinnamon desktop";
     license = licenses.gpl2;
     platforms = platforms.linux;
-    maintainers = [ maintainers.mkg20001 ];
+    maintainers = teams.cinnamon.members;
   };
 }

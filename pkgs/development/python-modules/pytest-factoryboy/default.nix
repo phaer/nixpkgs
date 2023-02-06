@@ -7,7 +7,7 @@
 , pytest
 , pytestcache
 , pytestCheckHook
-, pytestcov
+, pytest-cov
 }:
 
 buildPythonPackage rec {
@@ -28,11 +28,11 @@ buildPythonPackage rec {
     inflection
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
     pytestCheckHook
     pytestcache
-    pytestcov
+    pytest-cov
   ];
 
   pytestFlagsArray = [ "--ignore=docs" ];

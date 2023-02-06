@@ -5,11 +5,11 @@
 
 stdenv.mkDerivation rec {
   pname = "libdrm";
-  version = "2.4.105";
+  version = "2.4.114";
 
   src = fetchurl {
     url = "https://dri.freedesktop.org/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "0iiamypwdfiz250ki120nh598r48yyacmnndb4mkximdgi5h478x";
+    sha256 = "sha256-MEnPhDpH0S5e7vvDvjSW14L6CfQjRr8Lfe/j0eWY0CY=";
   };
 
   outputs = [ "out" "dev" "bin" ];
@@ -18,15 +18,14 @@ stdenv.mkDerivation rec {
   buildInputs = [ libpthreadstubs libpciaccess ]
     ++ lib.optional withValgrind valgrind-light;
 
-  patches = [ ./cross-build-nm-path.patch ];
-
   mesonFlags = [
-    "-Dnm-path=${stdenv.cc.targetPrefix}nm"
     "-Dinstall-test-programs=true"
-    "-Domap=true"
-  ] ++ lib.optionals (stdenv.isAarch32 || stdenv.isAarch64) [
-    "-Dtegra=true"
-    "-Detnaviv=true"
+    "-Domap=enabled"
+    "-Dcairo-tests=disabled"
+    "-Dvalgrind=${if withValgrind then "enabled" else "disabled"}"
+  ] ++ lib.optionals stdenv.hostPlatform.isAarch [
+    "-Dtegra=enabled"
+    "-Detnaviv=enabled"
   ];
 
   meta = with lib; {
@@ -46,7 +45,7 @@ stdenv.mkDerivation rec {
       the Mesa drivers, the X drivers, libva and similar projects.
     '';
     license = licenses.mit;
-    platforms = platforms.unix;
+    platforms = lib.subtractLists platforms.darwin platforms.unix;
     maintainers = with maintainers; [ primeos ];
   };
 }

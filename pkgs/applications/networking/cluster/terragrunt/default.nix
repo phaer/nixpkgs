@@ -1,25 +1,31 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+}:
 
 buildGoModule rec {
   pname = "terragrunt";
-  version = "0.29.1";
+  version = "0.43.2";
 
   src = fetchFromGitHub {
     owner = "gruntwork-io";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-fr33DRFZrUZQELYMf8z5ShOZobwylgoiW+yi6qdtFP4=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-PojwY5sLfO8n1obyb9aHp0ym5RDD6SLLth4977gTc+U=";
   };
 
-  vendorSha256 = "sha256-qlSCQtiGHmlk3DyETMoQbbSYhuUSZTsvAnBKuDJI8x8=";
+  vendorHash = "sha256-niU6DGKNhSV+nm+8jIP//AItBu5eWTasyeL/ADvY2zA=";
 
   doCheck = false;
 
-  preBuild = ''
-    buildFlagsArray+=("-ldflags" "-s -w -X main.VERSION=v${version}")
-  '';
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.VERSION=v${version}"
+  ];
 
   doInstallCheck = true;
+
   installCheckPhase = ''
     runHook preInstallCheck
     $out/bin/terragrunt --help

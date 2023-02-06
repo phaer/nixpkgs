@@ -1,67 +1,100 @@
-{ stdenv
-, lib
-, fetchgit
-, pkg-config
-, meson
-, ninja
-, scdoc
-, alsaLib
+{ lib
+, stdenv
+, fetchFromGitea
+, alsa-lib
+, bison
 , fcft
+, flex
 , json_c
 , libmpdclient
 , libxcb
 , libyaml
+, meson
+, ninja
+, pipewire
 , pixman
+, pkg-config
+, pulseaudio
+, scdoc
 , tllist
 , udev
 , wayland
 , wayland-protocols
+, wayland-scanner
 , xcbutil
 , xcbutilcursor
 , xcbutilerrors
 , xcbutilwm
+, waylandSupport ? true
+, x11Support ? true
 }:
 
-stdenv.mkDerivation rec {
+let
+  inherit (lib) mesonEnable;
+in
+assert (x11Support || waylandSupport);
+stdenv.mkDerivation (finalAttrs: {
   pname = "yambar";
-  version = "1.6.1";
+  version = "1.9.0";
 
-  src = fetchgit {
-    url = "https://codeberg.org/dnkl/yambar.git";
-    rev = version;
-    sha256 = "p47tFsEWsYNe6IVV65xGG211u6Vm2biRf4pmUDylBOQ=";
+  src = fetchFromGitea {
+    domain = "codeberg.org";
+    owner = "dnkl";
+    repo = "yambar";
+    rev = finalAttrs.version;
+    hash = "sha256-0bgRnZYLGWJ9PE62i04hPBcgzWyd30DK7AUuejSgta4=";
   };
 
-  nativeBuildInputs = [ pkg-config meson ninja scdoc ];
+  nativeBuildInputs = [
+    bison
+    flex
+    meson
+    ninja
+    pkg-config
+    scdoc
+    wayland-scanner
+  ];
+
   buildInputs = [
-    alsaLib
+    alsa-lib
     fcft
     json_c
     libmpdclient
-    libxcb
     libyaml
+    pipewire
     pixman
+    pulseaudio
     tllist
     udev
+  ] ++ lib.optionals (waylandSupport) [
     wayland
     wayland-protocols
+  ] ++ lib.optionals (x11Support) [
     xcbutil
     xcbutilcursor
     xcbutilerrors
     xcbutilwm
   ];
 
+  mesonBuildType = "release";
+
+  mesonFlags = [
+    (mesonEnable "backend-x11" x11Support)
+    (mesonEnable "backend-wayland" waylandSupport)
+  ];
+
   meta = with lib; {
     homepage = "https://codeberg.org/dnkl/yambar";
+    changelog = "https://codeberg.org/dnkl/yambar/releases/tag/${finalAttrs.version}";
     description = "Modular status panel for X11 and Wayland";
     longDescription = ''
       yambar is a lightweight and configurable status panel (bar, for short) for
       X11 and Wayland, that goes to great lengths to be both CPU and battery
       efficient - polling is only done when absolutely necessary.
 
-      It has a number of modules that provide information in the form of
-      tags. For example, the clock module has a date tag that contains the
-      current date.
+      It has a number of modules that provide information in the form of tags.
+      For example, the clock module has a date tag that contains the current
+      date.
 
       The modules do not know how to present the information though. This is
       instead done by particles. And the user, you, decides which particles (and
@@ -81,6 +114,6 @@ stdenv.mkDerivation rec {
     '';
     license = licenses.mit;
     maintainers = with maintainers; [ AndersonTorres ];
-    platforms = with platforms; unix;
+    platforms = platforms.linux;
   };
-}
+})

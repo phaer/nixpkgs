@@ -1,44 +1,40 @@
 { lib
 , stdenv
 , fetchFromGitHub
-, clang-unwrapped
 , cmake
-, libclang
 , libffi
 , libxml2
-, llvm
-, sphinx
 , zlib
 , withManual ? true
 , withHTML ? true
+, llvmPackages
+, python3
 }:
 
-stdenv.mkDerivation rec {
-  pname = "CastXML";
-  version = "0.4.3";
+let
+  inherit (llvmPackages) libclang llvm;
+  inherit (python3.pkgs) sphinx;
+in
+stdenv.mkDerivation (finalAttrs: {
+  pname = "castxml";
+  version = "0.5.1";
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-MschwCEkZrZmNgr8a1ocdukjXzHbXl2gmkPmygJaA6k=";
+    owner = "CastXML";
+    repo = "CastXML";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-XZIVOrTY6Ib5Cu1WtTJm5Bqoas1NbNWbvJPWkpFqH2c=";
   };
 
   nativeBuildInputs = [
     cmake
-    llvm
+    llvm.dev
   ] ++ lib.optionals (withManual || withHTML) [
     sphinx
   ];
 
-  cmakeFlags = [
-    "-DCLANG_RESOURCE_DIR=${clang-unwrapped}/lib/clang/${lib.getVersion clang-unwrapped}/"
-    "-DSPHINX_HTML=${if withHTML then "ON" else "OFF"}"
-    "-DSPHINX_MAN=${if withManual then "ON" else "OFF"}"
-  ];
-
   buildInputs = [
-    clang-unwrapped
+    libclang
     libffi
     libxml2
     zlib
@@ -46,6 +42,12 @@ stdenv.mkDerivation rec {
 
   propagatedBuildInputs = [
     libclang
+  ];
+
+  cmakeFlags = [
+    "-DCLANG_RESOURCE_DIR=${libclang.dev}/"
+    "-DSPHINX_HTML=${if withHTML then "ON" else "OFF"}"
+    "-DSPHINX_MAN=${if withManual then "ON" else "OFF"}"
   ];
 
   # 97% tests passed, 97 tests failed out of 2881
@@ -66,4 +68,4 @@ stdenv.mkDerivation rec {
     maintainers = with maintainers; [ AndersonTorres ];
     platforms = platforms.unix;
   };
-}
+})
