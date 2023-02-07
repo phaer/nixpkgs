@@ -965,12 +965,8 @@ with pkgs;
 
   fetchPypi = callPackage ../build-support/fetchpypi { };
 
-  fetchPythonRequirements_1 =
-    callPackage ../development/interpreters/python/fetch-python-requirements.nix {
-      python = python38;
-      logicVersion = "1";
-      pythonMitmproxy = pkgs.python3;
-    };
+  fetchPythonRequirements_1 = callPackage
+    ../development/interpreters/python/fetch-python-requirements.nix {};
 
   resolveMirrorURLs = {url}: fetchurl {
     showURLs = true;

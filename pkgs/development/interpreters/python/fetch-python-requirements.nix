@@ -7,44 +7,21 @@
 # api responses from pypi.org to only contain files for which the
 # release date is lower than the specified maxDate.
 
-{
-  # This specifies the python version for which the packages should be downloaded
-  # Pip needs to be executed from that specific python version.
-  # Pip accepts '--python-version', but this works only for wheel packages.
-  python
-
-  # Changing this version might affect the result of the fetcher.
-  # Make sure to re-compute all depending FOD hashes
-, logicVersion
-
-, buildPackages
+{ buildPackages
 , cacert
 , curl
 , lib
-, pythonMitmproxy
+, python3
 , stdenv
 }:
 let
 
-  # Whenever this fetcher is modified in a way that might change its result,
-  # the change should be hidden behind this logic switch and only enabled,
-  # if `logicVersion = {new_num}` is passed
-  currentLogic = {
-    "1" = {};  # reserved for version 1
-
-    # Example for next version
-    # "2" = {
-    #   pipFlags = "--some --new --flags --for --pip";
-    # };
-
-  }."${logicVersion}";
-
-  interpreterVersion = lib.concatStringsSep "." (lib.sublist 0 2 (lib.splitString "." python.version));
-
-  # we use mitmproxy to filter the pypi responses
-  pythonWithMitmproxy = pythonMitmproxy.withPackages (ps: [ ps.mitmproxy ps.python-dateutil ]);
-
   fetchPythonRequirements = {
+    # This specifies the python version for which the packages should be downloaded
+    # Pip needs to be executed from that specific python version.
+    # Pip accepts '--python-version', but this works only for wheel packages.
+    python,
+
     maxDate,        # maximum release date for packages
     outputHash,     # hash for the fixed output derivation
     requirements,   # list of strings of specs
@@ -57,47 +34,24 @@ let
     # for reference see: https://pip.pypa.io/en/stable/cli/pip_download/
     pipFlags ? [],
 
+    name ? null,
 
-    # The following inputs must be static
-    # If unset, an erorr is thrown with usage instructions.
+    nameSuffix ? "python-requirements",
 
+    # It's better to not refer to python.pkgs.pip directly, as we want to reduce
+    #   the times we have to update the output hash
     pipVersion ? throw ''
       'pipVersion' must be specified for fetchPythonRequirements.
-      This value must be static and not depend on other variables.
-      This prevents the fetcher from being executed with the wrong pip version.
-      If you change this value, make sure to re-compute the outputHash.
-      Example value: "21.1.1"
-    '',
-
-    pythonVersion ? throw ''
-      'pythonVersion' must be specified for fetchPythonRequirements.
-      This value must be static and not depend on other variables.
-      This prevents the fetcher from being executed with the wrong python version.
-      If you change this value, make sure to re-compute the outputHash.
-      Example value: "3.9"
-    '',
-
-    targetSystem ? throw ''
-      'targetSystem' must be specified for fetchPythonRequirements.
-      This value must be static and not depend on other variables.
-      This prevents the fetcher from being executed on the wrong platform.
-      If you change this value, make sure to re-compute the outputHash.
-      Example value: 'x86_64-linux'
+      Changing this value will affect the output hash
+      Example value: "22.3.1"
     '',
   }:
-
     # specifying `--platform` for pip download is only allowed in combination with `--only-binary :all:`
     # therefore, if onlyBinary is disabled, we must enforce targetPlatform == buildPlatform to ensure reproducibility
-    if ! onlyBinary && targetSystem != stdenv.buildPlatform.system then
+    if ! onlyBinary && stdenv.system != stdenv.buildPlatform.system then
       throw ''
-        fetchPythonRequirements cannot fetch sdist packages for ${targetSystem} on a ${stdenv.buildPlatform.system}.
-        Either build on a ${targetSystem} or set `onlyBinary = true`.
-      ''
-    else if pythonVersion != interpreterVersion then
-      throw ''
-        Attempt to use the fetchPythonRequirements package from python ${interpreterVersion},
-        while `pythonVersion = ${pythonVersion}` was specified.
-        Make sure to update the 'outputHash' after changing.
+        fetchPythonRequirements cannot fetch sdist packages for ${stdenv.system} on a ${stdenv.buildPlatform.system}.
+        Either build on a ${stdenv.system} or set `onlyBinary = true`.
       ''
     else
     let
@@ -119,18 +73,54 @@ let
         ];
       };
 
-      platforms = if sysToPlatforms ? "${targetSystem}" then sysToPlatforms."${targetSystem}" else throw ''
-        'binaryOnly' fetching is currently not supported for target ${targetSystem}.
-        You could set 'binaryOnly = false' and execute the build on a ${targetSystem}.
+      platforms = if sysToPlatforms ? "${stdenv.system}" then sysToPlatforms."${stdenv.system}" else throw ''
+        'binaryOnly' fetching is currently not supported for target ${stdenv.system}.
+        You could set 'binaryOnly = false' and execute the build on a ${stdenv.system}.
       '';
+
+      # we use mitmproxy to filter the pypi responses
+      pythonWithMitmproxy =
+        python3.withPackages (ps: [ ps.mitmproxy ps.python-dateutil ]);
 
       # fixed output derivation containing downloaded packages,
       # each being symlinked from it's normalized name
       # Example:
       #   "$out/werkzeug" will point to "$out/Werkzeug-0.14.1-py2.py3-none-any.whl"
-      self = stdenv.mkDerivation {
+      self = stdenv.mkDerivation (finalAttrs: {
 
-        name = "python-sources-${targetSystem}";
+        # An invalidation hash is embedded into the `name`.
+        # This will prevent `forgot to update the hash` scenarios, as any change
+        #   in the derivaiton name enforces a re-build.
+        name = let
+          pythonMajorAndMinorVer = lib.concatStringsSep "."
+            (lib.sublist 0 2 (lib.splitString "." python.version));
+
+          invalidationHash = builtins.hashString "sha256" ''
+
+            # Ignore the python minor version. It should not affect resolution
+            ${python.implementation}
+            ${pythonMajorAndMinorVer}
+            ${stdenv.system}
+
+            # All variables that might influence the output
+            ${finalAttrs.buildPhase}
+            ${finalAttrs.MAX_DATE}
+            ${finalAttrs.onlyBinaryFlags}
+            ${finalAttrs.pipVersion}
+            ${finalAttrs.pipFlags}
+            ${finalAttrs.requirementsFlags}
+
+            # Only hash the content of the python scripts, as the store path
+            # changes with every nixpkgs commit
+            ${builtins.readFile finalAttrs.filterPypiResponsesScript}
+          '';
+          namePrefix =
+            if name == null
+            then ""
+            else name + "-";
+        in
+
+          "${namePrefix}${nameSuffix}-${invalidationHash}";
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
@@ -142,9 +132,20 @@ let
         dontInstall = true;
         dontFixup = true;
 
+        pythonBin = python.interpreter;
+        filterPypiResponsesScript = ./filter-pypi-responses.py;
+        inherit pythonWithMitmproxy;
+        inherit pipVersion;
+        MAX_DATE = builtins.toString maxDate;
+        pipFlags = lib.concatStringsSep " " pipFlags;
+        onlyBinaryFlags =
+          lib.optionalString onlyBinary "--only-binary :all: ${
+            lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
+          }";
+        requirementsFlags = "${lib.concatStringsSep "\" \"" requirements}";
+
         buildPhase = ''
           # the script.py will read this date
-          export MAX_DATE=${builtins.toString maxDate}
           pretty=$(python -c '
           import os; import dateutil.parser;
           try:
@@ -165,16 +166,16 @@ let
           # start proxy to filter pypi responses
           # mitmproxy wants HOME set
           # mitmdump == mitmproxy without GUI
-          HOME=$(pwd) ${pythonWithMitmproxy}/bin/mitmdump \
+          HOME=$(pwd) $pythonWithMitmproxy/bin/mitmdump \
             --listen-port "$proxyPort" \
             --ignore-hosts '.*files.pythonhosted.org.*'\
-            --script ${./filter-pypi-responses.py} &
+            --script $filterPypiResponsesScript &
 
           proxyPID=$!
 
           # install specified version of pip first to ensure reproducible resolver logic
-          ${python}/bin/python -m venv .venv
-          .venv/bin/pip install --upgrade pip==${pipVersion}
+          $pythonBin -m venv .venv
+          .venv/bin/pip install --upgrade pip==$pipVersion
           fetcherPip=.venv/bin/pip
 
           # wait for proxy to come up
@@ -192,11 +193,9 @@ let
             --proxy http://localhost:$proxyPort \
             --trusted-host pypi.org \
             --trusted-host files.pythonhosted.org \
-            ${lib.concatStringsSep " " pipFlags} \
-            ${lib.optionalString onlyBinary "--only-binary :all: ${
-              lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
-            }"} \
-            "${lib.concatStringsSep "\" \"" requirements}"
+            $pipFlags \
+            $onlyBinaryFlags \
+            $requirementsFlags
 
           echo "killing proxy with PID: $proxyPID"
           kill $proxyPID
@@ -216,7 +215,7 @@ let
           done
 
         '';
-      };
+      });
     in self;
 in
 
