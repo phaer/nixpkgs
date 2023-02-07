@@ -95,6 +95,11 @@ let
           pythonMajorAndMinorVer = lib.concatStringsSep "."
             (lib.sublist 0 2 (lib.splitString "." python.version));
 
+          requirementsContent =
+            if lib.isList finalAttrs.requirements
+            then builtins.toString finalAttrs.requirements
+            else builtins.readFile finalAttrs.requirements;
+
           invalidationHash = builtins.hashString "sha256" ''
 
             # Ignore the python minor version. It should not affect resolution
@@ -108,6 +113,9 @@ let
             ${finalAttrs.onlyBinaryFlags}
             ${finalAttrs.pipVersion}
             ${finalAttrs.pipFlags}
+
+            # incldue requirements
+            ${requirementsContent}
             ${finalAttrs.requirementsFlags}
 
             # Only hash the content of the python scripts, as the store path
@@ -142,7 +150,14 @@ let
           lib.optionalString onlyBinary "--only-binary :all: ${
             lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
           }";
-        requirementsFlags = "${lib.concatStringsSep "\" \"" requirements}";
+        requirements =
+          if lib.isList requirements || lib.isPath requirements
+          then requirements
+          else throw "'requirements' must either be a list or a file";
+        requirementsFlags =
+          if lib.isList finalAttrs.requirements
+          then "${lib.concatStringsSep "\" \"" finalAttrs.requirements}"
+          else "-r ${finalAttrs.requirements}";
 
         buildPhase = ''
           # the script.py will read this date
