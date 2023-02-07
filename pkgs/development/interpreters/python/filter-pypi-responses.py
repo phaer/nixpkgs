@@ -9,7 +9,6 @@ It has to do one extra api request for each queried package name
 """
 import json
 import os
-import re
 from urllib import request
 import dateutil.parser
 
@@ -24,12 +23,12 @@ def get_files_to_hide(pname, max_ts):
     url = f"https://pypi.org/pypi/{pname}/json"
     with request.urlopen(url) as f:
         resp = json.load(f)
-    files = []
+    files = set()
     for ver, releases in resp['releases'].items():
         for release in releases:
             ts = dateutil.parser.parse(release['upload_time']).timestamp()
             if ts > max_ts:
-                files.append(release['filename'])
+                files.add(release['filename'])
     return files
 
 
@@ -41,22 +40,38 @@ except ValueError:
     max_ts = max_date.timestamp()
 
 
+"""
+Response format:
+{
+  "files": [
+    {
+      "filename": "pip-0.2.tar.gz",
+      "hashes": {
+        "sha256": "88bb8d029e1bf4acd0e04d300104b7440086f94cc1ce1c5c3c31e3293aee1f81"
+      },
+      "requires-python": null,
+      "url": "https://files.pythonhosted.org/packages/3d/9d/1e313763bdfb6a48977b65829c6ce2a43eaae29ea2f907c8bbef024a7219/pip-0.2.tar.gz",
+      "yanked": false
+    },
+    {
+      "filename": "pip-0.2.1.tar.gz",
+      "hashes": {
+        "sha256": "83522005c1266cc2de97e65072ff7554ac0f30ad369c3b02ff3a764b962048da"
+      },
+      "requires-python": null,
+      "url": "https://files.pythonhosted.org/packages/18/ad/c0fe6cdfe1643a19ef027c7168572dac6283b80a384ddf21b75b921877da/pip-0.2.1.tar.gz",
+      "yanked": false
+    }
+}
+"""
 def response(flow: http.HTTPFlow) -> None:
     if not "/simple/" in flow.request.url:
         return
     pname = flow.request.url.strip('/').split('/')[-1]
     badFiles = get_files_to_hide(pname, max_ts)
-    html = flow.response.text
-    for fname in badFiles:
-        if fname not in html:
-            continue
-        pattern = rf'<a href="https://files.pythonhosted.org/packages/../../[\d\w]+/{fname}#sha256=[\d\w]+".*>{fname}</a>'
-        html_new = re.sub(pattern, "", html)
-        if html == html_new:
-            raise Exception(
-                f"Removing file {fname} from pypi response failed.\n"
-                f"Check the regex in {__file__}"
-                f"html document: \n{html}")
-        html = html_new
-    flow.response.text = html
-
+    keepFile = lambda file: file['filename'] not in badFiles
+    data = json.loads(flow.response.text)
+    if badFiles:
+        print(f"removing the following files form the API response:\n  {badFiles}")
+        data['files'] = list(filter(keepFile, data['files']))
+    flow.response.text = json.dumps(data)

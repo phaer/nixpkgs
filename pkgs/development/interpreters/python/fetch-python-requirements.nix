@@ -170,6 +170,8 @@ let
             --ignore-hosts '.*files.pythonhosted.org.*'\
             --script ${./filter-pypi-responses.py} &
 
+          proxyPID=$!
+
           # install specified version of pip first to ensure reproducible resolver logic
           ${python}/bin/python -m venv .venv
           .venv/bin/pip install --upgrade pip==${pipVersion}
@@ -195,6 +197,9 @@ let
               lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
             }"} \
             "${lib.concatStringsSep "\" \"" requirements}"
+
+          echo "killing proxy with PID: $proxyPID"
+          kill $proxyPID
 
           # create symlinks to allow files being referenced via their normalized package names
           # Example:
