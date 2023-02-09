@@ -87,7 +87,7 @@ in {
   inherit lib pkgs stdenv;
   inherit (python.passthru) isPy27 isPy37 isPy38 isPy39 isPy310 isPy311 isPy3k isPyPy pythonAtLeast pythonOlder;
   inherit buildPythonPackage buildPythonApplication;
-  inherit (pkgs) fetchPypi fetchPythonRequirements_1;
+  inherit (pkgs) fetchPypi fetchPythonRequirements;
   inherit hasPythonModule requiredPythonModules makePythonPath disabled disabledIf;
   inherit toPythonModule toPythonApplication;
   inherit buildSetupcfg;

@@ -965,7 +965,7 @@ with pkgs;
 
   fetchPypi = callPackage ../build-support/fetchpypi { };
 
-  fetchPythonRequirements_1 = callPackage
+  fetchPythonRequirements = callPackage
     ../development/interpreters/python/fetch-python-requirements.nix {};
 
   resolveMirrorURLs = {url}: fetchurl {

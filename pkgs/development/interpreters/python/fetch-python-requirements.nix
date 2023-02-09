@@ -22,8 +22,7 @@ let
     # Pip accepts '--python-version', but this works only for wheel packages.
     python,
 
-    maxDate,        # maximum release date for packages
-    outputHash,     # hash for the fixed output derivation
+    hash,           # hash for the fixed output derivation
     requirements,   # list of strings of specs
 
     # restrict to binary releases (.whl)
@@ -38,12 +37,18 @@ let
 
     nameSuffix ? "python-requirements",
 
+    # maximum release date for packages
+    maxDate ? throw ''
+      'maxDate' must be specified for fetchPythonRequirements.
+      Changing this value will affect the output hash
+      Example value: "2023-01-01"
+    '',
     # It's better to not refer to python.pkgs.pip directly, as we want to reduce
     #   the times we have to update the output hash
     pipVersion ? throw ''
       'pipVersion' must be specified for fetchPythonRequirements.
       Changing this value will affect the output hash
-      Example value: "22.3.1"
+      Example value: "${python3.pkgs.pip.version}"
     '',
   }:
     # specifying `--platform` for pip download is only allowed in combination with `--only-binary :all:`
@@ -137,7 +142,7 @@ let
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
-        inherit outputHash;
+        outputHash = hash;
 
         nativeBuildInputs = [ pythonWithMitmproxy curl cacert ];
 
