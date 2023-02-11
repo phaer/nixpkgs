@@ -7,6 +7,9 @@
 # api responses from pypi.org to only contain files for which the
 # release date is lower than the specified maxDate.
 
+# TODO: ignore if packages are yanked
+# TODO: for MAX_DATE only allow timestamp or format 2023-01-01
+
 { buildPackages
 , cacert
 , curl
@@ -22,8 +25,14 @@ let
     # Pip accepts '--python-version', but this works only for wheel packages.
     python,
 
-    hash,           # hash for the fixed output derivation
-    requirements,   # list of strings of specs
+    # hash for the fixed output derivation
+    hash,
+
+    # list of strings of requirements.txt entries
+    requirementsList ? [],
+
+    # list of requirements.txt files
+    requirementsFiles ? [],
 
     # restrict to binary releases (.whl)
     # this allows buildPlatform independent fetching
@@ -37,6 +46,8 @@ let
 
     nameSuffix ? "python-requirements",
 
+    nativeBuildInputs ? [],
+
     # maximum release date for packages
     maxDate ? throw ''
       'maxDate' must be specified for fetchPythonRequirements.
@@ -45,11 +56,7 @@ let
     '',
     # It's better to not refer to python.pkgs.pip directly, as we want to reduce
     #   the times we have to update the output hash
-    pipVersion ? throw ''
-      'pipVersion' must be specified for fetchPythonRequirements.
-      Changing this value will affect the output hash
-      Example value: "${python3.pkgs.pip.version}"
-    '',
+    pipVersion ? "23.0",
   }:
     # specifying `--platform` for pip download is only allowed in combination with `--only-binary :all:`
     # therefore, if onlyBinary is disabled, we must enforce targetPlatform == buildPlatform to ensure reproducibility
@@ -104,11 +111,6 @@ let
           pythonMajorAndMinorVer = lib.concatStringsSep "."
             (lib.sublist 0 2 (lib.splitString "." python.version));
 
-          requirementsContent =
-            if lib.isList finalAttrs.requirements
-            then builtins.toString finalAttrs.requirements
-            else builtins.readFile finalAttrs.requirements;
-
           invalidationHash = builtins.hashString "sha256" ''
 
             # Ignore the python minor version. It should not affect resolution
@@ -122,14 +124,15 @@ let
             ${finalAttrs.pipVersion}
             ${finalAttrs.pipFlags}
 
-            # incldue requirements
-            ${requirementsContent}
-            ${finalAttrs.requirementsFlags}
+            # Include requirements
+            # We hash the content, as store paths might change more often
+            ${toString finalAttrs.requirementsList}
+            ${toString (map builtins.readFile finalAttrs.requirementsFiles)}
 
             # Only hash the content of the python scripts, as the store path
             # changes with every nixpkgs commit
             ${builtins.readFile finalAttrs.filterPypiResponsesScript}
-            ${builtins.readFile finalAttrs.buildPhase}
+            ${builtins.readFile finalAttrs.buildScript}
           '';
 
           namePrefix =
@@ -144,7 +147,9 @@ let
         outputHashAlgo = "sha256";
         outputHash = hash;
 
-        nativeBuildInputs = [ pythonWithMitmproxy curl cacert ];
+        nativeBuildInputs =
+          nativeBuildInputs
+          ++ [ pythonWithMitmproxy curl cacert ];
 
         dontUnpack = true;
         dontInstall = true;
@@ -152,24 +157,28 @@ let
 
         pythonBin = python.interpreter;
         filterPypiResponsesScript = ./filter-pypi-responses.py;
-        inherit pythonWithMitmproxy;
-        inherit pipVersion;
+        buildScript = ./fetch-python-requirements.sh;
+        inherit
+          pythonWithMitmproxy
+          pipVersion
+          requirementsFiles
+          requirementsList
+          ;
         MAX_DATE = builtins.toString maxDate;
         pipFlags = lib.concatStringsSep " " pipFlags;
         onlyBinaryFlags =
           lib.optionalString onlyBinary "--only-binary :all: ${
             lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
           }";
-        requirements =
-          if lib.isList requirements || lib.isPath requirements
-          then requirements
-          else throw "'requirements' must either be a list or a file";
         requirementsFlags =
-          if lib.isList finalAttrs.requirements
-          then "${lib.concatStringsSep "\" \"" finalAttrs.requirements}"
-          else "-r ${finalAttrs.requirements}";
+          (lib.concatStringsSep "\" \"" finalAttrs.requirementsList)
+          + (lib.optionalString (requirementsFiles != []) ''
+            -r ${lib.concatStringsSep " -r " (map toString finalAttrs.requirementsFiles)}
+          '');
 
-        buildPhase = ./fetch-python-requirements.sh;
+        buildPhase = ''
+          source $buildScript
+        '';
       });
     in self;
 in
