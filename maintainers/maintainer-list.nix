@@ -5263,6 +5263,15 @@
     githubId = 313929;
     name = "Gabriel Ebner";
   };
+  genericnerdyusername = {
+    name = "GenericNerdyUsername";
+    email = "genericnerdyusername@proton.me";
+    github = "GenericNerdyUsername";
+    githubId = 111183546;
+    keys = [{
+      fingerprint = "58CE D4BE 6B10 149E DA80  A990 2F48 6356 A4CB 30F3";
+    }];
+  };
   genofire = {
     name = "genofire";
     email = "geno+dev@fireorbit.de";
@@ -6070,6 +6079,12 @@
     github = "hufman";
     githubId = 1592375;
     name = "Walter Huf";
+  };
+  hughobrien = {
+    email = "github@hughobrien.ie";
+    github = "hughobrien";
+    githubId = 3400690;
+    name = "Hugh O'Brien";
   };
   hugolgst = {
     email = "hugo.lageneste@pm.me";
@@ -13684,6 +13699,12 @@
     githubId = 57048005;
     name = "snicket2100";
   };
+  sno2wman = {
+    name = "SnO2WMaN";
+    email = "me@sno2wman.net";
+    github = "sno2wman";
+    githubId = 15155608;
+  };
   snpschaaf = {
     email = "philipe.schaaf@secunet.com";
     name = "Philippe Schaaf";
@@ -14407,6 +14428,12 @@
     githubId = 139251;
     name = "Tom Hunger";
   };
+  tehmatt = {
+    name = "tehmatt";
+    email = "nix@programsareproofs.com";
+    github = "tehmatt";
+    githubId = 3358866;
+  };
   tejasag = {
     name = "Tejas Agarwal";
     email = "tejasagarwalbly@gmail.com";
@@ -14843,7 +14870,7 @@
   };
   toastal = {
     email = "toastal+nix@posteo.net";
-    matrix = "@toastal:matrix.org";
+    matrix = "@toastal:chat.mozilla.org";
     github = "toastal";
     githubId = 561087;
     name = "toastal";
@@ -15302,6 +15329,12 @@
     github = "Valodim";
     githubId = 27813;
     name = "Vincent Breitmoser";
+  };
+  vamega = {
+    email = "github@madiathv.com";
+    github = "vamega";
+    githubId = 223408;
+    name = "Varun Madiath";
   };
   vandenoever = {
     email = "jos@vandenoever.info";
@@ -16080,6 +16113,12 @@
     github = "y0no";
     githubId = 2242427;
     name = "Yoann Ono";
+  };
+  yajo = {
+    email = "yajo.sk8@gmail.com";
+    github = "yajo";
+    githubId = 973709;
+    name = "Jairo Llopis";
   };
   yana = {
     email = "yana@riseup.net";

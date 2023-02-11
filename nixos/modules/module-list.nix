@@ -698,6 +698,7 @@
   ./services/monitoring/arbtt.nix
   ./services/monitoring/bosun.nix
   ./services/monitoring/cadvisor.nix
+  ./services/monitoring/cockpit.nix
   ./services/monitoring/collectd.nix
   ./services/monitoring/das_watchdog.nix
   ./services/monitoring/datadog-agent.nix
@@ -1306,6 +1307,7 @@
   ./system/boot/systemd/logind.nix
   ./system/boot/systemd/nspawn.nix
   ./system/boot/systemd/oomd.nix
+  ./system/boot/systemd/repart.nix
   ./system/boot/systemd/shutdown.nix
   ./system/boot/systemd/tmpfiles.nix
   ./system/boot/systemd/user.nix
