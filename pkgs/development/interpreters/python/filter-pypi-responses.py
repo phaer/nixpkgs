@@ -9,20 +9,27 @@ It has to do one extra api request for each queried package name
 """
 import json
 import os
-from urllib import request
+from urllib.request import Request, urlopen
 import dateutil.parser
+import gzip
 
 from mitmproxy import http
 
 
+"""
+Query the pypi json api to get timestamps for all release files of the given pname.
+return all file names which are newer than the given timestamp
+"""
 def get_files_to_hide(pname, max_ts):
-    """
-    Query the pypi json api to get timestamps for all release files of the given pname.
-    return all file names which are newer than the given timestamp
-    """
+    # query the api
     url = f"https://pypi.org/pypi/{pname}/json"
-    with request.urlopen(url) as f:
-        resp = json.load(f)
+    req = Request(url)
+    req.add_header('Accept-Encoding', 'gzip')
+    with urlopen(req) as response:
+        content = gzip.decompress(response.read())
+        resp = json.loads(content)
+
+    # collect files to hide
     files = set()
     for ver, releases in resp['releases'].items():
         for release in releases:

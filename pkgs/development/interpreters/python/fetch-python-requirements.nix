@@ -127,7 +127,7 @@ let
             # Include requirements
             # We hash the content, as store paths might change more often
             ${toString finalAttrs.requirementsList}
-            ${toString (map builtins.readFile finalAttrs.requirementsFiles)}
+            ${toString finalAttrs.requirementsFiles}
 
             # Only hash the content of the python scripts, as the store path
             # changes with every nixpkgs commit
@@ -135,17 +135,25 @@ let
             ${builtins.readFile finalAttrs.buildScript}
           '';
 
+          invalidationHashShort = lib.substring 0 10
+            (builtins.unsafeDiscardStringContext invalidationHash);
+
           namePrefix =
             if name == null
             then ""
             else name + "-";
 
         in
-          "${namePrefix}${nameSuffix}-${invalidationHash}";
+          "${namePrefix}${nameSuffix}-${invalidationHashShort}";
 
         outputHashMode = "recursive";
         outputHashAlgo = "sha256";
         outputHash = hash;
+
+        # Multiple outputs are not allowed in an FOD, therefore use passthru
+        #   to export $dist and $names
+        passthru.dist = "${finalAttrs.finalPackage}/dist";
+        passthru.names = "${finalAttrs.finalPackage}/names";
 
         nativeBuildInputs =
           nativeBuildInputs
