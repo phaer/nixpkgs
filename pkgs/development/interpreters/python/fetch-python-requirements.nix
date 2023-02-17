@@ -179,14 +179,11 @@ let
             lib.concatStringsSep " " (lib.forEach platforms (pf: "--platform ${pf}"))
           }";
         requirementsFlags =
-          (lib.concatStringsSep " " finalAttrs.requirementsList)
-          + (
-            lib.optionalString (requirementsFiles != [])
-            '' -r ${lib.concatStringsSep " -r " (map toString finalAttrs.requirementsFiles)}''
-          );
+          lib.optionalString (requirementsFiles != [])
+          '' -r ${lib.concatStringsSep " -r " (map toString finalAttrs.requirementsFiles)}'';
 
         buildPhase = ''
-          source $buildScript
+          bash $buildScript
         '';
       });
     in self;

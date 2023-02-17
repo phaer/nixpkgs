@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
 # the script.py will read this date
 pretty=$(python -c '
 import os; import dateutil.parser;
@@ -48,6 +50,7 @@ $fetcherPip download \
   --trusted-host files.pythonhosted.org \
   $pipFlags \
   $onlyBinaryFlags \
+  $(printf " %s" "${requirementsList[@]}") \
   $requirementsFlags
 
 # terminate proxy
