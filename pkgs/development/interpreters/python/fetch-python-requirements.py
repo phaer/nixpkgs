@@ -8,7 +8,8 @@ import urllib.request
 from pathlib import Path
 
 import certifi
-from packaging.utils import canonicalize_name
+from packaging.utils import canonicalize_name, parse_sdist_filename, parse_wheel_filename
+
 
 HOME = Path(os.getcwd())
 OUT = Path(os.getenv("out"))
@@ -128,7 +129,11 @@ if __name__ == '__main__':
     proxy.kill()
 
     for dist_file in dist_path.iterdir():
-        pname = canonicalize_name(dist_file.name)
+        if dist_file.suffix == '.whl':
+            name = parse_wheel_filename(dist_file.name)[0]
+        else:
+            name = parse_sdist_filename(dist_file.name)[0]
+        pname = canonicalize_name(name)
         name_path = names_path / pname
         print(f'creating link {name_path} -> {dist_file}')
         name_path.mkdir()
