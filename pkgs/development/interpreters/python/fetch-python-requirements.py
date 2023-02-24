@@ -89,9 +89,7 @@ def create_venv(path):
 
 
 def pip(venv_path, *args):
-    subprocess.run([f"{venv_path}/bin/pip", *args],
-                   env={ HOME: HOME },
-                   check=True)
+    subprocess.run([f"{venv_path}/bin/pip", *args], check=True)
 
 
 if __name__ == '__main__':
