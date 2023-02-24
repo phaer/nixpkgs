@@ -137,4 +137,4 @@ if __name__ == '__main__':
         name_path = names_path / pname
         print(f'creating link {name_path} -> {dist_file}')
         name_path.mkdir()
-        (name_path / dist_file.name).symlink_to(dist_file)
+        (name_path / dist_file.name).symlink_to(f"../../dist/{dist_file.name}")
