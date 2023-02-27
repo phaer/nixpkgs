@@ -34,7 +34,6 @@ def get_files_to_hide(pname, max_ts):
     url = f"https://pypi.org/pypi/{pname}/json"
     req = Request(url)
     req.add_header('Accept-Encoding', 'gzip')
-    print('URL', url)
     with urlopen(req, context=context) as response:
         content = gzip.decompress(response.read())
         resp = json.loads(content)
