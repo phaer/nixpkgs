@@ -134,7 +134,7 @@ in
             proxy_set_header X-Auth-Request-Redirect $scheme://$host$request_uri;
           '';
         };
-        locations."/".extraConfig = ''
+        extraConfig = ''
           auth_request /auth;
           auth_request_set $auth_user $upstream_http_tailscale_user;
           auth_request_set $auth_name $upstream_http_tailscale_name;
