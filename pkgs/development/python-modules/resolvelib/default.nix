@@ -1,6 +1,7 @@
 { lib
 , buildPythonPackage
 , fetchFromGitHub
+, setuptools
 , commentjson
 , pytestCheckHook
 }:
@@ -12,30 +13,24 @@ buildPythonPackage rec {
   # is compatible with Ansible
   # https://github.com/NixOS/nixpkgs/pull/128636
   # https://github.com/ansible/ansible/blob/devel/requirements.txt
-  version = "0.5.5";
-  format = "setuptools";
+
+  version = "1.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sarugaku";
     repo = "resolvelib";
-    rev = version;
-    sha256 = "198vfv78hilpg0d0mjzchzp9zk6239wnra61vlsgwpcgz66d2bgv";
+    rev = "/refs/tags/${version}";
+    hash = "sha256-oxyPn3aFPOyx/2aP7Eg2ThtPbyzrFT1JzWqy6GqNbzM=";
   };
+
+  nativeBuildInputs = [
+    setuptools
+  ];
 
   nativeCheckInputs = [
     commentjson
     pytestCheckHook
-  ];
-  # TODO: reenable after updating to >= 1.0.0
-  # https://github.com/sarugaku/resolvelib/issues/114
-  disabledTests = [
-    "shared_parent_dependency"
-    "deep_complex_conflict"
-    "shared_parent_dependency_with_swapping"
-    "spapping_and_rewinding"
-    "pruned_unresolved_orphan"
-    "conflict_common_parent"
-    "same-package"
   ];
 
   pythonImportsCheck = [
