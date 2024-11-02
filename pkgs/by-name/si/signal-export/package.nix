@@ -16,7 +16,7 @@ python3.pkgs.buildPythonApplication rec {
   };
 
   nativeBuildInputs = with python3.pkgs; [
-    setuptools-scm
+    pdm-backend
   ];
 
   propagatedBuildInputs = with python3.pkgs; [
@@ -26,6 +26,8 @@ python3.pkgs.buildPythonApplication rec {
     emoji
     markdown
     pysqlcipher3
+    rich
+    pycryptodome
   ];
 
   passthru.updateScript = nix-update-script { };
