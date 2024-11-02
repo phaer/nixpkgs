@@ -20,14 +20,12 @@ python3.pkgs.buildPythonApplication rec {
   ];
 
   propagatedBuildInputs = with python3.pkgs; [
-    setuptools
     typer
     beautifulsoup4
     emoji
     markdown
-    pysqlcipher3
-    rich
     pycryptodome
+    sqlcipher3-wheels
   ];
 
   passthru.updateScript = nix-update-script { };
