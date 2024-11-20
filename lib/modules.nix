@@ -1151,6 +1151,33 @@ let
       "Obsolete option `${showOption from}' is used. It was renamed to `${showOption to}'.";
   };
 
+  /* Return a module that causes a warning to be shown if the specified "from"
+     option is being read, while still returning the value of the "to" option.
+     This can be used to rename free-form options, while providing backward
+     compatibility for consumers. It's i.e. useful for renaming `system.build` options.
+
+     while providing backward compatibility. For example,
+
+       mkRenamedFreeFormOptionModule [ "system" "build" "linodeImage" ] [ "system" "build" "images" ]
+
+     warns if system.build.inodeImage gets read, but still evaluates as expected.
+  */
+  mkRenamedFreeFormOptionModule = {
+    from, to
+  }: {options, config, ...}: {
+    options = lib.setAttrByPath from (
+      lib.mkOption {
+        description = "Obsolete alias of ${lib.showOption to}";
+        type = let opt = lib.attrByPath to {} options; in opt.type or (types.submodule {});
+        visible = false;
+        readOnly = true;
+        default = lib.warn
+          "Obsolete option `${lib.showOption from}' is used. It was renamed to `${lib.showOption to}'."
+          (lib.getAttrFromPath to config);
+      }
+    );
+  };
+
   /* Return a module that causes a warning to be shown if any of the "from"
      option is defined; the defined values can be used in the "mergeFn" to set
      the "to" value.
@@ -1596,6 +1623,7 @@ private //
     mkRemovedOptionModule
     mkRenamedOptionModule
     mkRenamedOptionModuleWith
+    mkRenamedFreeFormOptionModule
     mkVMOverride
     setDefaultModuleLocation
     sortProperties;
