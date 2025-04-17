@@ -15,23 +15,18 @@
 }:
 stdenv.mkDerivation rec {
   pname = "grist-core";
-  version = "1.3.2";
+  version = "1.5.1";
 
   src = fetchFromGitHub {
     owner = "gristlabs";
     repo = "grist-core";
-    rev = "v${version}";
-    hash = "sha256-8/voGPKKlhTBAjBRLatg5Sf98hTSnKdice+Fhy73wTA=";
+    tag = "v${version}";
+    hash = "sha256-eNmxOAjYxqjxjNdKvIpvW84/CCjFVl8DX1GZPSAtP80=";
   };
-
-  patches = [
-    # Upstream PR: https://github.com/gristlabs/grist-core/pull/1402
-    ./remove-chokidar.patch
-  ];
 
   offlineCache = fetchYarnDeps {
     yarnLock = "${src}/yarn.lock";
-    hash = "sha256-alXkfkI1j2rjqI8BJQaBTMJTVPFbCL73+FvKfegFdXA=";
+    hash = "sha256-Q441bmW9A4vfaX2Nano/5mynajjSbNGR6JXLxDBgsww=";
   };
 
   nativeBuildInputs = with nodePackages; [
