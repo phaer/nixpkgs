@@ -6,7 +6,6 @@
 }:
 let
   inherit (lib)
-    literalExpression
     types
     mkOption
     mkPackageOption
@@ -36,55 +35,19 @@ in
       description = "Group under which grist-core runs.";
     };
 
-    pythonEnv = mkOption {
-      internal = true;
-      type = types.package;
-      default = pkgs.grist-core.pythonEnv;
-      example = literalExpression ''
-        pkgs.python3.withPackages (ps: with ps; [
-          astroid
-          asttokens
-          chardet
-          et-xmlfile
-          executing
-          friendly-traceback
-          iso8601
-          lazy-object-proxy
-          openpyxl
-          phonenumbers
-          pure-eval
-          python-dateutil
-          roman
-          six
-          sortedcontainers
-          stack-data
-          typing-extensions
-          unittest-xml-reporting
-          wrapt
-        ]);
-      '';
-    };
-
-    enableSandboxing = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Isolate untrusted documents in a sandbox.
-      '';
-    };
+    enableSandboxing = mkEnableOption "isolate untrusted documents in a sandbox";
 
     settings = mkOption {
       type =
-        with types;
-        submodule {
-          freeformType = attrsOf (oneOf [
-            str
-            null
+        types.submodule {
+          freeformType = types.attrsOf (types.oneOf [
+            types.str
+            types.null
           ]);
 
           options = {
             GRIST_DATA_DIR = mkOption {
-              type = str;
+              type = types.path;
               default = "/var/lib/grist-core/docs";
               description = ''
                 Directory in which to store documents.
@@ -92,7 +55,7 @@ in
             };
 
             GRIST_INST_DIR = mkOption {
-              type = str;
+              type = types.path;
               default = "/var/lib/grist-core";
               description = ''
                 Path to Grist instance configuration files, for Grist server.
@@ -100,7 +63,7 @@ in
             };
 
             GRIST_USER_ROOT = mkOption {
-              type = str;
+              type = types.path;
               default = "/var/lib/grist-core";
               description = ''
                 An extra path to look for plugins in - Grist will scan for plugins in $GRIST_USER_ROOT/plugins.
@@ -108,24 +71,29 @@ in
             };
 
             GRIST_SANDBOX_FLAVOR = mkOption {
-              type = nullOr str;
+              type = types.nullOr types.str;
+              # TODO probably isn't used if sandboxing not enabled?
               default = if cfg.enableSandboxing then "gvisor" else null;
-              readOnly = true;
               description = ''
                 If set, forces Grist to use the specified kind of sandbox.
               '';
             };
 
             GVISOR_FLAGS = mkOption {
-              type = str;
-              default = "-rootless -debug";
+              type = types.listOf types.str;
+              default = [
+                "-rootless"
+                "-debug"
+              ];
+              apply = lib.concatStringsSep " ";
               description = ''
                 The flags that are passed on to gVisor when creating a sandbox.
               '';
             };
 
             GVISOR_AVAILABLE = mkOption {
-              type = str;
+              # TODO where is this set if it's read only?
+              type = types.str;
               default = "1";
               readOnly = true;
               description = ''
@@ -134,7 +102,7 @@ in
             };
 
             TYPEORM_DATABASE = mkOption {
-              type = str;
+              type = types.str;
               default = "/var/lib/grist-core/db.sqlite";
               description = ''
                 Database filename for sqlite or database name for other db types.
@@ -142,7 +110,7 @@ in
             };
 
             TYPEORM_TYPE = mkOption {
-              type = enum [
+              type = types.enum [
                 "sqlite"
                 "postgres"
               ];
@@ -165,7 +133,7 @@ in
     };
 
     environmentFiles = mkOption {
-      type = with types; listOf path;
+      type = types.listOf types.path;
       default = [ ];
       description = ''
         Environment files for secrets.
@@ -174,6 +142,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [{
+      assertion = cfg.enableSandboxing -> cfg.settings.GRIST_SANDBOX_FLAVOR == "gvisor";
+      message = "services.grist-core.enableSandboxing only supports gvisor";
+    }];
+
     systemd.services.grist-core = {
       description = "Grist Core";
 
@@ -182,10 +155,11 @@ in
       ] ++ lib.optional (cfg.settings.TYPEORM_TYPE == "postgres") "postgresql.service";
 
       wants = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
 
       path = [
         pkgs.gvisor
-        cfg.pythonEnv
+        cfg.package.pythonEnv
       ];
 
       environment = cfg.settings;
@@ -239,12 +213,10 @@ in
           BindReadOnlyPaths = [
             builtins.storeDir
             "/etc"
-            "${cfg.pythonEnv}/bin:/usr/bin"
-            "${cfg.pythonEnv}/lib:/usr/lib"
+            "${cfg.package.pythonEnv}/bin:/usr/bin"
+            "${cfg.package.pythonEnv}/lib:/usr/lib"
           ];
         });
-
-      wantedBy = [ "multi-user.target" ];
     };
   };
 }
