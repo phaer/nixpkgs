@@ -117,6 +117,16 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
+  postInstall = ''
+    # FIXME Mocha and sinon might only be needed for testing? Not sure if they should be here at all?
+    unlink $out/libexec/static/mocha.js
+    unlink $out/libexec/static/sinon.js
+    unlink $out/libexec/static/mocha.css
+    # FIXME
+    unlink $out/libexec/node_modules/msgpackr/node_modules/.bin/download-msgpackr-prebuilds
+    unlink $out/libexec/node_modules/.bin/download-msgpackr-prebuilds
+  '';
+
   meta = {
     description = "Grist is the evolution of spreadsheets";
     homepage = "https://github.com/gristlabs/grist-core";
