@@ -72,10 +72,18 @@ in
 
             GRIST_SANDBOX_FLAVOR = mkOption {
               type = types.nullOr types.str;
-              # TODO probably isn't used if sandboxing not enabled?
               default = if cfg.enableSandboxing then "gvisor" else null;
               description = ''
-                If set, forces Grist to use the specified kind of sandbox.
+                Sandbox to use for grist documents. Only "gvisor" and no sandbox are supported.
+              '';
+            };
+
+            GRIST_SANDBOX = mkOption {
+              type = types.nullOr types.path;
+              default = if !cfg.enableSandboxing then lib.getExe cfg.package.pythonEnv else null;
+              defaultText = types.literalExpression "if !cfg.enableSandboxing then lib.getExe cfg.package.pythonEnv else null";
+              description = ''
+                If set forces Grist to use the specified script for the sandbox. Or python if sandbox is disabled.
               '';
             };
 
@@ -158,9 +166,8 @@ in
       wantedBy = [ "multi-user.target" ];
 
       path = [
-        pkgs.gvisor
         cfg.package.pythonEnv
-      ];
+      ] ++ lib.optionals (cfg.enableSandboxing) pkgs.visor;
 
       environment = cfg.settings;
 
