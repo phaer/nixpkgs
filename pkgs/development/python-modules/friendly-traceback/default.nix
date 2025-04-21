@@ -6,20 +6,23 @@
   executing,
   pure-eval,
   stack-data,
+  setuptools,
   six,
 }:
 buildPythonPackage rec {
   pname = "friendly-traceback";
   version = "0.7.61";
 
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-jKFJ6k7/oRSp1DVAeNAlLbxT4pHNzGPyPjS4+2W6FfM=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     asttokens
     executing
     pure-eval
@@ -28,6 +31,7 @@ buildPythonPackage rec {
   ];
 
   doCheck = false;
+  pythonImportsCheck = [ "friendly_traceback" ];
 
   meta = {
     description = "Friendlier Python tracebacks";
