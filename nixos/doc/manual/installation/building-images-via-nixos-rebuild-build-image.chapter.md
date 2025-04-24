@@ -18,9 +18,9 @@ To get a list of all variants available, run `nixos-rebuild build-image` without
 
 ::: {.example #ex-nixos-rebuild-build-image-customize}
 
-## Customize specific image variants {#sec-image-nixos-rebuild-build-image-customize}
+## Customize existing image variants {#sec-image-nixos-rebuild-build-image-customize}
 
-The `image.modules` option can be used to set specific options per image variant, in a similar fashion as [specialisations](options.html#opt-specialisation) for generic NixOS configurations.
+The [`image.modules`](options.html#opt-image.modules) option can be used to set specific options per image variant, in a similar fashion as [specialisations](options.html#opt-specialisation) for generic NixOS configurations.
 
 E.g. images for the cloud provider Linode use `grub2` as a bootloader by default. If you are using `systemd-boot` on other platforms and want to disable it for Linode only, you could use the following options:
 
@@ -29,3 +29,20 @@ E.g. images for the cloud provider Linode use `grub2` as a bootloader by default
     boot.loader.systemd-boot.enable = lib.mkForce false;
   };
 ```
+
+:::
+::: {.example #ex-nixos-rebuild-build-image-create}
+
+## Create new image variants {#sec-image-nixos-rebuild-build-image-create}
+
+To define a new image variant to be used with `nixos-rebuild build-image`, the following attributes must be defined:
+
+* `system.build.image` - a derivation which contains a built image file.
+* A set of options to declare the full path to the image file:
+  * `image.baseName`
+  * `image.extension`
+  * `image.fileName`
+  * `image.filePath`
+``` nix
+```
+:::
