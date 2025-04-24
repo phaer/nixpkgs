@@ -161,6 +161,9 @@
   "ex-config": [
     "index.html#ex-config"
   ],
+  "ex-nixos-rebuild-build-image-create": [
+    "index.html#ex-nixos-rebuild-build-image-create"
+  ],
   "ex-nixos-rebuild-build-image-customize": [
     "index.html#ex-nixos-rebuild-build-image-customize"
   ],
@@ -217,6 +220,9 @@
   ],
   "sec-image-nixos-rebuild-build-image": [
     "index.html#sec-image-nixos-rebuild-build-image"
+  ],
+  "sec-image-nixos-rebuild-build-image-create": [
+    "index.html#sec-image-nixos-rebuild-build-image-create"
   ],
   "sec-image-nixos-rebuild-build-image-customize": [
     "index.html#sec-image-nixos-rebuild-build-image-customize"
