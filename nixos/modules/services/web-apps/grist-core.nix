@@ -167,7 +167,7 @@ in
 
       path = [
         cfg.package.pythonEnv
-      ] ++ lib.optionals (cfg.enableSandboxing) pkgs.visor;
+      ] ++ lib.optionals (cfg.enableSandboxing) [pkgs.gvisor];
 
       environment = cfg.settings;
 
