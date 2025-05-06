@@ -118,6 +118,9 @@ stdenv.mkDerivation rec {
   '';
 
   postInstall = ''
+    # FIXME: we tell gvisor to preserve the entire /nix/store bind mount inside it's container.
+    sed -i '/preserve("\/usr\/local\/lib")/a preserve("/nix/store")' $out/libexec/sandbox/gvisor/run.py
+
     # FIXME Mocha and sinon might only be needed for testing? Not sure if they should be here at all?
     unlink $out/libexec/static/mocha.js
     unlink $out/libexec/static/sinon.js
