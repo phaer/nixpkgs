@@ -277,4 +277,70 @@ in
         assert "Adding new partition 2 to partition table." in systemd_repart_logs
       '';
   };
+
+  factory-reset = makeTest {
+    name = "systemd-repart-factory-reset";
+    meta.maintainers = with maintainers; [ flokli ];
+
+    nodes.machine =
+      {
+        config,
+        pkgs,
+        lib,
+        ...
+      }:
+      {
+        imports = [ common ];
+
+        boot.initrd.systemd.enable = true;
+        boot.initrd.systemd.repart.enable = true;
+        boot.initrd.systemd.repart.factoryReset = true;
+        systemd.repart.partitions = {
+          "10-root" = {
+            Type = "linux-generic";
+          };
+          "10-scratch" = {
+            Type = "var";
+            Label = "scratch";
+            Format = "ext4";
+            FactoryReset = "yes";
+          };
+        };
+        virtualisation.fileSystems = {
+          "/var" = {
+            device = "/dev/disk/by-partlabel/scratch";
+            fsType = "ext4";
+          };
+        };
+      };
+
+    testScript =
+      { nodes, ... }:
+      ''
+        ${useDiskImage {
+          inherit (nodes) machine;
+          sizeDiff = "+100M";
+        }}
+
+        machine.start(allow_reboot = True)
+        machine.wait_for_unit("multi-user.target")
+
+        systemd_repart_logs = machine.succeed("journalctl --boot --unit systemd-repart.service")
+        assert "successfully formatted as ext4 (label \"scratch\"" in systemd_repart_logs
+
+        assert "/dev/vda3" in machine.succeed("mount")
+        machine.succeed("touch /var/canary")
+
+        machine.reboot()
+        machine.wait_for_unit("multi-user.target")
+
+        systemd_repart_logs = machine.succeed("journalctl --boot --unit systemd-repart.service")
+        assert "Successfully wiped file system signatures from future partition 2." in systemd_repart_logs
+
+        assert "/dev/vda3" in machine.succeed("mount")
+
+        machine.succeed("test ! -e /var/canary")
+      '';
+  };
+
 }
