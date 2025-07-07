@@ -94,6 +94,7 @@ in
         '';
         type = lib.types.listOf lib.types.str;
         default = [ ];
+      };
 
       factoryReset = lib.mkOption {
         type = lib.types.bool;
