@@ -30,6 +30,10 @@ stdenv.mkDerivation rec {
     texlive.combined.scheme-minimal
   ];
 
+  patches = [
+    ./gettext-0.25.patch
+  ];
+
   postPatch = ''
     touch config.rpath
   '';

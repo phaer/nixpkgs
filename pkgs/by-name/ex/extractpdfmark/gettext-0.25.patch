@@ -1,0 +1,14 @@
+diff --git a/configure.ac b/configure.ac
+index 2e7d562..1f17e1c 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -8,6 +8,9 @@ AM_INIT_AUTOMAKE([foreign])
+ AC_CONFIG_SRCDIR([src/main.cc])
+ AC_CONFIG_HEADERS([config.h])
+ 
++AM_GNU_GETTEXT_VERSION([0.19.6])
++AM_GNU_GETTEXT([external])
++
+ PACKAGE_COPYRIGHT="Copyright (C) 2016-2022 Masamichi Hosoda"
+ PACKAGE_LICENSE="License: GPL3+"
+ 
