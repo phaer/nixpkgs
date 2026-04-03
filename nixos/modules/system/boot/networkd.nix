@@ -4219,7 +4219,7 @@ let
         with types;
         attrsOf (submodule {
           # Default in initrd is dhcp-on-stop, which is correct if flushBeforeStage2 = false
-          config = mkIf config.boot.initrd.network.flushBeforeStage2 {
+          config = mkIf (config.boot.initrd.network.flushBeforeStage2 or true) {
             networkConfig.KeepConfiguration = mkDefault false;
           };
         });
@@ -4234,7 +4234,7 @@ let
       (commonConfig config.boot.initrd)
 
       {
-        systemd.network.enable = mkDefault config.boot.initrd.network.enable;
+        systemd.network.enable = mkDefault (config.boot.initrd.network.enable or false);
         systemd.contents = mkUnitFiles "/etc/" cfg;
 
         # Networkd link files are used early by udev to set up interfaces early.
@@ -4304,7 +4304,8 @@ in
       assertions = [
         {
           assertion =
-            !config.boot.initrd.network.udhcpc.enable && config.boot.initrd.network.udhcpc.extraArgs == [ ];
+            !(config.boot.initrd.network.udhcpc.enable or false)
+            && (config.boot.initrd.network.udhcpc.extraArgs or [ ]) == [ ];
           message = ''
             systemd stage 1 networking does not support 'boot.initrd.network.udhcpc'. Configure
             DHCP with 'networking.*' options or with 'boot.initrd.systemd.network' options.
