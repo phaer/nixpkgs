@@ -962,6 +962,7 @@ in
   minecraft-server = runTest ./minecraft-server.nix;
   minidlna = runTest ./minidlna.nix;
   minimal-bootable = runTest ./minimal-bootable.nix;
+  minimal-container = pkgs.callPackage ./minimal-container.nix { };
   miniflux = runTest ./miniflux.nix;
   minio = runTest ./minio.nix;
   miracle-wm = runTest ./miracle-wm.nix;
