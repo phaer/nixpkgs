@@ -961,6 +961,7 @@ in
   mindustry = runTest ./mindustry.nix;
   minecraft-server = runTest ./minecraft-server.nix;
   minidlna = runTest ./minidlna.nix;
+  minimal-bootable = runTest ./minimal-bootable.nix;
   miniflux = runTest ./miniflux.nix;
   minio = runTest ./minio.nix;
   miracle-wm = runTest ./miracle-wm.nix;
