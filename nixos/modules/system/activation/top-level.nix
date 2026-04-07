@@ -283,9 +283,10 @@ in
 
     system.name = mkOption {
       type = types.str;
-      default = if config.networking.hostName == "" then "unnamed" else config.networking.hostName;
+      default =
+        if (config.networking.hostName or "") == "" then "unnamed" else config.networking.hostName;
       defaultText = literalExpression ''
-        if config.networking.hostName == ""
+        if (config.networking.hostName or "") == ""
         then "unnamed"
         else config.networking.hostName;
       '';
