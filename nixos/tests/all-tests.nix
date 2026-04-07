@@ -963,6 +963,7 @@ in
   minidlna = runTest ./minidlna.nix;
   miniflux = runTest ./miniflux.nix;
   minimal-bootable = runTest ./minimal-bootable.nix;
+  minimal-container = pkgs.callPackage ./minimal-container.nix { };
   minio = runTest ./minio.nix;
   miracle-wm = runTest ./miracle-wm.nix;
   miriway = runTest ./miriway.nix;
