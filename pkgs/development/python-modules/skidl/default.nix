@@ -4,9 +4,12 @@
   fetchFromGitHub,
   kinparse,
   pyspice,
+  netlistsvg,
+  pytestCheckHook,
   graphviz,
   sexpdata,
   simp-sexp,
+  writableTmpDirAsHomeHook,
 }:
 buildPythonPackage rec {
   pname = "skidl";
@@ -28,8 +31,27 @@ buildPythonPackage rec {
     simp-sexp
   ];
 
-  # Checks require availability of the kicad symbol libraries.
-  doCheck = false;
+  # skidl writes its config to $HOME on import (pythonImportsCheck)
+  nativeBuildInputs = [ writableTmpDirAsHomeHook ];
+
+  nativeCheckInputs = [
+    netlistsvg
+    pytestCheckHook
+  ];
+  # Examples and integration tests require KiCad symbol libraries
+  enabledTestPaths = [ "tests/unit_tests" ];
+
+  disabledTests = [
+    # require KiCad symbol libraries
+    "test_search_1"
+    "test_lib_kicad_1"
+    "test_lib_kicad_2"
+    "test_lib_kicad_top_level_pins"
+    # requires network access
+    "test_lib_kicad_repository"
+  ];
+
+  pythonImportsCheck = [ "skidl" ];
 
   meta = {
     description = "SKiDL is a module that extends Python with the ability to design electronic circuits";
